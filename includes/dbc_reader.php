@@ -70,6 +70,16 @@ function sahtout_read_wdbc_records(string $path): array
     return [$records, $strings];
 }
 
+/** WDBC stores int32 fields as little-endian uint32; convert negatives (e.g. -1) correctly. */
+function sahtout_dbc_int32(int $raw): int
+{
+    if ($raw >= 0x80000000) {
+        return $raw - 0x100000000;
+    }
+
+    return $raw;
+}
+
 function sahtout_dbc_string(string $strings, int $offset): string
 {
     if ($offset < 0 || $offset >= strlen($strings)) {

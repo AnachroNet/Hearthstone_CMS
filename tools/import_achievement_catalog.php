@@ -230,9 +230,9 @@ function sahtout_build_achievement_meta(array $achRows, string $achStrings): arr
         }
         $meta[$id] = [
             'title' => sahtout_dbc_string($achStrings, (int) ($row[ACH_FIELD_TITLE_ENUS] ?? 0)),
-            'faction' => (int) ($row[ACH_FIELD_FACTION] ?? -1),
+            'faction' => sahtout_dbc_int32((int) ($row[ACH_FIELD_FACTION] ?? 0xFFFFFFFF)),
             'points' => (int) ($row[ACH_FIELD_POINTS] ?? 0),
-            'map_id' => (int) ($row[ACH_FIELD_MAP] ?? -1),
+            'map_id' => sahtout_dbc_int32((int) ($row[ACH_FIELD_MAP] ?? 0xFFFFFFFF)),
             'ref' => (int) ($row[ACH_FIELD_REF] ?? 0),
         ];
     }
@@ -385,8 +385,8 @@ foreach ($achRows as $row) {
     $categoryId = (int) ($row[ACH_FIELD_CATEGORY] ?? 0);
     $categoryName = $categories[$categoryId] ?? null;
     $points = (int) ($row[ACH_FIELD_POINTS] ?? 0);
-    $faction = (int) ($row[ACH_FIELD_FACTION] ?? -1);
-    $mapId = (int) ($row[ACH_FIELD_MAP] ?? -1);
+    $faction = sahtout_dbc_int32((int) ($row[ACH_FIELD_FACTION] ?? 0xFFFFFFFF));
+    $mapId = sahtout_dbc_int32((int) ($row[ACH_FIELD_MAP] ?? 0xFFFFFFFF));
     $refAch = (int) ($row[ACH_FIELD_REF] ?? 0);
 
     $primary = sahtout_pick_primary_criterion($criteriaByAchievement[$id] ?? []);
