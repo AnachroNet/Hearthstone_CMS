@@ -1,7 +1,8 @@
 <?php
 /**
- * One-time helper: build includes/config.local.php from legacy split config files.
+ * One-time helper: build includes/config.local.php from legacy config files.
  * Run from project root: php scripts/build-config-local.php
+ * Optional: php scripts/build-config-local.php /path/to/old/config.php
  */
 define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../includes/config_local_io.php';
@@ -11,10 +12,13 @@ if (is_file(sahtout_local_config_path())) {
     exit(1);
 }
 
-$config = sahtout_migrate_legacy_config_files();
+$legacyMain = $argv[1] ?? null;
+$config = sahtout_migrate_legacy_config_files($legacyMain);
 if ($config === null) {
-    fwrite(STDERR, "No legacy config.php with database credentials found.\n");
-    fwrite(STDERR, "Copy includes/config.local.example.php to includes/config.local.php instead.\n");
+    fwrite(STDERR, "No legacy config with database credentials found.\n");
+    fwrite(STDERR, "Copy includes/config.local.example.php to includes/config.local.php, or pass a backup:\n");
+    fwrite(STDERR, "  php scripts/build-config-local.php /path/to/old/config.php\n");
+    fwrite(STDERR, "You can also save a pre-refactor config as includes/config.legacy.php and re-run.\n");
     exit(1);
 }
 
