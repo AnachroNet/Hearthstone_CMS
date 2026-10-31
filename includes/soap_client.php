@@ -98,6 +98,31 @@ function sahtout_soap_execute_command(string $command): array
     return ['ok' => true, 'output' => $body, 'error' => null];
 }
 
+function sahtout_soap_quote_command_arg(string $text): string
+{
+    $text = str_replace(["\r\n", "\r", "\n"], ' ', trim($text));
+    $text = str_replace('"', "'", $text);
+
+    return '"' . $text . '"';
+}
+
+function sahtout_soap_extract_command_message(string $soapResponse, bool $preserveLineBreaks = false): string
+{
+    $text = $soapResponse;
+    if (preg_match('/<(?:[\w]+:)?result[^>]*>(.*)<\/(?:[\w]+:)?result>/si', $soapResponse, $matches)) {
+        $text = html_entity_decode($matches[1], ENT_QUOTES | ENT_XML1, 'UTF-8');
+    } elseif (preg_match('/<(?:[\w]+:)?executeCommandResult[^>]*>(.*)<\/(?:[\w]+:)?executeCommandResult>/si', $soapResponse, $matches)) {
+        $text = html_entity_decode($matches[1], ENT_QUOTES | ENT_XML1, 'UTF-8');
+    }
+
+    $text = strip_tags($text);
+    if ($preserveLineBreaks) {
+        return trim($text);
+    }
+
+    return trim(preg_replace('/\s+/', ' ', $text) ?? '');
+}
+
 function sahtout_try_reload_gm_tickets(): bool
 {
     $commands = ['.reload gm_tickets', 'reload gm_tickets'];

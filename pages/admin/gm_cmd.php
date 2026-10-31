@@ -4,6 +4,7 @@ define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/soap_client.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -12,66 +13,136 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'mode
 
 $page_class = 'gm_cmd';
 
-// CSRF token is generated centrally in includes/session.php
+$soapConfigured = sahtout_soap_is_configured();
 $response_output = null;
+$serverCommFeedback = null;
+$serverMotd = '';
+$motdLoadNotice = null;
+$skipMotdFetch = false;
+
+function sahtout_gm_cmd_feedback_html(string $type, string $message): string
+{
+    $classes = [
+        'success' => 'bg-green-900/40 border-green-500/50 text-green-300',
+        'error' => 'bg-red-900/40 border-red-500/50 text-red-300',
+        'warning' => 'bg-yellow-900/40 border-yellow-500/50 text-yellow-300',
+    ];
+    $class = $classes[$type] ?? $classes['error'];
+    $icon = $type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+
+    return '<div class="' . $class . ' border px-4 py-3 rounded-sm flex items-center gap-3">'
+        . '<i class="fas ' . $icon . '"></i>'
+        . '<span>' . htmlspecialchars($message) . '</span>'
+        . '</div>';
+}
+
+function sahtout_gm_cmd_soap_response_html(string $soapOutput): string
+{
+    return '<div class="bg-black/30 p-4 rounded-sm border border-[rgba(201,162,39,0.1)] overflow-x-auto">'
+        . '<pre class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words m-0">'
+        . htmlspecialchars(sahtout_soap_extract_command_message($soapOutput, true))
+        . '</pre></div>';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $csrfToken = (string)($_POST['csrf_token'] ?? '');
-    $validCsrf = !empty($csrfToken) && hash_equals($csrfToken, (string)($_SESSION['csrf_token'] ?? ''));
-
-    $command = trim((string)($_POST['command'] ?? ''));
+    $csrfToken = (string) ($_POST['csrf_token'] ?? '');
+    $validCsrf = !empty($csrfToken) && hash_equals($csrfToken, (string) ($_SESSION['csrf_token'] ?? ''));
+    $action = (string) ($_POST['gm_action'] ?? 'run_command');
 
     if (!$validCsrf) {
-        // Reject the request entirely: never execute a GM command without a valid CSRF token.
-        $response_output = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm flex items-center gap-3">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>' . translate('error_csrf_token', 'Invalid or missing security token. Please refresh the page and try again.') . '</span>
-            </div>';
-    } elseif (!empty($command)) {
-        include $project_root . 'includes/soap.conf.php';
-
-        $xml = '<?xml version="1.0" encoding="utf-8"?>'
-            . '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
-            . '<SOAP-ENV:Body>'
-            . '<ns1:executeCommand xmlns:ns1="urn:AC">'
-            . '<command>' . htmlspecialchars($command, ENT_QUOTES) . '</command>'
-            . '</ns1:executeCommand>'
-            . '</SOAP-ENV:Body>'
-            . '</SOAP-ENV:Envelope>';
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $soap_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERPWD, "$soap_user:$soap_pass");
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Content-Type: text/xml",
-            "Content-Length: " . strlen($xml)
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $xml);
-
-        $response = curl_exec($ch);
-        if (curl_errno($ch)) {
-            $response_output = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm flex items-center gap-3">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>cURL Error: ' . htmlspecialchars(curl_error($ch)) . '</span>
-            </div>';
+        $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+            'error',
+            translate('error_csrf_token', 'Invalid or missing security token. Please refresh the page and try again.')
+        );
+    } elseif (!$soapConfigured) {
+        $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+            'error',
+            translate('gm_cmd_soap_missing', 'SOAP is not configured. Set it up under Admin → Settings → SOAP.')
+        );
+    } elseif ($action === 'set_motd') {
+        $motd = trim((string) ($_POST['server_motd'] ?? ''));
+        if ($motd === '') {
+            $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+                'error',
+                translate('gm_cmd_motd_empty', 'Enter a message of the day before saving.')
+            );
         } else {
-            $response_output = '<div class="bg-black/30 p-4 rounded-sm border border-[rgba(201,162,39,0.1)] overflow-x-auto">
-                <pre class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words m-0">' . htmlspecialchars($response) . '</pre>
-            </div>';
+            $command = '.server set motd ' . sahtout_soap_quote_command_arg($motd);
+            $result = sahtout_soap_execute_command($command);
+            if ($result['ok']) {
+                $serverMotd = $motd;
+                $skipMotdFetch = true;
+                $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+                    'success',
+                    translate('gm_cmd_motd_saved', 'Server MOTD was updated.')
+                );
+            } else {
+                $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+                    'error',
+                    translate('gm_cmd_motd_failed', 'Could not update server MOTD. Check SOAP logs.')
+                )
+                    . sahtout_gm_cmd_soap_response_html($result['output']);
+            }
         }
-        curl_close($ch);
+    } elseif ($action === 'broadcast') {
+        $message = trim((string) ($_POST['broadcast_message'] ?? ''));
+        if ($message === '') {
+            $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+                'error',
+                translate('gm_cmd_broadcast_empty', 'Enter a broadcast message before sending.')
+            );
+        } else {
+            $command = '.announce ' . sahtout_soap_quote_command_arg($message);
+            $result = sahtout_soap_execute_command($command);
+            if ($result['ok']) {
+                $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+                    'success',
+                    translate('gm_cmd_broadcast_sent', 'Broadcast was sent to online players.')
+                )
+                    . sahtout_gm_cmd_soap_response_html($result['output']);
+            } else {
+                $serverCommFeedback = sahtout_gm_cmd_feedback_html(
+                    'error',
+                    translate('gm_cmd_broadcast_failed', 'Could not send broadcast. Check SOAP logs.')
+                )
+                    . sahtout_gm_cmd_soap_response_html($result['output']);
+            }
+        }
     } else {
-        $response_output = '<div class="bg-yellow-900/40 border border-yellow-500/50 text-yellow-300 px-4 py-3 rounded-sm flex items-center gap-3">
-            <i class="fas fa-exclamation-triangle"></i>
-            <span>' . translate('error_no_command', 'No command entered.') . '</span>
-        </div>';
+        $command = trim((string) ($_POST['command'] ?? ''));
+        if ($command === '') {
+            $response_output = sahtout_gm_cmd_feedback_html(
+                'warning',
+                translate('error_no_command', 'No command entered.')
+            );
+        } else {
+            $result = sahtout_soap_execute_command($command);
+            if (!$result['ok']) {
+                $response_output = sahtout_gm_cmd_feedback_html(
+                    'error',
+                    translate('gm_cmd_command_failed', 'The worldserver rejected the command or SOAP failed.')
+                )
+                    . sahtout_gm_cmd_soap_response_html($result['output'] !== '' ? $result['output'] : (string) ($result['error'] ?? ''));
+            } else {
+                $response_output = sahtout_gm_cmd_soap_response_html($result['output']);
+            }
+        }
     }
 }
-?>
-<?php
-$page_title = translate('page_title_soap', 'SOAP Command Executor');
+
+if ($soapConfigured && !$skipMotdFetch) {
+    $motdResult = sahtout_soap_execute_command('.server motd');
+    if ($motdResult['ok']) {
+        $serverMotd = sahtout_soap_extract_command_message($motdResult['output'], true);
+        $serverMotd = preg_replace('/^Message of the day:\s*/i', '', $serverMotd) ?? $serverMotd;
+        $serverMotd = preg_replace('/^Server motd is:\s*/i', '', $serverMotd) ?? $serverMotd;
+        $serverMotd = trim($serverMotd);
+    } else {
+        $motdLoadNotice = translate('gm_cmd_motd_load_failed', 'Could not load the current MOTD from the worldserver.');
+    }
+}
+
+$page_title = translate('page_title_soap', 'GM Commands');
 $page_meta_description = translate('page_description_soap', 'Execute SOAP GM commands for Sahtout WoW Server');
 $page_meta_robots = 'noindex';
 
@@ -179,7 +250,7 @@ ob_start();
         }
         .btn-gold:hover { transform: translateY(-2px) scale(1.02); }
 
-        .input-dark {
+        .input-dark, .textarea-dark {
             background: rgba(10, 14, 22, 0.8);
             border: 1px solid rgba(201,162,39,.3);
             color: #e5e7eb;
@@ -189,12 +260,13 @@ ob_start();
             outline: none;
             width: 100%;
         }
-        .input-dark:focus {
+        .textarea-dark { min-height: 5rem; resize: vertical; }
+        .input-dark:focus, .textarea-dark:focus {
             border-color: #f2cf5b;
             box-shadow: 0 0 10px rgba(242,207,82,.2);
             background: rgba(15, 20, 30, 0.9);
         }
-        .input-dark::placeholder { color: rgba(150, 170, 200, 0.4); }
+        .input-dark::placeholder, .textarea-dark::placeholder { color: rgba(150, 170, 200, 0.4); }
 
         .command-history-item {
             background: rgba(10, 14, 22, 0.5);
@@ -224,82 +296,88 @@ ob_start();
             color: #b8c8ff;
         }
 
-        /* Main content area - works with sidebar */
         .main-content-area {
             transition: margin-left 0.3s ease;
             min-height: calc(100vh - 72px);
             width: 100%;
         }
 
-        /* Content wrapper with proper spacing */
         .content-wrapper {
             max-width: 1400px;
             margin: 0 auto;
             padding: 0 1rem;
         }
 
-        @media (min-width: 640px) {
-            .content-wrapper {
-                padding: 0 1.5rem;
-            }
-        }
-
         @media (min-width: 1024px) {
-            .content-wrapper {
-                padding: 0 2rem;
-            }
-        }
-
-        @media (min-width: 1280px) {
-            .content-wrapper {
-                padding: 0 2.5rem;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .main-content-area.lg\:ml-0 {
-                margin-left: 0;
-            }
-            .main-content-area.lg\:ml-\[280px\] {
-                margin-left: 280px;
-            }
+            .main-content-area.lg\:ml-\[280px\] { margin-left: 280px; }
         }
 
         @media (max-width: 1023px) {
-            .main-content-area {
-                margin-left: 0 !important;
-                padding: 1rem;
-            }
-            .content-wrapper {
-                padding: 0 0.5rem;
-            }
+            .main-content-area { margin-left: 0 !important; padding: 1rem; }
         }
     </style>
 <?php $page_head = ob_get_clean(); ?>
 
 <?php include $project_root . 'includes/header.php'; ?>
 
-    <!-- Main Content Area with Sidebar -->
     <div class="flex relative min-h-screen">
-        
-        <!-- Sidebar -->
         <?php include $project_root . 'includes/admin_sidebar.php'; ?>
-        
-        <!-- Main Content -->
+
         <main class="main-content-area flex-1 p-3 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 lg:ml-[280px]">
             <div class="content-wrapper">
                 <div class="space-y-4 md:space-y-6 lg:space-y-8">
-                    
-                    <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('soap_title', 'Execute SOAP Command'); ?></h1>
 
-                    <!-- Command Form -->
+                    <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('gm_commands_page_title', 'GM Commands'); ?></h1>
+
+                    <div class="panel p-4 md:p-6 lg:p-8">
+                        <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6 flex items-center gap-3">
+                            <i class="fas fa-bullhorn text-[#f2cf5b]"></i>
+                            <?php echo translate('gm_cmd_server_comm_heading', 'Server Communication'); ?>
+                        </h2>
+
+                        <?php if (!$soapConfigured): ?>
+                            <p class="text-amber-300/90 text-sm"><?php echo translate('gm_cmd_soap_missing', 'SOAP is not configured. Set it up under Admin → Settings → SOAP.'); ?></p>
+                        <?php else: ?>
+                            <?php if ($serverCommFeedback !== null): ?>
+                                <div class="mb-4 space-y-3"><?php echo $serverCommFeedback; ?></div>
+                            <?php endif; ?>
+
+                            <?php if ($motdLoadNotice !== null): ?>
+                                <p class="text-amber-300/80 text-xs mb-4"><?php echo htmlspecialchars($motdLoadNotice); ?></p>
+                            <?php endif; ?>
+
+                            <form method="post" class="space-y-3 mb-6 pb-6 border-b border-[rgba(201,162,39,0.08)]">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="gm_action" value="set_motd">
+                                <label class="block text-sm text-gray-300 mb-1" for="server-motd"><?php echo translate('gm_cmd_motd_label', 'Server message of the day (MOTD)'); ?></label>
+                                <p class="text-xs text-gray-500 mb-2"><?php echo translate('gm_cmd_motd_help', 'Loaded with .server motd and saved with .server set motd (AzerothCore).'); ?></p>
+                                <textarea id="server-motd" name="server_motd" class="textarea-dark" rows="3" maxlength="512"><?php echo htmlspecialchars($serverMotd); ?></textarea>
+                                <button type="submit" class="btn-gold">
+                                    <i class="fas fa-save"></i>
+                                    <?php echo translate('gm_cmd_motd_save', 'Save MOTD'); ?>
+                                </button>
+                            </form>
+
+                            <form method="post" class="space-y-3">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="gm_action" value="broadcast">
+                                <label class="block text-sm text-gray-300 mb-1" for="broadcast-message"><?php echo translate('gm_cmd_broadcast_label', 'Server broadcast'); ?></label>
+                                <p class="text-xs text-gray-500 mb-2"><?php echo translate('gm_cmd_broadcast_help', 'Sends a one-time global message to online players (.announce).'); ?></p>
+                                <input type="text" id="broadcast-message" name="broadcast_message" class="input-dark" maxlength="256" placeholder="<?php echo translate('gm_cmd_broadcast_placeholder', 'Maintenance in 10 minutes…'); ?>">
+                                <button type="submit" class="btn-gold">
+                                    <i class="fas fa-paper-plane"></i>
+                                    <?php echo translate('gm_cmd_broadcast_send', 'Send broadcast'); ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+
                     <div class="panel p-4 md:p-6 lg:p-8">
                         <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6 flex items-center gap-3">
                             <i class="fas fa-terminal text-[#f2cf5b]"></i>
                             <?php echo translate('soap_title', 'Execute SOAP Command'); ?>
                         </h2>
 
-                        <!-- Instructions -->
                         <div class="mb-4 md:mb-6 p-3 md:p-4 border border-[rgba(201,162,39,0.1)] bg-[rgba(10,14,22,0.4)] rounded-sm">
                             <div class="flex items-start gap-2 md:gap-3">
                                 <i class="fas fa-circle-info text-[#f2cf5b] text-lg md:text-xl mt-1"></i>
@@ -314,15 +392,14 @@ ob_start();
 
                         <form method="post" class="space-y-3 md:space-y-4">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="gm_action" value="run_command">
                             <div class="flex flex-col sm:flex-row gap-2 md:gap-3">
-                                <input 
-                                    type="text" 
-                                    name="command" 
+                                <input
+                                    type="text"
+                                    name="command"
                                     maxlength="100"
-                                    class="input-dark flex-1" 
-                                    placeholder="<?php echo translate('command_placeholder', '.character level PlayerName 80'); ?>" 
-                                    required
-                                    autofocus
+                                    class="input-dark flex-1"
+                                    placeholder="<?php echo translate('command_placeholder', '.character level PlayerName 80'); ?>"
                                 >
                                 <button type="submit" class="btn-gold flex-shrink-0 justify-center">
                                     <i class="fas fa-play"></i>
@@ -331,7 +408,6 @@ ob_start();
                             </div>
                         </form>
 
-                        <!-- Command History Suggestions -->
                         <div class="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-[rgba(201,162,39,0.08)]">
                             <p class="text-xs text-gray-500 mb-2 flex items-center gap-2">
                                 <i class="fas fa-clock text-[#f2cf5b]"></i>
@@ -351,7 +427,6 @@ ob_start();
                         </div>
                     </div>
 
-                    <!-- Response -->
                     <?php if ($response_output !== null): ?>
                         <div class="panel p-4 md:p-6 lg:p-8">
                             <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6 flex items-center gap-3">
@@ -367,13 +442,6 @@ ob_start();
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const input = document.querySelector('input[name=command]');
-            if (input) {
-                input.focus();
-            }
-        });
-
         document.querySelector('input[name=command]')?.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 this.form.submit();

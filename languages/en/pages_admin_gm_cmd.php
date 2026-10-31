@@ -1,15 +1,31 @@
 <?php
 return [
-    'page_title_soap' => 'SOAP Command Executor',
+    'page_title_soap' => 'GM Commands',
+    'page_description_soap' => 'GM commands and server communication for Sahtout WoW Server',
+    'gm_commands_page_title' => 'GM Commands',
     'soap_title' => 'Execute SOAP Command',
     'command_placeholder' => '.character name level 80',
     'run_command' => 'Run',
     'response_label' => 'Response:',
     'error_no_command' => 'No command entered.',
     'quick_commands' => 'Quick Commands',
-
-    // New keys for GM instructions
     'gm_command_instructions' => 'Enter your GM commands in the box below. For example: <code>.character level PlayerName 80</code>.',
-    'gm_command_docs' => 'For a full list of commands, check the <a href="https://www.azerothcore.org/wiki/gm-commands" target="_blank">AzerothCore GM Commands Wiki</a>.',
+    'gm_command_docs' => 'For a full list of commands, check the <a href="https://www.azerothcore.org/wiki/gm-commands" target="_blank" class="text-[#f2cf5b] hover:underline">AzerothCore GM Commands Wiki</a>.',
+    'gm_cmd_server_comm_heading' => 'Server Communication',
+    'gm_cmd_soap_missing' => 'SOAP is not configured. Set it up under Admin → Settings → SOAP.',
+    'gm_cmd_motd_label' => 'Server message of the day (MOTD)',
+    'gm_cmd_motd_help' => 'Loaded with .server motd and saved with .server set motd (AzerothCore).',
+    'gm_cmd_motd_save' => 'Save MOTD',
+    'gm_cmd_motd_empty' => 'Enter a message of the day before saving.',
+    'gm_cmd_motd_saved' => 'Server MOTD was updated.',
+    'gm_cmd_motd_failed' => 'Could not update server MOTD. Check SOAP logs.',
+    'gm_cmd_motd_load_failed' => 'Could not load the current MOTD from the worldserver.',
+    'gm_cmd_broadcast_label' => 'Server broadcast',
+    'gm_cmd_broadcast_help' => 'Sends a one-time global message to online players (.announce).',
+    'gm_cmd_broadcast_placeholder' => 'Maintenance in 10 minutes…',
+    'gm_cmd_broadcast_send' => 'Send broadcast',
+    'gm_cmd_broadcast_empty' => 'Enter a broadcast message before sending.',
+    'gm_cmd_broadcast_sent' => 'Broadcast was sent to online players.',
+    'gm_cmd_broadcast_failed' => 'Could not send broadcast. Check SOAP logs.',
+    'gm_cmd_command_failed' => 'The worldserver rejected the command or SOAP failed.',
 ];
-?>
