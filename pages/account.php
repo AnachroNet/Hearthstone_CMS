@@ -563,6 +563,16 @@ function getGMStatus($gmlevel, $role) {
     return sprintf('<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[rgba(201,162,39,0.12)] border border-[rgba(201,162,39,0.3)] shadow-[0_0_8px_rgba(201,162,39,0.15)]"><img src="%simg/accountimg/%s" alt="%s" class="w-4 h-4 inline-block"> <span style="color: %s">%s</span></span>', $base_path, $icon, translate('status_icon', 'Status Icon'), $color, $rank);
 }
 
+function renderTicketBodyHtml(string $text): string
+{
+    $text = trim(preg_replace("/\r\n|\r|\n/", "\n", $text) ?? '');
+    if ($text === '') {
+        return '';
+    }
+
+    return '<div class="ticket-body-inner">' . nl2br(htmlspecialchars($text), false) . '</div>';
+}
+
 function renderGmTicketStatusBadge(string $status): string
 {
     $map = [
@@ -1136,9 +1146,20 @@ ob_start();
         .ticket-status-closed { color: #9ca3af; border-color: rgba(156, 163, 175, 0.35); background: rgba(156, 163, 175, 0.08); }
         .ticket-status-completed { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.08); }
         .ticket-body-block {
-            white-space: pre-wrap;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 3rem;
+            padding: 0.875rem 1rem;
+            margin: 0;
+            line-height: 1.55;
             word-break: break-word;
-            padding: 0.75rem 1rem;
+        }
+        .ticket-body-block .ticket-body-inner {
+            width: 100%;
+            margin: 0;
+            line-height: inherit;
         }
         .ticket-detail-panel {
             padding: 1rem 1.25rem 1.25rem;
@@ -1638,7 +1659,7 @@ include_once $project_root . 'includes/header.php';
                                                 <?php echo translate('ticket_your_message', 'Your message'); ?>
                                             </h4>
                                             <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
-                                                <?php echo nl2br(htmlspecialchars($ticket['description'])); ?>
+                                                <?php echo renderTicketBodyHtml($ticket['description']); ?>
                                             </div>
                                         </div>
                                         <?php
@@ -1651,7 +1672,7 @@ include_once $project_root . 'includes/header.php';
                                                 <?php echo translate('ticket_staff_comment', 'Staff comment'); ?>
                                             </h4>
                                             <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
-                                                <?php echo nl2br(htmlspecialchars($ticket['comment'])); ?>
+                                                <?php echo renderTicketBodyHtml($ticket['comment']); ?>
                                             </div>
                                         </div>
                                         <?php endif; ?>
@@ -1667,7 +1688,7 @@ include_once $project_root . 'includes/header.php';
                                                 <?php endif; ?>
                                             <?php else: ?>
                                                 <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
-                                                    <?php echo nl2br(htmlspecialchars($ticket['response'])); ?>
+                                                    <?php echo renderTicketBodyHtml($ticket['response']); ?>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
