@@ -26,6 +26,7 @@ $projectRoot = dirname(__DIR__);
 require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'dbc_reader.php';
 require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'lfg_dbc.php';
 require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'achievement_creature_map.php';
+require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'achievement_token_suggest.php';
 
 /** @see AzerothCore DBCEnums.h */
 const CRITERIA_REACH_LEVEL = 5;
@@ -120,6 +121,8 @@ if ($criteriaPath !== null) {
 
 $dungeonMapIds = [];
 $mapNames = [];
+/** @var array<int, array{map_type:int, max_players:int}> */
+$mapMetaById = [];
 if ($mapPath !== null) {
     try {
         [$mapRows, $mapStrings] = sahtout_read_wdbc_records($mapPath);
@@ -130,6 +133,10 @@ if ($mapPath !== null) {
             }
             $mapType = (int) ($row[MAP_FIELD_TYPE] ?? 0);
             $maxPlayers = (int) ($row[MAP_FIELD_MAX_PLAYERS] ?? 0);
+            $mapMetaById[$mapId] = [
+                'map_type' => $mapType,
+                'max_players' => $maxPlayers,
+            ];
             $name = sahtout_dbc_string($mapStrings, (int) ($row[MAP_FIELD_NAME_ENUS] ?? 0));
             if ($name !== '') {
                 $mapNames[$mapId] = $name;
@@ -412,6 +419,10 @@ $presets = sahtout_build_preset_rewards(
     $mapNames
 );
 
+foreach ($presets as $i => $preset) {
+    $presets[$i]['tokens'] = sahtout_suggest_tokens_for_preset($preset, $mapMetaById);
+}
+
 $outDir = $projectRoot . DIRECTORY_SEPARATOR . 'SQL' . DIRECTORY_SEPARATOR . 'Sahtout_site DATABASE'
     . DIRECTORY_SEPARATOR . 'SINGLE UPDATE';
 $outFile = $outDir . DIRECTORY_SEPARATOR . 'achievement_catalog_import.sql';
@@ -499,7 +510,7 @@ for ($i = 0, $n = count($valueRows); $i < $n; $i += $batchSize) {
     $lines[] = '';
 }
 
-$lines[] = '-- Preset token reward rows (tokens=0, is_enabled=0 until configured). Manual rows are kept.';
+$lines[] = '-- Preset token reward rows (suggested tokens, is_enabled=0 until you enable). Manual rows are kept.';
 $lines[] = "DELETE FROM `achievement_token_rewards` WHERE `milestone_type` IN ('level', 'quest_count', 'dungeon');";
 $lines[] = '';
 
@@ -520,9 +531,11 @@ if ($presets !== []) {
             ? (string) (int) $p['dungeon_max_level'] : 'NULL';
         $targetSql = isset($p['dungeon_target_level']) && (int) $p['dungeon_target_level'] > 0
             ? (string) (int) $p['dungeon_target_level'] : 'NULL';
+        $tokenAmount = max(0, min(SAHTOUT_TOKEN_SUGGEST_MAX, (int) ($p['tokens'] ?? SAHTOUT_TOKEN_SUGGEST_MIN)));
         $rewardRows[] = sprintf(
-            '(%u, 0, %s, %s, %s, %s, %s, %s, %s, 0)',
+            '(%u, %u, %s, %s, %s, %s, %s, %s, %s, 0)',
             $p['achievement_id'],
+            $tokenAmount,
             "'" . sahtout_sql_escape($p['milestone_type']) . "'",
             $valSql,
             $mapSql,
@@ -570,8 +583,15 @@ if (isset($achievementMeta[$deadminesId])) {
     $dmMap = $instanceMapByAchievement[$deadminesId] ?? null;
     $dmBoss = sahtout_pick_boss_creature_id($criteriaByAchievement[$deadminesId] ?? []);
     $dmCrit = count($criteriaByAchievement[$deadminesId] ?? []);
+    $dmSuggest = null;
+    foreach ($presets as $preset) {
+        if ((int) ($preset['achievement_id'] ?? 0) === $deadminesId) {
+            $dmSuggest = (int) ($preset['tokens'] ?? 0);
+            break;
+        }
+    }
     fwrite(STDOUT, sprintf(
-        "Deadmines check (id %d): title=%s, points=%d, ref=%d, criteria_rows=%d, boss_creature=%s, instance_map=%s, map36_in_set=%s.\n",
+        "Deadmines check (id %d): title=%s, points=%d, ref=%d, criteria_rows=%d, boss_creature=%s, instance_map=%s, map36_in_set=%s, suggested_tokens=%s.\n",
         $deadminesId,
         $dm['title'],
         $dm['points'],
@@ -579,9 +599,11 @@ if (isset($achievementMeta[$deadminesId])) {
         $dmCrit,
         $dmBoss === null ? 'null' : (string) $dmBoss,
         $dmMap === null ? 'null' : (string) $dmMap,
-        isset($dungeonMapIds[36]) ? 'yes' : 'no'
+        isset($dungeonMapIds[36]) ? 'yes' : 'no',
+        $dmSuggest === null ? 'n/a' : (string) $dmSuggest
     ));
 }
+fwrite(STDOUT, "Suggested tokens use a level-based scale (1 token ≈ 1 gold); rows stay disabled until is_enabled=1.\n");
 fwrite(STDOUT, "Run achievement_catalog.sql on sahtout_site once, then import achievement_catalog_import.sql.\n");
 
 exit(0);
