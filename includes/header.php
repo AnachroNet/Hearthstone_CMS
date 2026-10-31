@@ -273,28 +273,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
     <link rel="stylesheet" href="<?php echo $esc_base; ?>assets/fontawesome-free/css/all.min.css">
 
     <style>
-        /* Font Awesome: keep icon glyphs when pages set a global text font (Inter, Cinzel, etc.) */
-        :where(.fa-solid, .fa-regular, .fa-brands, .fas, .far, .fab) {
-            font-style: normal;
-            font-variant: normal;
-            line-height: 1;
-            display: inline-block;
-            text-rendering: auto;
-            -webkit-font-smoothing: antialiased;
-        }
-        :where(.fa-solid, .fas) {
-            font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
-            font-weight: var(--fa-style, 900) !important;
-        }
-        :where(.fa-regular, .far) {
-            font-family: var(--fa-style-family, "Font Awesome 6 Free") !important;
-            font-weight: 400 !important;
-        }
-        :where(.fa-brands, .fab) {
-            font-family: var(--fa-style-family-brands, "Font Awesome 6 Brands") !important;
-            font-weight: 400 !important;
-        }
-
         /* ============ CORE THEME VARIABLES & BASE ============ */
         :root {
             --point-wow-gif: url('<?php echo $esc_base; ?>img/pointer_wow.gif');
