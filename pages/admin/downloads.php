@@ -17,21 +17,9 @@ global $site_db;
 
 $categories = sahtout_download_categories();
 $tableReady = isset($site_db) && $site_db instanceof mysqli && sahtout_downloads_table_exists($site_db);
+$formAction = htmlspecialchars($base_path . 'admin/downloads', ENT_QUOTES, 'UTF-8');
 
 $flash = '';
-$editRow = null;
-$editId = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
-
-if ($tableReady && $editId > 0) {
-    $stmt = $site_db->prepare('SELECT id, title, description, url, category, size_label, sort_order, is_active FROM site_downloads WHERE id = ? LIMIT 1');
-    if ($stmt) {
-        $stmt->bind_param('i', $editId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $editRow = $res ? $res->fetch_assoc() : null;
-        $stmt->close();
-    }
-}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
     $action = $_POST['action'] ?? '';
@@ -45,17 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $stmt->bind_param('i', $id);
             $ok = $stmt->execute();
             $stmt->close();
-            $flash = $ok ? 'success:' . translate('admin_downloads_deleted', 'Download link removed.') : 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
-        }
-    } elseif ($action === 'toggle') {
-        $id = (int) ($_POST['id'] ?? 0);
-        $active = isset($_POST['is_active']) ? 1 : 0;
-        if ($id > 0) {
-            $stmt = $site_db->prepare('UPDATE site_downloads SET is_active = ? WHERE id = ?');
-            $stmt->bind_param('ii', $active, $id);
-            $ok = $stmt->execute();
-            $stmt->close();
-            $flash = $ok ? 'success:' . translate('admin_downloads_updated', 'Download link updated.') : 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
+            if ($ok) {
+                header('Location: ' . $base_path . 'admin/downloads?status=deleted');
+                exit;
+            }
+            $flash = 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
         }
     } elseif ($action === 'add' || $action === 'update') {
         $title = trim((string) ($_POST['title'] ?? ''));
@@ -76,11 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $stmt->bind_param('sssssii', $title, $description, $url, $category, $sizeLabel, $sortOrder, $isActive);
             $ok = $stmt->execute();
             $stmt->close();
-            $flash = $ok ? 'success:' . translate('admin_downloads_added', 'Download link added.') : 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
             if ($ok) {
-                header('Location: ' . $base_path . 'admin/downloads?status=success');
+                header('Location: ' . $base_path . 'admin/downloads?status=added');
                 exit;
             }
+            $flash = 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
         } else {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id > 0) {
@@ -90,30 +72,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
                 $stmt->bind_param('sssssiii', $title, $description, $url, $category, $sizeLabel, $sortOrder, $isActive, $id);
                 $ok = $stmt->execute();
                 $stmt->close();
-                $flash = $ok ? 'success:' . translate('admin_downloads_updated', 'Download link updated.') : 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
                 if ($ok) {
-                    header('Location: ' . $base_path . 'admin/downloads?status=success');
+                    header('Location: ' . $base_path . 'admin/downloads?status=updated');
                     exit;
                 }
+                $flash = 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
             }
         }
     }
 }
 
-if (isset($_GET['status']) && $_GET['status'] === 'success') {
-    $flash = 'success:' . translate('admin_downloads_saved', 'Changes saved.');
+if (isset($_GET['status'])) {
+    $flash = match ($_GET['status']) {
+        'added' => 'success:' . translate('admin_downloads_added', 'Download link added.'),
+        'updated' => 'success:' . translate('admin_downloads_updated', 'Download link updated.'),
+        'deleted' => 'success:' . translate('admin_downloads_deleted', 'Download link removed.'),
+        default => 'success:' . translate('admin_downloads_saved', 'Changes saved.'),
+    };
 }
 
 $allDownloads = $tableReady ? sahtout_fetch_downloads($site_db, false) : [];
-
-$formAction = $editRow ? 'update' : 'add';
-$formTitle = $editRow['title'] ?? '';
-$formDescription = $editRow['description'] ?? '';
-$formUrl = $editRow['url'] ?? '';
-$formCategory = $editRow['category'] ?? 'client';
-$formSize = $editRow['size_label'] ?? '';
-$formSort = isset($editRow['sort_order']) ? (int) $editRow['sort_order'] : 0;
-$formActive = !isset($editRow['is_active']) || (int) $editRow['is_active'] === 1;
 
 $page_title = translate('admin_downloads_page_title', 'Download links');
 $page_meta_description = translate('admin_downloads_meta', 'Manage external download links');
@@ -146,6 +124,38 @@ ob_start();
             background-clip: text;
             color: transparent;
         }
+        .btn-game {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            padding: .65rem 1.25rem;
+            font-weight: 800;
+            font-size: .75rem;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            transition: transform .2s ease, filter .2s ease;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-game:hover { transform: translateY(-2px) scale(1.02); }
+        .btn-gold {
+            background: linear-gradient(180deg, #f6d478 0%, #c9a227 48%, #8a6a14 100%);
+            color: #1a1200;
+            text-shadow: 0 1px 0 rgba(255,255,255,.35);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 -8px 14px rgba(0,0,0,.25);
+        }
+        .btn-iron {
+            background: linear-gradient(180deg, #3a404d 0%, #232833 55%, #141821 100%);
+            color: #cfe1ff;
+            box-shadow: inset 0 0 0 1px rgba(120,160,255,.25), inset 0 -8px 14px rgba(0,0,0,.4);
+        }
+        .btn-danger {
+            background: linear-gradient(180deg, #ff4d4d 0%, #cc0000 48%, #8a0000 100%);
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), inset 0 -8px 14px rgba(0,0,0,.3);
+        }
         .wow-input, .wow-select, .wow-textarea {
             width: 100%;
             padding: 0.75rem 1rem;
@@ -171,10 +181,18 @@ ob_start();
         .table-dark td {
             padding: 0.75rem;
             border-bottom: 1px solid rgba(201,162,39,.1);
-            vertical-align: top;
+            vertical-align: middle;
         }
         .badge-inactive { color: #f87171; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .badge-active { color: #4ade80; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+        }
+        .modal-backdrop .wow-panel {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
     </style>
 <?php
 $page_head = ob_get_clean();
@@ -204,26 +222,21 @@ if ($flash !== '') {
             <?php else: ?>
 
             <div class="wow-panel p-6">
-                <h2 class="text-[#f2cf5b] font-['Cinzel'] text-lg mb-4">
-                    <?php echo $editRow ? translate('admin_downloads_edit', 'Edit link') : translate('admin_downloads_add', 'Add link'); ?>
-                </h2>
-                <form method="post" class="space-y-4">
+                <h2 class="text-[#f2cf5b] font-['Cinzel'] text-lg mb-4"><?php echo translate('admin_downloads_add', 'Add link'); ?></h2>
+                <form method="post" action="<?php echo $formAction; ?>" class="space-y-4">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                    <input type="hidden" name="action" value="<?php echo htmlspecialchars($formAction); ?>">
-                    <?php if ($editRow): ?>
-                        <input type="hidden" name="id" value="<?php echo (int) $editRow['id']; ?>">
-                    <?php endif; ?>
+                    <input type="hidden" name="action" value="add">
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_title', 'Title'); ?></label>
-                            <input type="text" name="title" class="wow-input" maxlength="128" required value="<?php echo htmlspecialchars($formTitle); ?>">
+                            <input type="text" name="title" class="wow-input" maxlength="128" required>
                         </div>
                         <div>
                             <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_category', 'Category'); ?></label>
                             <select name="category" class="wow-select">
                                 <?php foreach ($categories as $key => $label): ?>
-                                    <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $formCategory === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                    <option value="<?php echo htmlspecialchars($key); ?>"><?php echo htmlspecialchars($label); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -231,36 +244,34 @@ if ($flash !== '') {
 
                     <div>
                         <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_url', 'URL'); ?></label>
-                        <input type="url" name="url" class="wow-input" required placeholder="https://..." value="<?php echo htmlspecialchars($formUrl); ?>">
+                        <input type="url" name="url" class="wow-input" required placeholder="https://...">
                     </div>
 
                     <div>
                         <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_description', 'Description'); ?></label>
-                        <textarea name="description" class="wow-textarea" rows="3"><?php echo htmlspecialchars($formDescription); ?></textarea>
+                        <textarea name="description" class="wow-textarea" rows="3"></textarea>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <div>
                             <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_size', 'Approx. size'); ?></label>
-                            <input type="text" name="size_label" class="wow-input" maxlength="64" placeholder="e.g. ~35 GB" value="<?php echo htmlspecialchars($formSize); ?>">
+                            <input type="text" name="size_label" class="wow-input" maxlength="64" placeholder="e.g. ~35 GB">
                         </div>
                         <div>
                             <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_sort', 'Sort order'); ?></label>
-                            <input type="number" name="sort_order" class="wow-input" value="<?php echo (int) $formSort; ?>">
+                            <input type="number" name="sort_order" class="wow-input" value="0">
                         </div>
                         <label class="flex items-center gap-2 text-sm text-gray-300 pb-2">
-                            <input type="checkbox" name="is_active" value="1" <?php echo $formActive ? 'checked' : ''; ?>>
+                            <input type="checkbox" name="is_active" value="1" checked>
                             <?php echo translate('admin_downloads_label_active', 'Published (visible on download page)'); ?>
                         </label>
                     </div>
 
-                    <div class="flex flex-wrap gap-3 pt-2">
-                        <button type="submit" class="px-5 py-2.5 bg-gradient-to-b from-[#f6d478] to-[#8a6a14] text-[#1a1200] font-bold uppercase text-xs tracking-wide">
-                            <?php echo $editRow ? translate('admin_downloads_save', 'Save changes') : translate('admin_downloads_create', 'Add link'); ?>
+                    <div class="pt-2">
+                        <button type="submit" class="btn-game btn-gold">
+                            <i class="fas fa-plus"></i>
+                            <?php echo translate('admin_downloads_create', 'Add link'); ?>
                         </button>
-                        <?php if ($editRow): ?>
-                            <a href="<?php echo $base_path; ?>admin/downloads" class="px-5 py-2.5 border border-[#c9a227]/40 text-[#f2cf5b] text-xs uppercase tracking-wide"><?php echo translate('admin_downloads_cancel', 'Cancel edit'); ?></a>
-                        <?php endif; ?>
                     </div>
                 </form>
             </div>
@@ -277,7 +288,7 @@ if ($flash !== '') {
                             <th><?php echo translate('admin_downloads_col_category', 'Category'); ?></th>
                             <th><?php echo translate('admin_downloads_col_sort', 'Order'); ?></th>
                             <th><?php echo translate('admin_downloads_col_status', 'Status'); ?></th>
-                            <th></th>
+                            <th class="text-right"><?php echo translate('admin_downloads_col_actions', 'Actions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -298,14 +309,17 @@ if ($flash !== '') {
                                     <span class="badge-inactive"><?php echo translate('admin_downloads_status_hidden', 'Hidden'); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td class="text-right whitespace-nowrap">
-                                <a href="<?php echo $base_path; ?>admin/downloads?edit=<?php echo (int) $row['id']; ?>" class="text-[#f2cf5b] text-xs mr-3"><?php echo translate('admin_downloads_edit_short', 'Edit'); ?></a>
-                                <form method="post" class="inline" onsubmit="return confirm('<?php echo htmlspecialchars(translate('admin_downloads_confirm_delete', 'Remove this link?'), ENT_QUOTES); ?>');">
-                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
-                                    <button type="submit" class="text-red-400 text-xs"><?php echo translate('admin_downloads_delete', 'Delete'); ?></button>
-                                </form>
+                            <td>
+                                <div class="flex justify-end gap-2 flex-wrap">
+                                    <button type="button" onclick="openModal('editModal-<?php echo (int) $row['id']; ?>')" class="btn-game btn-iron text-xs py-2 px-3">
+                                        <i class="fas fa-edit"></i>
+                                        <?php echo translate('admin_downloads_edit_short', 'Edit'); ?>
+                                    </button>
+                                    <button type="button" onclick="openModal('deleteModal-<?php echo (int) $row['id']; ?>')" class="btn-game btn-danger text-xs py-2 px-3">
+                                        <i class="fas fa-trash"></i>
+                                        <?php echo translate('admin_downloads_delete', 'Delete'); ?>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -314,8 +328,110 @@ if ($flash !== '') {
                 <?php endif; ?>
             </div>
 
+            <?php foreach ($allDownloads as $row):
+                $rid = (int) $row['id'];
+                $rowActive = (int) ($row['is_active'] ?? 0) === 1;
+            ?>
+            <div id="editModal-<?php echo $rid; ?>" class="fixed inset-0 z-[10060] hidden items-center justify-center p-4 modal-backdrop">
+                <div class="wow-panel w-full max-w-2xl p-6 md:p-8 relative my-8">
+                    <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl" onclick="closeModal('editModal-<?php echo $rid; ?>')" aria-label="Close">&times;</button>
+                    <h3 class="wow-title text-xl mb-6"><?php echo translate('admin_downloads_edit', 'Edit link'); ?>: <?php echo htmlspecialchars($row['title']); ?></h3>
+                    <form method="post" action="<?php echo $formAction; ?>" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="action" value="update">
+                        <input type="hidden" name="id" value="<?php echo $rid; ?>">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_title', 'Title'); ?></label>
+                                <input type="text" name="title" class="wow-input" maxlength="128" required value="<?php echo htmlspecialchars($row['title']); ?>">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_category', 'Category'); ?></label>
+                                <select name="category" class="wow-select">
+                                    <?php foreach ($categories as $key => $label): ?>
+                                        <option value="<?php echo htmlspecialchars($key); ?>" <?php echo ($row['category'] ?? '') === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_url', 'URL'); ?></label>
+                            <input type="url" name="url" class="wow-input" required value="<?php echo htmlspecialchars($row['url']); ?>">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_description', 'Description'); ?></label>
+                            <textarea name="description" class="wow-textarea" rows="3"><?php echo htmlspecialchars($row['description'] ?? ''); ?></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                            <div>
+                                <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_size', 'Approx. size'); ?></label>
+                                <input type="text" name="size_label" class="wow-input" maxlength="64" value="<?php echo htmlspecialchars($row['size_label'] ?? ''); ?>">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_downloads_label_sort', 'Sort order'); ?></label>
+                                <input type="number" name="sort_order" class="wow-input" value="<?php echo (int) $row['sort_order']; ?>">
+                            </div>
+                            <label class="flex items-center gap-2 text-sm text-gray-300 pb-2">
+                                <input type="checkbox" name="is_active" value="1" <?php echo $rowActive ? 'checked' : ''; ?>>
+                                <?php echo translate('admin_downloads_label_active', 'Published (visible on download page)'); ?>
+                            </label>
+                        </div>
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button type="button" class="btn-game btn-iron" onclick="closeModal('editModal-<?php echo $rid; ?>')"><?php echo translate('admin_downloads_cancel', 'Cancel edit'); ?></button>
+                            <button type="submit" class="btn-game btn-gold"><?php echo translate('admin_downloads_save', 'Save changes'); ?></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="deleteModal-<?php echo $rid; ?>" class="fixed inset-0 z-[10060] hidden items-center justify-center p-4 modal-backdrop">
+                <div class="wow-panel w-full max-w-md p-6 relative">
+                    <h3 class="wow-title text-lg mb-3"><?php echo translate('admin_downloads_delete_heading', 'Delete link'); ?></h3>
+                    <p class="text-gray-300 mb-6"><?php echo translate('admin_downloads_confirm_delete', 'Remove this link?'); ?><br><span class="text-[#f2cf5b] font-semibold"><?php echo htmlspecialchars($row['title']); ?></span></p>
+                    <form method="post" action="<?php echo $formAction; ?>" class="flex justify-end gap-3">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="<?php echo $rid; ?>">
+                        <button type="button" class="btn-game btn-iron" onclick="closeModal('deleteModal-<?php echo $rid; ?>')"><?php echo translate('admin_downloads_cancel_btn', 'Cancel'); ?></button>
+                        <button type="submit" class="btn-game btn-danger"><?php echo translate('admin_downloads_delete', 'Delete'); ?></button>
+                    </form>
+                </div>
+            </div>
+            <?php endforeach; ?>
+
             <?php endif; ?>
         </div>
     </main>
 </div>
+
+<script>
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.modal-backdrop[id]').forEach(function (modal) {
+        document.body.appendChild(modal);
+    });
+    document.querySelectorAll('.modal-backdrop[id]').forEach(function (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+});
+</script>
+
 <?php include $project_root . 'includes/footer.php'; ?>
