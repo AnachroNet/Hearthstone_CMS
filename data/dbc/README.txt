@@ -1,11 +1,18 @@
-Optional WotLK client DBC files for talent tree layout on character pages.
+Optional WotLK client DBC files (3.3.5a), copied from your worldserver `data/dbc/` folder
+or from the client Data/enUS (or enGB) directory.
 
-Place these files from a 3.3.5a client Data/enUS (or enGB) folder here:
+Talent tree layout (character pages):
   - Talent.dbc
   - TalentTab.dbc
+The site builds a cache at cache/wotlk_talent_map.php on first use.
 
-The site builds a cache file at cache/wotlk_talent_map.php on first use.
-Without these files, the Talents tab still lists learned talents by name,
-but without the 51/10/0-style tree breakdown.
+Achievement catalog import (site DB reference table):
+  - Achievement.dbc
+  - Achievement_Criteria.dbc
+  - Achievement_Category.dbc
+Run from Web/SahtoutCMS:
+  php tools/import_achievement_catalog.php
+Then apply SQL/Sahtout_site DATABASE/SINGLE UPDATE/achievement_catalog.sql (once)
+and achievement_catalog_import.sql (after each DBC refresh).
 
 You can also set TALENT_DBC_DIR in includes/config.local.php to another folder path.

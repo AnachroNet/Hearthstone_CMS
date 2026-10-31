@@ -7,81 +7,19 @@ if (!defined('ALLOWED_ACCESS')) {
  * WotLK 3.3.5 character talents (character_talent + optional Talent/TalentTab DBC).
  */
 
-function sahtout_find_dbc_file(string $dir, string $fileName): ?string
-{
-    $path = $dir . DIRECTORY_SEPARATOR . $fileName;
-    if (is_readable($path)) {
-        return $path;
-    }
-    if (!is_dir($dir)) {
-        return null;
-    }
-    foreach (scandir($dir) ?: [] as $entry) {
-        if ($entry === '.' || $entry === '..') {
-            continue;
-        }
-        if (strcasecmp($entry, $fileName) === 0) {
-            $match = $dir . DIRECTORY_SEPARATOR . $entry;
-            return is_readable($match) ? $match : null;
-        }
-    }
-    return null;
-}
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'dbc_reader.php';
 
 function sahtout_talent_dbc_dir(): ?string
 {
-    $candidates = [];
-    if (defined('TALENT_DBC_DIR') && TALENT_DBC_DIR !== '') {
-        $candidates[] = rtrim(TALENT_DBC_DIR, '/\\');
+    $dir = sahtout_data_dbc_dir();
+    if ($dir === null) {
+        return null;
     }
-    $candidates[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'dbc';
-
-    foreach ($candidates as $dir) {
-        if (sahtout_find_dbc_file($dir, 'Talent.dbc') !== null
-            && sahtout_find_dbc_file($dir, 'TalentTab.dbc') !== null) {
-            return $dir;
-        }
+    if (sahtout_find_dbc_file($dir, 'Talent.dbc') !== null
+        && sahtout_find_dbc_file($dir, 'TalentTab.dbc') !== null) {
+        return $dir;
     }
     return null;
-}
-
-function sahtout_read_wdbc_records(string $path): array
-{
-    $blob = @file_get_contents($path);
-    if ($blob === false || strlen($blob) < 20) {
-        throw new RuntimeException('Unreadable DBC: ' . basename($path));
-    }
-    $magic = substr($blob, 0, 4);
-    if ($magic !== 'WDBC') {
-        throw new RuntimeException('Not WDBC: ' . basename($path));
-    }
-    $header = unpack('Vrec/Vfield/VrecSize/VstrSize', substr($blob, 4, 16));
-    $nRec = (int) $header['rec'];
-    $nField = (int) $header['field'];
-    $recSize = (int) $header['recSize'];
-    $strSize = (int) $header['strSize'];
-    $body = 20;
-    $strings = substr($blob, $body + $nRec * $recSize, $strSize);
-    $records = [];
-    for ($i = 0; $i < $nRec; $i++) {
-        $offset = $body + $i * $recSize;
-        $chunk = substr($blob, $offset, $recSize);
-        $vals = unpack('V' . $nField, $chunk);
-        $records[] = array_values($vals);
-    }
-    return [$records, $strings];
-}
-
-function sahtout_dbc_string(string $strings, int $offset): string
-{
-    if ($offset < 0 || $offset >= strlen($strings)) {
-        return '';
-    }
-    $end = strpos($strings, "\0", $offset);
-    if ($end === false) {
-        $end = strlen($strings);
-    }
-    return substr($strings, $offset, $end - $offset);
 }
 
 function sahtout_talent_spell_map(): array
