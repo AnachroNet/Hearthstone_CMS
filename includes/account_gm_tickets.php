@@ -688,7 +688,10 @@ function sahtout_admin_save_gm_ticket(
     $stmt->close();
 
     require_once __DIR__ . '/soap_client.php';
-    $reloadOk = sahtout_try_reload_gm_tickets();
+    $reloadOk = null;
+    if (sahtout_soap_is_configured()) {
+        $reloadOk = sahtout_try_reload_gm_tickets();
+    }
 
     return [
         'ok' => true,

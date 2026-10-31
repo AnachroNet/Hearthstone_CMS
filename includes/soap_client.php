@@ -3,6 +3,30 @@ if (!defined('ALLOWED_ACCESS')) {
     exit('Forbidden');
 }
 
+function sahtout_soap_is_configured(): bool
+{
+    if (!defined('SAHTOUT_CONFIG_LOADED')) {
+        require_once __DIR__ . '/config.php';
+    }
+    require_once __DIR__ . '/soap.conf.php';
+    global $soap_url, $soap_user, $soap_pass;
+
+    return !empty($soap_url) && !empty($soap_user) && !empty($soap_pass);
+}
+
+function sahtout_soap_response_indicates_failure(string $response): bool
+{
+    if ($response === '') {
+        return false;
+    }
+
+    return stripos($response, 'SOAP-ENV:Fault') !== false
+        || stripos($response, ':Fault>') !== false
+        || stripos($response, 'There is no such command') !== false
+        || stripos($response, 'Unknown command') !== false
+        || stripos($response, 'Command can not be empty') !== false;
+}
+
 /**
  * Execute a worldserver SOAP GM command when SOAP is configured.
  *
@@ -61,15 +85,30 @@ function sahtout_soap_execute_command(string $command): array
     $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if ($httpCode >= 400) {
-        return ['ok' => false, 'output' => (string) $response, 'error' => 'http_' . $httpCode];
+    $body = (string) $response;
+
+    if ($httpCode === 0) {
+        return ['ok' => false, 'output' => $body, 'error' => 'http_0'];
     }
 
-    return ['ok' => true, 'output' => (string) $response, 'error' => null];
+    if ($httpCode >= 400 || sahtout_soap_response_indicates_failure($body)) {
+        return ['ok' => false, 'output' => $body, 'error' => 'http_' . $httpCode];
+    }
+
+    return ['ok' => true, 'output' => $body, 'error' => null];
 }
 
 function sahtout_try_reload_gm_tickets(): bool
 {
-    $result = sahtout_soap_execute_command('reload gm_tickets');
-    return $result['ok'];
+    $commands = ['.reload gm_tickets', 'reload gm_tickets'];
+    foreach ($commands as $command) {
+        $result = sahtout_soap_execute_command($command);
+        if ($result['ok']) {
+            return true;
+        }
+        error_log('[soap_client] ' . $command . ' failed: ' . ($result['error'] ?? 'unknown')
+            . ' ' . substr(preg_replace('/\s+/', ' ', $result['output']) ?? '', 0, 400));
+    }
+
+    return false;
 }

@@ -6,17 +6,6 @@ if (!defined('ALLOWED_ACCESS')) {
 require_once __DIR__ . '/account_gm_tickets.php';
 require_once __DIR__ . '/soap_client.php';
 
-function sahtout_soap_is_configured(): bool
-{
-    if (!defined('SAHTOUT_CONFIG_LOADED')) {
-        require_once __DIR__ . '/config.php';
-    }
-    require_once __DIR__ . '/soap.conf.php';
-    global $soap_url, $soap_user, $soap_pass;
-
-    return !empty($soap_url) && !empty($soap_user) && !empty($soap_pass);
-}
-
 function sahtout_compensation_sanitize_mail_text(string $text, int $maxLen = 800): string
 {
     $text = trim(preg_replace("/[\r\n\t]+/", ' ', $text) ?? '');

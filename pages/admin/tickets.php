@@ -175,7 +175,10 @@ if (isset($_GET['msg'])) {
         default => htmlspecialchars($msgKey),
     };
     if (isset($_GET['reload']) && $_GET['reload'] === '0') {
-        $flashMessage .= ' ' . translate('admin_tickets_reload_hint', 'Database updated; run reload gm_tickets on the worldserver (or configure SOAP) for in-game sync.');
+        $flashMessage .= ' ' . translate(
+            'admin_tickets_reload_failed_hint',
+            'The ticket was saved in the database, but the worldserver could not reload gm_ticket automatically. Ensure the SOAP URL in Admin → Settings → SOAP is reachable from this web server (not 127.0.0.1 unless the site and worldserver run on the same machine), then run .reload gm_tickets in-game if needed.'
+        );
     }
 }
 
