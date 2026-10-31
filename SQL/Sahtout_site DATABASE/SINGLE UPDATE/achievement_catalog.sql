@@ -1,6 +1,5 @@
 -- Reference catalog imported from client DBC files (Achievement.dbc, etc.).
 -- Data rows: run `php tools/import_achievement_catalog.php` then import the generated SQL file.
--- Token rewards use a separate table (achievement_token_rewards) when implemented.
 
 CREATE TABLE IF NOT EXISTS `achievement_catalog` (
   `achievement_id` smallint unsigned NOT NULL,
@@ -18,4 +17,17 @@ CREATE TABLE IF NOT EXISTS `achievement_catalog` (
   PRIMARY KEY (`achievement_id`),
   KEY `idx_category` (`category_id`),
   KEY `idx_criteria` (`criteria_type`, `criteria_value`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Pre-selected milestones (import script refreshes non-manual rows). Set tokens and is_enabled when ready.
+CREATE TABLE IF NOT EXISTS `achievement_token_rewards` (
+  `achievement_id` smallint unsigned NOT NULL,
+  `tokens` int unsigned NOT NULL DEFAULT '0',
+  `milestone_type` enum('level','quest_count','dungeon','manual') NOT NULL DEFAULT 'manual',
+  `milestone_value` int unsigned DEFAULT NULL COMMENT 'Level or quest count when milestone_type is level/quest_count',
+  `is_enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`achievement_id`),
+  KEY `idx_milestone` (`milestone_type`, `milestone_value`),
+  KEY `idx_enabled` (`is_enabled`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
