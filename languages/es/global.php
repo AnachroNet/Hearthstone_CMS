@@ -12,12 +12,10 @@ return [
     'nav_account' => 'Cuenta',
     
     // Account-related
-    'points' => 'Puntos',
     'tokens' => 'Tokens',
     'account_settings' => 'Configuración de la cuenta',
     'admin_panel' => 'Panel de administración',
     'logout' => 'Cerrar sesión',
-    'vote' => 'Votar',
     
     // Arena navigation
     'arenanav_solo_pvp' => 'Clasificación SOLO PVP',
@@ -42,7 +40,6 @@ return [
     'settings_nav_recaptcha' => 'reCAPTCHA',
     'settings_nav_realm' => 'Reino',
     'settings_nav_soap' => 'SOAP',
-    'settings_nav_vote_sites' => 'Sitios de Votación',
     'settings_nav_page_manager' => 'Administrador de páginas',
 
     // Realm status (from realm_status.php)

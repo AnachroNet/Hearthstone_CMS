@@ -43,7 +43,6 @@ return [
     'admin_users_table_username' => 'Benutzername',
     'admin_users_table_email' => 'E-Mail',
     'admin_users_table_avatar' => 'Avatar',
-    'admin_users_table_points' => 'Punkte',
     'admin_users_table_tokens' => 'Token',
     'admin_users_table_role' => 'Rolle',
     'admin_users_table_last_updated' => 'Aktualisiert',
@@ -86,7 +85,6 @@ return [
     // Modal Labels
     'admin_users_label_username' => 'Benutzername',
     'admin_users_label_email' => 'E-Mail',
-    'admin_users_label_points' => 'Punkte',
     'admin_users_label_tokens' => 'Token',
     'admin_users_label_role' => 'Rolle',
     'admin_users_label_action' => 'Aktion',

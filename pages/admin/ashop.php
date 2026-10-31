@@ -230,7 +230,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $category = $_POST['category'] ?? '';
             $name = $_POST['name'] ?? '';
             $description = $_POST['description'] ?? null;
-            $point_cost = (int)($_POST['point_cost'] ?? 0);
             $token_cost = (int)($_POST['token_cost'] ?? 0);
             $stock = isset($_POST['stock']) && $_POST['stock'] !== '' ? (int)$_POST['stock'] : null;
             $entry = isset($_POST['entry']) && $_POST['entry'] !== '' ? (int)$_POST['entry'] : null;
@@ -413,14 +412,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             try {
                 if ($action === 'add') {
-                    $sql = "INSERT INTO shop_items (category, name, description, image, point_cost, token_cost, stock, entry, gold_amount, level_boost, at_login_flags, is_item, is_set, itemset_id) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $sql = "INSERT INTO shop_items (category, name, description, image, token_cost, stock, entry, gold_amount, level_boost, at_login_flags, is_item, is_set, itemset_id) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmt = $site_db->prepare($sql);
-                    $stmt->bind_param("ssssiiiiiiiiii", $category, $name, $description, $image, $point_cost, $token_cost, $stock, $entry, $gold_amount, $level_boost, $at_login_flags, $is_item, $is_set, $itemset_id);
+                    $stmt->bind_param("ssssiiiiiiiii", $category, $name, $description, $image, $token_cost, $stock, $entry, $gold_amount, $level_boost, $at_login_flags, $is_item, $is_set, $itemset_id);
                 } else {
-                    $sql = "UPDATE shop_items SET category = ?, name = ?, description = ?, image = ?, point_cost = ?, token_cost = ?, stock = ?, entry = ?, gold_amount = ?, level_boost = ?, at_login_flags = ?, is_item = ?, is_set = ?, itemset_id = ? WHERE item_id = ?";
+                    $sql = "UPDATE shop_items SET category = ?, name = ?, description = ?, image = ?, token_cost = ?, stock = ?, entry = ?, gold_amount = ?, level_boost = ?, at_login_flags = ?, is_item = ?, is_set = ?, itemset_id = ? WHERE item_id = ?";
                     $stmt = $site_db->prepare($sql);
-                    $stmt->bind_param("ssssiiiiiiiiiii", $category, $name, $description, $image, $point_cost, $token_cost, $stock, $entry, $gold_amount, $level_boost, $at_login_flags, $is_item, $is_set, $itemset_id, $item_id);
+                    $stmt->bind_param("ssssiiiiiiiiii", $category, $name, $description, $image, $token_cost, $stock, $entry, $gold_amount, $level_boost, $at_login_flags, $is_item, $is_set, $itemset_id, $item_id);
                 }
                 
                 if ($stmt->execute()) {
@@ -959,12 +958,6 @@ ob_start();
                                     <input type="text" name="name" id="name" class="wow-input" required maxlength="50" placeholder="<?php echo translate('admin_shop_placeholder_name', 'Enter item name'); ?>">
                                 </div>
 
-                                <!-- Point Cost -->
-                                <div class="field-group active">
-                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_point_cost', 'Point Cost'); ?></label>
-                                    <input type="number" name="point_cost" id="point_cost" class="wow-input" min="0" max="99999" maxlength="5" required placeholder="<?php echo translate('admin_shop_placeholder_point_cost', 'Enter point cost'); ?>">
-                                </div>
-
                                 <!-- Token Cost -->
                                 <div class="field-group active">
                                     <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_token_cost', 'Token Cost'); ?></label>
@@ -1111,7 +1104,6 @@ ob_start();
                                         <th><?php echo translate('admin_shop_table_id', 'ID'); ?></th>
                                         <th><?php echo translate('admin_shop_table_category', 'Category'); ?></th>
                                         <th><?php echo translate('admin_shop_table_name', 'Name'); ?></th>
-                                        <th class="hidden sm:table-cell"><?php echo translate('admin_shop_table_points', 'Points'); ?></th>
                                         <th class="hidden sm:table-cell"><?php echo translate('admin_shop_table_tokens', 'Tokens'); ?></th>
                                         <th class="hidden md:table-cell"><?php echo translate('admin_shop_table_stock', 'Stock'); ?></th>
                                         <th class="hidden lg:table-cell"><?php echo translate('admin_shop_table_image', 'Image'); ?></th>
@@ -1121,7 +1113,7 @@ ob_start();
                                 <tbody>
                                     <?php if (empty($items)): ?>
                                         <tr>
-                                            <td colspan="8" class="text-center text-gray-400 py-6 md:py-8">
+                                            <td colspan="7" class="text-center text-gray-400 py-6 md:py-8">
                                                 <i class="fas fa-shopping-cart text-3xl md:text-4xl text-gray-600 block mb-3"></i>
                                                 <?php echo translate('admin_shop_no_items', 'No items found.'); ?>
                                             </td>
@@ -1147,7 +1139,6 @@ ob_start();
                                                         <br><small class="text-muted-wow"><?php echo translate('admin_shop_level_label', 'Level:') . ' +' . $row['level_boost']; ?></small>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td class="hidden sm:table-cell text-sm md:text-base"><?php echo $row['point_cost']; ?></td>
                                                 <td class="hidden sm:table-cell text-sm md:text-base"><?php echo $row['token_cost']; ?></td>
                                                 <td class="hidden md:table-cell text-sm md:text-base"><?php echo $row['stock'] ?? '∞'; ?></td>
                                                 <td class="hidden lg:table-cell">
@@ -1440,7 +1431,6 @@ ob_start();
                     document.getElementById('category').value = item.category;
                     document.getElementById('name').value = item.name;
                     document.getElementById('description').value = item.description || '';
-                    document.getElementById('point_cost').value = item.point_cost;
                     document.getElementById('token_cost').value = item.token_cost;
                     document.getElementById('stock').value = item.stock || '';
                     document.getElementById('entry').value = item.entry || '';
@@ -1489,13 +1479,12 @@ ob_start();
             form.addEventListener('submit', function(e) {
                 const category = document.getElementById('category').value;
                 const name = document.getElementById('name').value.trim();
-                const pointCost = document.getElementById('point_cost').value;
                 const tokenCost = document.getElementById('token_cost').value;
                 const isSet = category === 'Set';
                 const entryValue = document.getElementById('entry').value;
                 const itemsetValue = document.getElementById('itemset_id').value;
 
-                if (!name || pointCost === '' || tokenCost === '') {
+                if (!name || tokenCost === '') {
                     e.preventDefault();
                     alert(<?php echo json_encode(translate('admin_shop_js_required_fields', 'Please fill in all required fields.')); ?>);
                     return;

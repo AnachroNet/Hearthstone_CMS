@@ -12,12 +12,10 @@ return [
     'nav_account' => 'Compte',
     
     // Account-related
-    'points' => 'Points',
     'tokens' => 'Jetons',
     'account_settings' => 'Paramètres du compte',
     'admin_panel' => 'Panneau d’administration',
     'logout' => 'Déconnexion',
-    'vote' => 'Voter',
     
     // Arena navigation
     'arenanav_solo_pvp' => 'Classement SOLO PVP',
@@ -42,7 +40,6 @@ return [
     'settings_nav_recaptcha' => 'reCAPTCHA',
     'settings_nav_realm' => 'Royaume',
     'settings_nav_soap' => 'SOAP',
-    'settings_nav_vote_sites' => 'Sites de Vote',
     'settings_nav_page_manager' => 'Gestionnaire de pages',
 
     // Social media alt text

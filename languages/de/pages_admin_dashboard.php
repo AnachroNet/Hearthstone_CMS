@@ -18,7 +18,6 @@ return [
     'admin_dashboard_apply_button' => 'Anwenden',
     'admin_dashboard_table_username' => 'Benutzername',
     'admin_dashboard_table_email' => 'E-Mail',
-    'admin_dashboard_table_points' => 'Punkte',
     'admin_dashboard_table_tokens' => 'Token',
     'admin_dashboard_table_role' => 'Rolle',
     'admin_dashboard_table_online' => 'Online',

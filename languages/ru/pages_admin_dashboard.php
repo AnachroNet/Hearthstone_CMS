@@ -18,7 +18,6 @@ return [
     'admin_dashboard_apply_button' => 'Применить',
     'admin_dashboard_table_username' => 'Имя пользователя',
     'admin_dashboard_table_email' => 'Электронная почта',
-    'admin_dashboard_table_points' => 'Очки',
     'admin_dashboard_table_tokens' => 'Токены',
     'admin_dashboard_table_role' => 'Роль',
     'admin_dashboard_table_online' => 'Онлайн',

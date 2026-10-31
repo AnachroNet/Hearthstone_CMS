@@ -19,8 +19,8 @@ USE `acore_auth`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
 CREATE TRIGGER `after_account_insert` AFTER INSERT ON `account` FOR EACH ROW BEGIN
-    INSERT INTO `sahtout_site`.`user_currencies` (account_id, username, email, points, tokens, avatar)
-    VALUES (NEW.id, NEW.username, NEW.email, 0, 0, NULL);
+    INSERT INTO `sahtout_site`.`user_currencies` (account_id, username, email, tokens, avatar)
+    VALUES (NEW.id, NEW.username, NEW.email, 0, NULL);
 END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;

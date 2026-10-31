@@ -20,7 +20,6 @@ return [
     'tab_characters' => 'Personnages',
     'tab_activity' => 'Activité',
     'tab_security' => 'Sécurité',
-    'tab_vote' => 'Voter',
     // Card titles
     'card_basic_info' => 'Informations de base',
     'card_contact' => 'Contact',
@@ -41,7 +40,6 @@ return [
     'label_total_characters' => 'Total',
     'label_highest_level' => 'Niveau le plus élevé',
     'label_total_gold' => 'Or total',
-    'label_points' => 'Points',
     'label_tokens' => 'Jetons',
     'label_level' => 'Niveau',
     'label_gold' => 'Or',

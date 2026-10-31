@@ -63,8 +63,7 @@ function getLanguageUrl($lang) {
     return $currentUrl . '?' . $queryString;
 }
 
-// Fetch user points, tokens, email, avatar, gmlevel, and role if logged in
-$points = 0;
+// Fetch user tokens, email, avatar, gmlevel, and role if logged in
 $tokens = 0;
 $email = 'user@example.com';
 $avatar = $base_path . 'img/accountimg/profile_pics/user.jpg'; // Default avatar
@@ -72,9 +71,9 @@ $gmlevel = 0;
 $role = 'player';
 
 if (isset($_SESSION['user_id'])) {
-    // Query site_db for points, tokens, avatar, and role
+    // Query site_db for tokens, avatar, and role
     $stmt_site = $site_db->prepare("
-        SELECT points, tokens, avatar, role 
+        SELECT tokens, avatar, role 
         FROM user_currencies 
         WHERE account_id = ?
     ");
@@ -101,7 +100,6 @@ if (isset($_SESSION['user_id'])) {
             $row_site = $result_site->fetch_assoc();
             $row_auth = $result_auth->fetch_assoc();
 
-            $points = (int)$row_site['points'];
             $tokens = (int)$row_site['tokens'];
             $email = htmlspecialchars($row_auth['email'] ?? 'user@example.com', ENT_QUOTES, 'UTF-8');
             $role = $row_site['role'] ?? 'player';
@@ -735,7 +733,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
                 <!-- User Profile (Logged In) -->
                 <?php if (!empty($_SESSION['user_id'])): ?>
                     <div class="hidden md:flex items-center gap-2 force-wrap">
-                        <span class="badge-gold"><i class="fas fa-star"></i> <?php echo $points; ?></span>
                         <span class="badge-iron"><i class="fas fa-gem"></i> <?php echo $tokens; ?></span>
                     </div>
 
@@ -755,7 +752,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
                                         <p class="text-gray-400 text-[11px] truncate force-wrap"><?php echo $email; ?></p>
 
                                         <div class="flex gap-1.5 mt-1.5 flex-wrap">
-                                            <span class="badge-gold text-[10px] !py-0.5 !px-1.5"><i class="fas fa-star"></i> <?php echo $points; ?></span>
                                             <span class="badge-iron text-[10px] !py-0.5 !px-1.5"><i class="fas fa-gem"></i> <?php echo $tokens; ?></span>
                                         </div>
                                     </div>
@@ -777,13 +773,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
                                         <?php echo translate('admin_panel', 'Admin Panel'); ?>
                                     </a>
                                 <?php endif; ?>
-
-                                <div class="dropdown-divider"></div>
-
-                                <a href="<?php echo $esc_base; ?>vote" class="dropdown-item force-wrap">
-                                    <i class="fas fa-vote-yea w-4 text-center text-[#4ade80]"></i>
-                                    <?php echo translate('vote', 'Vote'); ?>
-                                </a>
 
                                 <div class="dropdown-divider"></div>
 

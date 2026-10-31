@@ -12,12 +12,10 @@ return [
     'nav_account' => '账号',
     
     // Account-related - 账号相关
-    'points' => '积分',
     'tokens' => '代币',
     'account_settings' => '账号设置',
     'admin_panel' => '管理面板',
     'logout' => '登出',
-    'vote' => '投票',
     
     // Arena navigation - 竞技场导航
     'arenanav_solo_pvp' => '单排 PVP 天梯',
@@ -42,7 +40,6 @@ return [
     'settings_nav_recaptcha'    => 'reCAPTCHA',
     'settings_nav_realm'        => '服务器(Realm)',
     'settings_nav_soap'         => 'SOAP',
-    'settings_nav_vote_sites'   => '投票站点',
     'settings_nav_page_manager' => '页面管理',
 
     // Social media alt text - 社交媒体

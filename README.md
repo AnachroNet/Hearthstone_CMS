@@ -48,17 +48,6 @@ SahtoutCMS V2 is the successor to the original SahtoutCMS V1 and introduces a re
 
 > ⚡ SahtoutCMS is an open-source project created for learning, experimentation, and the AzerothCore community. You are free to use it for your own World of Warcraft server.
 
-<div align="center">
-  <a href="https://blodyiheb.vercel.app/" target="_blank">
-    <img 
-      width="200" 
-      height="auto" 
-      alt="Get Support" 
-      src="https://github.com/user-attachments/assets/80b3619f-cc0b-4502-b8b8-a4d71f52c212" 
-    />
-  </a>
-</div>
-
 ---
 
 # ✨ Features
@@ -90,7 +79,7 @@ SahtoutCMS provides a centralized administration panel for managing your website
 * User roles
 * Email management
 * User information
-* Tokens and points
+* Token balances (shop currency)
 
 ## 🎮 In-Game Accounts
 
@@ -153,13 +142,6 @@ SahtoutCMS V2 provides configurable settings for the main components of the webs
 * SOAP connection/credentials
 * GM command configuration
 
-### Voting
-
-* Voting websites
-* Vote rewards
-* Vote cooldowns
-* Point rewards
-
 ---
 
 # 🛒 Shop System
@@ -181,27 +163,11 @@ SahtoutCMS includes a dynamic shop system managed directly from the administrati
 * Level boost
 * Gold
 
-## 💰 Currency
+## 💰 Shop tokens
 
-* Tokens / points
-* Currency management
-* Shop pricing
-* Player balances
-
----
-
-# 🗳️ Voting System
-
-Reward your players for supporting your server through external voting websites.
-
-Features include:
-
-* Multiple voting websites
-* Vote rewards
-* Voting cooldowns
-* Vote history
-* Point rewards
-* Configurable voting settings
+* In-game shop uses **tokens** only (granted by admins)
+* Shop pricing and player token balances
+* Admin user management for token grants
 
 ---
 
@@ -285,7 +251,11 @@ SahtoutCMS V2 includes several security-focused features, including:
 
 # 💻 Requirements
 
-## Tested Environment
+SahtoutCMS targets **Apache** with **PHP 8.2+** and **MySQL or MariaDB**. The web installer (**Step 2: Environment Check**) validates the same PHP extensions and Apache modules listed below.
+
+> **Web server:** URL routing uses root `.htaccess` rules. **Nginx**, IIS, and other stacks are not documented here; you would need equivalent rewrite rules and PHP handling yourself.
+
+## Tested environment
 
 | Component | Version     |
 | --------- | ----------- |
@@ -294,40 +264,90 @@ SahtoutCMS V2 includes several security-focused features, including:
 | PHP       | 8.2.12      |
 | Apache    | 2.4.58      |
 | MariaDB   | 10.4.32     |
-### Additional Requirements
- Node.js
- npm
-### Other Platforms
 
-SahtoutCMS V2 should also work on Linux-based Apache environments.
+XAMPP is optional and mainly useful for local Windows development. SahtoutCMS also runs on **Linux Apache** installs when the requirements below are met.
 
-XAMPP is **not required** and is mainly recommended for easy local development and testing.
+## PHP
 
----
+| Requirement | Notes |
+| ----------- | ----- |
+| **PHP 8.2+** | Required (SRP6, modern syntax) |
+| **Extensions (required)** | `curl`, `fileinfo`, `gd`, `gmp`, `mbstring`, `mysqli`, `openssl`, `soap`, `xml` |
+| **Extensions (optional)** | `intl`, `zip` — checked by the installer but not required |
 
-# 🧩 Required PHP Extensions
+Extension roles (short):
 
-The following PHP extensions are required:
+* **gmp** — SRP6 login/register with AzerothCore
+* **soap** — GM commands and shop delivery via AzerothCore SOAP
+* **mysqli** — website and game database access
+* **fileinfo** + **gd** — admin shop image uploads (MIME validation and image checks)
+* **openssl** + **curl** — HTTPS, SMTP, and external APIs (e.g. reCAPTCHA)
 
-```text
-bcmath/curl/gd/gmp/mbstring/mysqli/openssl/soap/xml
-```
-
-You can check your installed PHP extensions with:
+Verify extensions:
 
 ```bash
 php -m
 ```
 
+**php.ini (recommended for admin shop uploads):** allow at least **2 MB** uploads, for example `upload_max_filesize = 8M` and `post_max_size = 8M` (must be ≥ upload limit).
+
+## Apache
+
+| Requirement | Notes |
+| ----------- | ----- |
+| **mod_rewrite** | Required — pretty URLs and routing |
+| **mod_headers** | Required — security-related headers |
+| **AllowOverride** | Set **`AllowOverride All`** (or at least `FileInfo`) for the SahtoutCMS document root so `.htaccess` is honored |
+| **Optional modules** | `mod_expires`, `mod_deflate` — performance; not required |
+
+**Linux (Debian/Ubuntu) examples:**
+
+```bash
+sudo a2enmod rewrite headers
+sudo systemctl reload apache2
+```
+
+Ensure your virtual host allows overrides, for example:
+
+```apache
+<Directory /var/www/html>
+    AllowOverride All
+    Require all granted
+</Directory>
+```
+
+**Windows (XAMPP):** enable modules in `apache\conf\httpd.conf`, then restart Apache. The installer help on Step 2 includes XAMPP-specific notes.
+
+The installer can only detect Apache modules when `apache_get_modules()` is available (typical mod_php setups). On some PHP-FPM proxies, module checks may show **N/A**; confirm modules in your Apache config manually.
+
+## Database
+
+* **MySQL or MariaDB** — website database (`sahtout_site`) plus connections to AzerothCore **`acore_auth`**, **`acore_characters`**, and **`acore_world`** (as configured in the installer).
+
+## Build tools (project root)
+
+Run these **after** cloning and **before** using SMTP or changing frontend styles:
+
+| Tool | Purpose |
+| ---- | ------- |
+| **Composer** | PHPMailer (`composer install`) — required for email activation, password reset, and SMTP in admin |
+| **Node.js + npm** | Tailwind CSS build (`npm install` then `npm run build`) — required only if you change CSS; the repo includes a built `assets/css/tailwind.css` |
+
+```bash
+composer install
+npm install
+npm run build
+```
+
 ---
 
-# 🎮 Game Server Requirements
+# 🎮 Game server requirements
 
-SahtoutCMS V2 is designed for:
+SahtoutCMS is designed for:
 
 * **AzerothCore**
 * **World of Warcraft WotLK 3.3.5**
-* **SOAP enabled**
+* **SOAP enabled** on the world/auth configuration used by the CMS
 
 Your AzerothCore server and databases should already be installed and working before configuring SahtoutCMS.
 
@@ -341,18 +361,15 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/blodyiheb/SahtoutCMS.git
+cd SahtoutCMS
 ```
 
 Or download the repository as a ZIP from GitHub.
 
-> **Important:** The `main` branch contains the current SahtoutCMS V2 release.
-# 📦 Dependencies
+Install PHP/Apache dependencies from the **Requirements** section above (Composer, and npm if you build assets), then continue with platform setup below.
 
-```bash
-composer install
-npm install
-npm run build
-```
+> **Important:** The `main` branch contains the current SahtoutCMS V2 release.
+
 ---
 
 # 🪟 2. Windows / XAMPP Installation
@@ -472,7 +489,7 @@ http(s)://your-domain.com/install/
 
 Replace `your-domain.com` with your actual domain.
 
-The installer will guide you through the required configuration.
+The installer will guide you through the required configuration. **Step 2** runs the same environment checks described under **Requirements** above.
 
 ---
 
@@ -590,9 +607,9 @@ Please keep changes focused and provide a clear description of what your Pull Re
 
 ---
 
-# 🌟 Support SahtoutCMS
+# 🌟 Community
 
-If SahtoutCMS is useful to you or your World of Warcraft server, there are several ways you can support the project.
+If SahtoutCMS is useful to you or your World of Warcraft server, you can get involved in the project community.
 
 ### ⭐ Star the Repository
 
@@ -610,19 +627,6 @@ Join the SahtoutCMS Discord community to:
 * Discuss features
 * Connect with other users
 
-### ❤️ Support Development
-
-If you want to financially support the continued development of SahtoutCMS, consider using the available donation or sponsorship options.
-
-Your support can help with:
-
-* Development time
-* Infrastructure
-* Testing
-* New features
-* Long-term maintenance
-
-> 💙 SahtoutCMS will remain open source. Donations are optional and help support continued development.
 ---
 
 # 📜 License
@@ -642,8 +646,6 @@ See the [LICENSE](LICENSE) file for more information.
 <img width="671" height="876" alt="4" src="https://github.com/user-attachments/assets/a09a8e37-46a6-43f8-b33f-e1d43263e3ac" />
 </div>
 <img width="1446" height="943" alt="5" src="https://github.com/user-attachments/assets/87124183-e10c-4acd-927d-1d3ce210c133" />
-<div align="center">
-<img width="400" height="200" alt="support-button_original" src="https://github.com/user-attachments/assets/9dd2f7de-cc6f-41e3-9b6e-0f2723413e1b" />
 <div align="center">
 <img width="1075" height="660" alt="6" src="https://github.com/user-attachments/assets/36f854bb-75f6-4d71-bbda-e00cbcd368ea" />
 <img width="910" height="601" alt="7" src="https://github.com/user-attachments/assets/b2e78a6e-998a-41bd-bfc1-515f71d06c9b" />

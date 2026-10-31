@@ -18,7 +18,6 @@ return [
     'admin_dashboard_apply_button' => '应用',
     'admin_dashboard_table_username' => '用户名',
     'admin_dashboard_table_email' => '电子邮箱',
-    'admin_dashboard_table_points' => '积分',
     'admin_dashboard_table_tokens' => '代币',
     'admin_dashboard_table_role' => '角色',
     'admin_dashboard_table_online' => '在线状态',

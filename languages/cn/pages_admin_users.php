@@ -43,7 +43,6 @@ return [
     'admin_users_table_username' => '用户名',
     'admin_users_table_email' => '邮箱',
     'admin_users_table_avatar' => '头像',
-    'admin_users_table_points' => '积分',
     'admin_users_table_tokens' => '代币',
     'admin_users_table_role' => '角色',
     'admin_users_table_last_updated' => '更新日期',
@@ -86,7 +85,6 @@ return [
     // Modal Labels
     'admin_users_label_username' => '用户名',
     'admin_users_label_email' => '邮箱',
-    'admin_users_label_points' => '积分',
     'admin_users_label_tokens' => '代币',
     'admin_users_label_role' => '角色',
     'admin_users_label_action' => '操作',

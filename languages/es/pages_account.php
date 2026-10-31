@@ -20,7 +20,6 @@ return [
     'tab_characters' => 'Personajes',
     'tab_activity' => 'Actividad',
     'tab_security' => 'Seguridad',
-    'tab_vote' => 'Votar',
     
     // Card titles
     'card_basic_info' => 'Información básica',
@@ -42,7 +41,6 @@ return [
     'label_total_characters' => 'Total',
     'label_highest_level' => 'Nivel más alto',
     'label_total_gold' => 'Oro total',
-    'label_points' => 'Puntos',
     'label_tokens' => 'Fichas',
     'label_level' => 'Nivel',
     'label_gold' => 'Oro',

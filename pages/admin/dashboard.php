@@ -66,7 +66,7 @@ $search_email = isset($_GET['search_email']) ? trim($_GET['search_email']) : '';
 $role_filter = isset($_GET['role_filter']) && in_array($_GET['role_filter'], ['admin', 'moderator', '']) ? $_GET['role_filter'] : '';
 
 // Get recent admins/moderators
-$users_query = "SELECT account_id, username, points, tokens, role, last_updated
+$users_query = "SELECT account_id, username, tokens, role, last_updated
                 FROM " . DB_SITE . ".user_currencies
                 WHERE role IN ('admin', 'moderator')";
 $params = [];
@@ -525,8 +525,7 @@ ob_start();
                                     <tr>
                                         <th><?php echo translate('admin_dashboard_table_username', 'Username'); ?></th>
                                         <th class="hidden md:table-cell"><?php echo translate('admin_dashboard_table_email', 'Email'); ?></th>
-                                        <th><?php echo translate('admin_dashboard_table_points', 'Points'); ?></th>
-                                        <th class="hidden sm:table-cell"><?php echo translate('admin_dashboard_table_tokens', 'Tokens'); ?></th>
+                                        <th><?php echo translate('admin_dashboard_table_tokens', 'Tokens'); ?></th>
                                         <th><?php echo translate('admin_dashboard_table_role', 'Role'); ?></th>
                                         <th class="hidden lg:table-cell"><?php echo translate('admin_dashboard_table_online', 'Online'); ?></th>
                                         <th class="hidden xl:table-cell"><?php echo translate('admin_dashboard_table_ban_status', 'Ban Status'); ?></th>
@@ -536,7 +535,7 @@ ob_start();
                                 <tbody>
                                     <?php if (empty($users)): ?>
                                         <tr>
-                                            <td colspan="8" class="text-center text-gray-400 py-6 md:py-8">
+                                            <td colspan="7" class="text-center text-gray-400 py-6 md:py-8">
                                                 <i class="fas fa-users-slash text-2xl md:text-3xl text-gray-600 block mb-2"></i>
                                                 <?php echo translate('admin_dashboard_no_staff_found', 'No admins or moderators found.'); ?>
                                             </td>
@@ -546,8 +545,7 @@ ob_start();
                                             <tr>
                                                 <td class="font-semibold text-white text-sm md:text-base"><?php echo htmlspecialchars($user['username']); ?></td>
                                                 <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($user['email'] ?? translate('admin_dashboard_email_not_set', 'Not set')); ?></td>
-                                                <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['points']); ?></td>
-                                                <td class="hidden sm:table-cell text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
+                                                <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                 <td><span class="status-<?php echo htmlspecialchars($user['role']); ?> text-sm md:text-base"><?php echo ucfirst(translate('admin_dashboard_role_' . $user['role'], ucfirst($user['role']))); ?></span></td>
                                                 <td class="hidden lg:table-cell"><?php echo getOnlineStatus($user['online'] ?? 0); ?></td>
                                                 <td class="hidden xl:table-cell text-sm"><?php echo getAccountStatus($user['locked'] ?? 0, $user['banInfo'] ?? []); ?></td>

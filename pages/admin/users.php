@@ -63,13 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $update_message = alert_danger(translate('admin_users_csrf_error', 'CSRF token validation failed.'));
         } else {
             $account_id = (int)$_POST['account_id'];
-            $points = (int)$_POST['points'];
             $tokens = (int)$_POST['tokens'];
             $role = in_array($_POST['role'], ['player', 'moderator', 'admin']) ? $_POST['role'] : 'player';
             $email = trim($_POST['email']);
             
-            $stmt = $site_db->prepare("UPDATE " . DB_SITE . ".user_currencies SET points = ?, tokens = ?, role = ? WHERE account_id = ?");
-            $stmt->bind_param("iisi", $points, $tokens, $role, $account_id);
+            $stmt = $site_db->prepare("UPDATE " . DB_SITE . ".user_currencies SET tokens = ?, role = ? WHERE account_id = ?");
+            $stmt->bind_param("isi", $tokens, $role, $account_id);
             $success = $stmt->execute();
             $stmt->close();
             
@@ -179,7 +178,7 @@ $stmt->close();
 $total_website_pages = ceil($total_website_users / $users_per_page);
 
 // Fetch website users
-$users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.points, uc.tokens, uc.role, uc.last_updated, a.email
+$users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.tokens, uc.role, uc.last_updated, a.email
                 FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1";
 $params = [];
 $types = '';
@@ -726,8 +725,7 @@ ob_start();
                                             <th><?php echo translate('admin_users_table_username', 'Username'); ?></th>
                                             <th class="hidden md:table-cell"><?php echo translate('admin_users_table_email', 'Email'); ?></th>
                                             <th><?php echo translate('admin_users_table_avatar', 'Avatar'); ?></th>
-                                            <th><?php echo translate('admin_users_table_points', 'Points'); ?></th>
-                                            <th class="hidden sm:table-cell"><?php echo translate('admin_users_table_tokens', 'Tokens'); ?></th>
+                                            <th><?php echo translate('admin_users_table_tokens', 'Tokens'); ?></th>
                                             <th><?php echo translate('admin_users_table_role', 'Role'); ?></th>
                                             <th class="hidden lg:table-cell"><?php echo translate('admin_users_table_last_updated', 'Updated'); ?></th>
                                             <th><?php echo translate('admin_users_table_action', 'Action'); ?></th>
@@ -736,7 +734,7 @@ ob_start();
                                     <tbody>
                                         <?php if ($users_result->num_rows === 0): ?>
                                             <tr>
-                                                <td colspan="9" class="text-center text-gray-400 py-6 md:py-8">
+                                                <td colspan="8" class="text-center text-gray-400 py-6 md:py-8">
                                                     <i class="fas fa-users-slash text-2xl md:text-3xl text-gray-600 block mb-2"></i>
                                                     <?php echo translate('admin_users_no_users_found', 'No users found.'); ?>
                                                 </td>
@@ -750,8 +748,7 @@ ob_start();
                                                     <td>
                                                         <img src="<?php echo $base_path . 'img/accountimg/profile_pics/' . (!empty($user['avatar']) ? htmlspecialchars($user['avatar']) : 'user.jpg'); ?>" class="avatar-img" alt="<?php echo translate('admin_users_avatar_alt', 'Avatar'); ?>">
                                                     </td>
-                                                    <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['points']); ?></td>
-                                                    <td class="hidden sm:table-cell text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
+                                                    <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                     <td><span class="status-<?php echo htmlspecialchars($user['role']); ?> text-sm md:text-base"><?php echo ucfirst(translate('admin_users_role_' . $user['role'], ucfirst($user['role']))); ?></span></td>
                                                     <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $user['last_updated'] ? date('M j, Y', strtotime($user['last_updated'])) : translate('admin_users_never', 'Never'); ?></td>
                                                     <td>
@@ -899,7 +896,7 @@ ob_start();
     <div class="panel w-full max-w-lg p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
         <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl close-modal-btn" data-modal="editModal-<?php echo $user['account_id']; ?>">&times;</button>
         <h3 class="wow-title text-2xl mb-6"><?php echo translate('admin_users_edit_modal_title', 'Edit User: ') . htmlspecialchars($user['username']); ?></h3>
-        <form method="POST" action="<?php echo $base_path; ?>admin/users" onsubmit="return validatePointsAndTokens()">
+        <form method="POST" action="<?php echo $base_path; ?>admin/users">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="account_id" value="<?php echo $user['account_id']; ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -911,11 +908,6 @@ ob_start();
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_users_label_email', 'Email'); ?></label>
                 <input type="email" name="email" class="input-dark" value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" required>
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_users_label_points', 'Points'); ?></label>
-                <input type="number" name="points" id="points-input" class="input-dark" value="<?php echo htmlspecialchars($user['points']); ?>" required min="-9999999" max="9999999" maxlength="7">
-                <small class="text-gray-400 text-xs mt-1">Max value: 9,999,999 (7 digits)</small>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_users_label_tokens', 'Tokens'); ?></label>

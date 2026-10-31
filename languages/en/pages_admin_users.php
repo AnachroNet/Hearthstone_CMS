@@ -43,7 +43,6 @@ return [
     'admin_users_table_username' => 'Username',
     'admin_users_table_email' => 'Email',
     'admin_users_table_avatar' => 'Avatar',
-    'admin_users_table_points' => 'Points',
     'admin_users_table_tokens' => 'Tokens',
     'admin_users_table_role' => 'Role',
     'admin_users_table_last_updated' => 'Updated',
@@ -86,7 +85,6 @@ return [
     // Modal Labels
     'admin_users_label_username' => 'Username',
     'admin_users_label_email' => 'Email',
-    'admin_users_label_points' => 'Points',
     'admin_users_label_tokens' => 'Tokens',
     'admin_users_label_role' => 'Role',
     'admin_users_label_action' => 'Action',

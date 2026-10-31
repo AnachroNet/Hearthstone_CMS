@@ -71,7 +71,7 @@ $char_transaction_started = true;
 
 try {
     // Fetch item details, including set metadata.
-    $stmt = $site_db->prepare("SELECT name, point_cost, token_cost, stock, gold_amount, category, level_boost, at_login_flags, is_item, is_set, entry, itemset_id FROM shop_items WHERE item_id = ?");
+    $stmt = $site_db->prepare("SELECT name, token_cost, stock, gold_amount, category, level_boost, at_login_flags, is_item, is_set, entry, itemset_id FROM shop_items WHERE item_id = ?");
     if (!$stmt) {
         error_log("Failed to prepare item query: " . $site_db->error);
         throw new Exception('Database query error');
@@ -138,21 +138,19 @@ try {
         }
     }
 
-    // 1. ATOMICALLY Update user currency & verify sufficient balance
+    // 1. ATOMICALLY Update user tokens & verify sufficient balance
     $stmt = $site_db->prepare("
         UPDATE user_currencies 
-        SET points = points - ?, 
-            tokens = tokens - ?, 
+        SET tokens = tokens - ?, 
             last_updated = NOW() 
         WHERE account_id = ? 
-          AND points >= ? 
           AND tokens >= ?
     ");
     if (!$stmt) {
         error_log("Failed to prepare currency update: " . $site_db->error);
         throw new Exception('Database query error');
     }
-    $stmt->bind_param('iiiii', $item['point_cost'], $item['token_cost'], $account_id, $item['point_cost'], $item['token_cost']);
+    $stmt->bind_param('iii', $item['token_cost'], $account_id, $item['token_cost']);
     
     if (!$stmt->execute()) {
         error_log("Currency update execution failed: " . $stmt->error);

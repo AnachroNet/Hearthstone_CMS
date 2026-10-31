@@ -43,7 +43,6 @@ return [
     'admin_users_table_username' => 'Имя пользователя',
     'admin_users_table_email' => 'Email',
     'admin_users_table_avatar' => 'Аватар',
-    'admin_users_table_points' => 'Очки',
     'admin_users_table_tokens' => 'Токены',
     'admin_users_table_role' => 'Роль',
     'admin_users_table_last_updated' => 'Обновлён',
@@ -86,7 +85,6 @@ return [
     // Modal Labels
     'admin_users_label_username' => 'Имя пользователя',
     'admin_users_label_email' => 'Email',
-    'admin_users_label_points' => 'Очки',
     'admin_users_label_tokens' => 'Токены',
     'admin_users_label_role' => 'Роль',
     'admin_users_label_action' => 'Действие',

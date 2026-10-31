@@ -20,7 +20,6 @@ return [
     'tab_characters' => 'Персонажи',
     'tab_activity' => 'Активность',
     'tab_security' => 'Безопасность',
-    'tab_vote' => 'Голосовать',
     // Карточки
     'card_basic_info' => 'Основная информация',
     'card_contact' => 'Контакт',
@@ -41,7 +40,6 @@ return [
     'label_total_characters' => 'Всего',
     'label_highest_level' => 'Макс. уровень',
     'label_total_gold' => 'Всего золота',
-    'label_points' => 'Очки',
     'label_tokens' => 'Токены',
     'label_level' => 'Уровень',
     'label_gold' => 'Золото',

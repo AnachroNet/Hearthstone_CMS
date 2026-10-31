@@ -131,7 +131,6 @@ CREATE TABLE IF NOT EXISTS `purchases` (
   `purchase_id` int unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
   `item_id` int unsigned NOT NULL,
-  `point_cost` int unsigned NOT NULL DEFAULT '0',
   `token_cost` int unsigned NOT NULL DEFAULT '0',
   `purchase_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`purchase_id`),
@@ -191,7 +190,6 @@ CREATE TABLE IF NOT EXISTS `shop_items` (
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `image` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `point_cost` int unsigned NOT NULL DEFAULT '0',
   `token_cost` int unsigned NOT NULL DEFAULT '0',
   `stock` int unsigned DEFAULT NULL,
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -215,27 +213,27 @@ CREATE TABLE IF NOT EXISTS `shop_items` (
 ) ENGINE=InnoDB AUTO_INCREMENT=505 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Listage des données de la table sahtout_site.shop_items : ~22 rows (environ)
-INSERT INTO `shop_items` (`item_id`, `category`, `name`, `description`, `image`, `point_cost`, `token_cost`, `stock`, `last_updated`, `entry`, `gold_amount`, `level_boost`, `at_login_flags`, `is_item`) VALUES
-	(1, 'Service', 'Level Boost 80', 'Instantly boosts your character to level 80.', 'img/shopimg/services/level_boost_80.jpg', 500, 0, 85, '2025-08-03 15:44:54', NULL, 0, 80, 0, 0),
-	(2, 'Mount', 'Swift Zhevra', 'A fast and stylish mount for your adventures.', 'img/shopimg/items/swift_zhevra.jpg', 0, 50, 45, '2025-08-02 04:14:59', 37719, 0, NULL, 0, 1),
-	(3, 'Pet', 'Proto drake whelp', 'A cute Proto drake pet to follow you.', 'img/shopimg/items/proto-drake-whelp.jpg', 300, 20, 67, '2025-10-05 21:50:34', 44721, 0, NULL, 0, 1),
-	(4, 'Gold', '1000 Gold', 'Add 1000 gold to your in-game wallet.', 'img/shopimg/gold/1000_gold.jpg', 200, 0, NULL, '2025-08-06 23:11:20', NULL, 1000, NULL, 0, 0),
-	(5, 'Service', 'Faction Change', 'Change faction (Alliance Horde)+gender+name', 'img/shopimg/services/faction_change.jpg', 600, 0, 18, '2025-08-18 08:58:15', NULL, 0, NULL, 64, 0),
-	(6, 'Mount', 'Invincible', 'A legendary flying mount.', 'img/shopimg/items/invincible.jpg', 0, 100, 19, '2025-08-18 06:43:52', 50818, 0, NULL, 0, 1),
-	(7, 'Pet', 'Dun Morogh Cub', 'A cute polarbear pet to follow you.', 'img/shopimg/items/dun-morogh-cub.jpg', 250, 10, 57, '2025-08-02 04:01:29', 44970, 0, NULL, 0, 1),
-	(8, 'Gold', '5000 Gold', 'Add 5000 gold you are almost Rich', 'img/shopimg/gold/5000_gold.jpg', 300, 500, 29, '2025-08-28 21:08:42', NULL, 5000, NULL, 0, 0),
-	(9, 'Gold', '10000 Gold', 'Add 10000 gold you are so rich', 'img/shopimg/gold/10000_gold.jpg', 200, 850, 18, '2025-10-07 16:12:38', NULL, 10000, NULL, 0, 0),
-	(10, 'Mount', 'Swift Spectral Tiger', 'A Beautiful Spectral mount', 'img/shopimg/items/swift_spect_tiger.jpg', 250, 100, 16, '2025-10-07 16:15:00', 49284, 0, NULL, 0, 1),
-	(11, 'Stuff', 'Heroic sword LK', 'glorenzelg high blade of the silver hand', 'img/shopimg/items/glorenzelg-high-bladesilver.jpg', 150, 100, 19, '2025-08-16 14:40:01', 50730, 0, NULL, 0, 1),
-	(12, 'Service', 'Level Boost 70', 'Instantly boosts your character to level 70.', 'img/shopimg/services/level_boost_70.avif', 300, 0, 46, '2025-10-05 21:50:41', NULL, 0, 70, 0, 0),
-	(21, 'Service', 'Character Rename', 'Rename your character in-game.', 'img/shopimg/services/rename.jpg', 100, 0, NULL, '2025-08-06 23:09:48', NULL, 0, NULL, 1, 0),
-	(22, 'Service', 'Gender Change', 'Customize Characters +name', 'img/shopimg/services/gender.jpg', 150, 0, NULL, '2025-07-30 00:41:50', NULL, 0, NULL, 8, 0),
-	(23, 'Service', 'Race Change', 'Race Change +gender+name', 'img/shopimg/services/race_change.jpg', 150, 100, NULL, '2025-08-02 04:12:33', NULL, 0, NULL, 128, 0),
-	(24, 'Mount', 'Ashes of al\'ar', NULL, 'img/shopimg/items/phnx.jpg', 150, 20, 3, '2025-10-05 21:55:05', 32458, 0, NULL, 0, 1),
-	(102, 'Stuff', 'Bulwark of Azzinoth Shield', 'Bulwark of Azzinoth shield', 'img/shopimg/items/shield.png', 300, 350, NULL, '2025-08-02 04:12:51', 32375, 0, NULL, 0, 1),
-	(103, 'Stuff', 'Warglaive of Azzinoth sword', NULL, 'img/shopimg/items/azzinoth_sword1.jpg', 199, 299, NULL, '2025-10-05 20:43:12', 32837, 0, NULL, 0, 1),
-	(104, 'Stuff', 'Thunderfury Sword', 'Thunderfury, Blessed Blade of the Windseeker', 'img/shopimg/items/thunderfury2.jpg', 200, 200, NULL, '2025-08-02 04:12:43', 19019, 0, NULL, 0, 1),
-	(105, 'Stuff', 'Onslaught Battle-Helm', 'Onslaught Battle-Helm', 'img/shopimg/items//warrior_helm.png', 150, 100, NULL, '2025-08-02 04:12:27', 30972, 0, NULL, 0, 1);
+INSERT INTO `shop_items` (`item_id`, `category`, `name`, `description`, `image`, `token_cost`, `stock`, `last_updated`, `entry`, `gold_amount`, `level_boost`, `at_login_flags`, `is_item`) VALUES
+	(1, 'Service', 'Level Boost 80', 'Instantly boosts your character to level 80.', 'img/shopimg/services/level_boost_80.jpg', 500, 85, '2025-08-03 15:44:54', NULL, 0, 80, 0, 0),
+	(2, 'Mount', 'Swift Zhevra', 'A fast and stylish mount for your adventures.', 'img/shopimg/items/swift_zhevra.jpg', 50, 45, '2025-08-02 04:14:59', 37719, 0, NULL, 0, 1),
+	(3, 'Pet', 'Proto drake whelp', 'A cute Proto drake pet to follow you.', 'img/shopimg/items/proto-drake-whelp.jpg', 320, 67, '2025-10-05 21:50:34', 44721, 0, NULL, 0, 1),
+	(4, 'Gold', '1000 Gold', 'Add 1000 gold to your in-game wallet.', 'img/shopimg/gold/1000_gold.jpg', 200, NULL, '2025-08-06 23:11:20', NULL, 1000, NULL, 0, 0),
+	(5, 'Service', 'Faction Change', 'Change faction (Alliance Horde)+gender+name', 'img/shopimg/services/faction_change.jpg', 600, 18, '2025-08-18 08:58:15', NULL, 0, NULL, 64, 0),
+	(6, 'Mount', 'Invincible', 'A legendary flying mount.', 'img/shopimg/items/invincible.jpg', 100, 19, '2025-08-18 06:43:52', 50818, 0, NULL, 0, 1),
+	(7, 'Pet', 'Dun Morogh Cub', 'A cute polarbear pet to follow you.', 'img/shopimg/items/dun-morogh-cub.jpg', 260, 57, '2025-08-02 04:01:29', 44970, 0, NULL, 0, 1),
+	(8, 'Gold', '5000 Gold', 'Add 5000 gold you are almost Rich', 'img/shopimg/gold/5000_gold.jpg', 800, 29, '2025-08-28 21:08:42', NULL, 5000, NULL, 0, 0),
+	(9, 'Gold', '10000 Gold', 'Add 10000 gold you are so rich', 'img/shopimg/gold/10000_gold.jpg', 1050, 18, '2025-10-07 16:12:38', NULL, 10000, NULL, 0, 0),
+	(10, 'Mount', 'Swift Spectral Tiger', 'A Beautiful Spectral mount', 'img/shopimg/items/swift_spect_tiger.jpg', 350, 16, '2025-10-07 16:15:00', 49284, 0, NULL, 0, 1),
+	(11, 'Stuff', 'Heroic sword LK', 'glorenzelg high blade of the silver hand', 'img/shopimg/items/glorenzelg-high-bladesilver.jpg', 250, 19, '2025-08-16 14:40:01', 50730, 0, NULL, 0, 1),
+	(12, 'Service', 'Level Boost 70', 'Instantly boosts your character to level 70.', 'img/shopimg/services/level_boost_70.avif', 300, 46, '2025-10-05 21:50:41', NULL, 0, 70, 0, 0),
+	(21, 'Service', 'Character Rename', 'Rename your character in-game.', 'img/shopimg/services/rename.jpg', 100, NULL, '2025-08-06 23:09:48', NULL, 0, NULL, 1, 0),
+	(22, 'Service', 'Gender Change', 'Customize Characters +name', 'img/shopimg/services/gender.jpg', 150, NULL, '2025-07-30 00:41:50', NULL, 0, NULL, 8, 0),
+	(23, 'Service', 'Race Change', 'Race Change +gender+name', 'img/shopimg/services/race_change.jpg', 250, NULL, '2025-08-02 04:12:33', NULL, 0, NULL, 128, 0),
+	(24, 'Mount', 'Ashes of al\'ar', NULL, 'img/shopimg/items/phnx.jpg', 170, 3, '2025-10-05 21:55:05', 32458, 0, NULL, 0, 1),
+	(102, 'Stuff', 'Bulwark of Azzinoth Shield', 'Bulwark of Azzinoth shield', 'img/shopimg/items/shield.png', 650, NULL, '2025-08-02 04:12:51', 32375, 0, NULL, 0, 1),
+	(103, 'Stuff', 'Warglaive of Azzinoth sword', NULL, 'img/shopimg/items/azzinoth_sword1.jpg', 498, NULL, '2025-10-05 20:43:12', 32837, 0, NULL, 0, 1),
+	(104, 'Stuff', 'Thunderfury Sword', 'Thunderfury, Blessed Blade of the Windseeker', 'img/shopimg/items/thunderfury2.jpg', 400, NULL, '2025-08-02 04:12:43', 19019, 0, NULL, 0, 1),
+	(105, 'Stuff', 'Onslaught Battle-Helm', 'Onslaught Battle-Helm', 'img/shopimg/items//warrior_helm.png', 250, NULL, '2025-08-02 04:12:27', 30972, 0, NULL, 0, 1);
 
 -- Listage de la structure de table sahtout_site. site_items
 CREATE TABLE IF NOT EXISTS `site_items` (
@@ -405,7 +403,6 @@ CREATE TABLE IF NOT EXISTS `user_currencies` (
   `username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `points` int unsigned NOT NULL DEFAULT '0',
   `tokens` int unsigned NOT NULL DEFAULT '0',
   `role` enum('player','moderator','admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'player',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -417,68 +414,6 @@ CREATE TABLE IF NOT EXISTS `user_currencies` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Listage des données de la table sahtout_site.user_currencies : ~0 rows (environ)
-
--- Listage de la structure de table sahtout_site. vote_log
-CREATE TABLE IF NOT EXISTS `vote_log` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `site_id` int NOT NULL,
-  `user_id` int unsigned NOT NULL,
-  `ip_address` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `vote_timestamp` int NOT NULL,
-  `reward_status` tinyint(1) NOT NULL DEFAULT '1',
-  PRIMARY KEY (`id`),
-  KEY `idx_site_id` (`site_id`),
-  KEY `fk_vote_log_user_currencies` (`user_id`),
-  CONSTRAINT `fk_vote_log_sites` FOREIGN KEY (`site_id`) REFERENCES `vote_sites` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_vote_log_user_currencies` FOREIGN KEY (`user_id`) REFERENCES `user_currencies` (`account_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC;
-
--- Listage des données de la table sahtout_site.vote_log : ~0 rows (environ)
-
--- Listage de la structure de table sahtout_site. vote_log_history
-CREATE TABLE IF NOT EXISTS `vote_log_history` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `site_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `ip_address` varchar(45) NOT NULL,
-  `vote_timestamp` int NOT NULL,
-  `reward_status` tinyint(1) NOT NULL DEFAULT '0',
-  `reward_points` int NOT NULL DEFAULT '0',
-  `claimed_timestamp` int DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_vote_timestamp` (`vote_timestamp`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Listage des données de la table sahtout_site.vote_log_history : ~0 rows (environ)
-
--- Listage de la structure de table sahtout_site. vote_sites
-CREATE TABLE IF NOT EXISTS `vote_sites` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `callback_file_name` varchar(50) NOT NULL,
-  `site_name` varchar(255) NOT NULL,
-  `siteid` varchar(255) NOT NULL,
-  `url_format` varchar(255) DEFAULT NULL,
-  `button_image_url` varchar(255) DEFAULT NULL,
-  `cooldown_hours` int NOT NULL DEFAULT '12',
-  `reward_points` int NOT NULL DEFAULT '1',
-  `uses_callback` tinyint(1) NOT NULL DEFAULT '0',
-  `callback_secret` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_site_name` (`site_name`),
-  UNIQUE KEY `unique_external_site_id` (`callback_file_name`),
-  UNIQUE KEY `uk_external_site_id` (`callback_file_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=105181 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Listage des données de la table sahtout_site.vote_sites : ~7 rows (environ)
-INSERT INTO `vote_sites` (`id`, `callback_file_name`, `site_name`, `siteid`, `url_format`, `button_image_url`, `cooldown_hours`, `reward_points`, `uses_callback`, `callback_secret`) VALUES
-	(105168, 'gtop100', 'GTOP100', '105163', 'https://gtop100.com/wow-private-servers/server-{siteid}?vote=1&pingUsername={username}', 'img/voteimg/gtop100.com.jpg', 12, 100, 1, 'gtop100CODE'),
-	(105169, 'topg', 'topg', '675795', 'https://topg.org/wow-private-servers/server-{siteid}-{userid}', 'https://topg.org/topg2.gif', 2, 70, 1, ''),
-	(105174, 'arenatop100', 'Arena-Top100', 'blody2', 'https://www.arena-top100.com/index.php?a=in&u={siteid}&id={userid}', 'https://www.arena-top100.com/images/arena-top100.png', 1, 60, 1, 'arena-top100CODE'),
-	(105175, 'top100arena', 'Top100arena', '101743', 'https://www.top100arena.com/listing/{siteid}/vote?incentive={userid}', 'https://www.top100arena.com/rankbadge/101743', 1, 90, 1, ''),
-	(105176, 'mmohub', 'mmohub', '1110', 'https://www.mmohub.com/site/{siteid}/vote/{userid}', 'https://mmohub.com/vote.jpg', 1, 100, 1, '0'),
-	(105177, 'private_server', 'private_serverws', 'blody', 'https://private-server.ws/index.php?a=in&u={siteid}&id={userid}', 'https://private-server.ws/button.php?u=blody&buttontype=static', 12, 100, 1, '0'),
-	(105178, 'xtremetop100', 'XtremeTop100', '1132377856', 'https://www.xtremetop100.com/in.php?site={siteid}&postback={userid}', 'https://www.xtremetop100.com/votenew.jpg', 12, 70, 1, '0');
 
 -- Listage de la structure de table sahtout_site. website_activity_log
 CREATE TABLE IF NOT EXISTS `website_activity_log` (

@@ -7,7 +7,7 @@ include __DIR__ . '/header.inc.php';
 $current_step = 2;
 
 // Required PHP extensions
-$requiredExtensions = ["mysqli", "curl", "openssl", "soap", "gd", "gmp", "mbstring", "xml"];
+$requiredExtensions = ["mysqli", "curl", "openssl", "soap", "gd", "gmp", "mbstring", "xml", "fileinfo"];
 $optionalExtensions = ["intl", "zip", "json"];
 $requiredApacheModules = ["mod_rewrite", "mod_headers"];
 $optionalApacheModules = ["mod_expires", "mod_deflate"];
@@ -37,7 +37,7 @@ function getVersionBadge($pass, $version) {
 }
 
 // Checks
-$phpVersionPass = version_compare(PHP_VERSION, '8.0.0', '>=');
+$phpVersionPass = version_compare(PHP_VERSION, '8.2.0', '>=');
 
 $requiredExtResults = [];
 foreach ($requiredExtensions as $ext) $requiredExtResults[$ext] = extension_loaded($ext);
@@ -69,7 +69,7 @@ $xamppPath = 'C:\\xampp';
 
 // Find missing items for warning message
 $missingItems = [];
-if (!$phpVersionPass) $missingItems[] = 'PHP 8.0+';
+if (!$phpVersionPass) $missingItems[] = 'PHP 8.2+';
 foreach ($requiredExtResults as $ext => $status) {
     if (!$status) $missingItems[] = "PHP extension: $ext";
 }
@@ -214,7 +214,7 @@ $isWindows = (PHP_OS_FAMILY === 'Windows');
                     </h3>
                     <div class="space-y-2">
                         <div class="flex items-center justify-between p-3 bg-slate-900/40 rounded-lg border border-slate-700/30">
-                            <span class="text-slate-200 font-medium text-sm">PHP >= 8.0</span>
+                            <span class="text-slate-200 font-medium text-sm">PHP >= 8.2</span>
                             <?= getVersionBadge($phpVersionPass, PHP_VERSION) ?>
                         </div>
                         <?php foreach ($requiredExtResults as $ext => $status): ?>
@@ -409,7 +409,7 @@ $isWindows = (PHP_OS_FAMILY === 'Windows');
                             <div class="bg-slate-900/40 border border-slate-700/30 rounded-lg p-3">
                                 <p class="text-slate-400 text-xs font-semibold mb-1">📦 <?= translate('install_multiple_extensions', 'Install Multiple PHP Extensions') ?></p>
                                 <div class="code-block text-xs">
-                                    <span class="cmd">sudo apt install php8.3-{soap,curl,gd,mbstring,mysqli,xml,zip}</span>
+                                    <span class="cmd">sudo apt install php8.3-{soap,curl,gd,gmp,mbstring,mysqli,xml,fileinfo,zip}</span>
                                 </div>
                             </div>
                             <div class="bg-slate-900/40 border border-slate-700/30 rounded-lg p-3">

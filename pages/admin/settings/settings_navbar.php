@@ -22,8 +22,6 @@ if (strpos($current_path, 'admin/settings/general') !== false) {
     $active_setting = 'soap';
 } elseif (strpos($current_path, 'admin/settings/armory') !== false) {
     $active_setting = 'armory';
-} elseif (strpos($current_path, 'admin/settings/vote_sites') !== false || strpos($current_path, 'admin/settings/vote-sites') !== false) {
-    $active_setting = 'vote-sites';
 } elseif (strpos($current_path, 'admin/settings/page_manager') !== false) {
     $active_setting = 'page_manager';
 }
@@ -39,7 +37,6 @@ $links = [
     'realm'        => ['icon' => 'fa-server',     'label' => translate('settings_nav_realm', 'Realm')],
     'soap'         => ['icon' => 'fa-code',       'label' => translate('settings_nav_soap', 'SOAP')],
     'armory'       => ['icon' => 'fa-users', 'label' => translate('settings_nav_armory', 'Armory')],
-    'vote-sites'   => ['icon' => 'fa-vote-yea',   'label' => translate('settings_nav_vote_sites', 'Vote Sites')],
     'page_manager' => ['icon' => 'fa-file-alt',   'label' => translate('settings_nav_page_manager', 'Page Manager')],
 ];
 ?>

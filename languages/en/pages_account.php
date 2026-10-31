@@ -20,7 +20,6 @@ return [
     'tab_characters' => 'Characters',
     'tab_activity' => 'Activity',
     'tab_security' => 'Security',
-    'tab_vote' => 'Vote',
     
     // Card titles
     'card_basic_info' => 'Basic Info',
@@ -42,7 +41,6 @@ return [
     'label_total_characters' => 'Total',
     'label_highest_level' => 'Highest Level',
     'label_total_gold' => 'Total Gold',
-    'label_points' => 'Points',
     'label_tokens' => 'Tokens',
     'label_level' => 'Level',
     'label_gold' => 'Gold',

@@ -20,7 +20,6 @@ return [
     'tab_characters' => '角色',
     'tab_activity' => '动态',
     'tab_security' => '安全',
-    'tab_vote' => '投票',
     
     // Card titles - 卡片标题
     'card_basic_info' => '基本信息',
@@ -42,7 +41,6 @@ return [
     'label_total_characters' => '角色总数',
     'label_highest_level' => '最高等级',
     'label_total_gold' => '金币总额',
-    'label_points' => '积分',
     'label_tokens' => '代币',
     'label_level' => '等级',
     'label_gold' => '金币',

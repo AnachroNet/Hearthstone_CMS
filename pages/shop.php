@@ -40,7 +40,7 @@ $tooltip_fields = 'entry, name, description, Quality, Flags, ItemLevel, Required
 $item_tooltip_inline_css = true;
 
 $query = "
-    SELECT si.item_id, si.category, si.name, si.description, si.image, si.point_cost, si.token_cost, si.stock, si.level_boost, si.at_login_flags, si.is_set, si.itemset_id, sit.entry AS sit_entry, sis.set_item_count
+    SELECT si.item_id, si.category, si.name, si.description, si.image, si.token_cost, si.stock, si.level_boost, si.at_login_flags, si.is_set, si.itemset_id, sit.entry AS sit_entry, sis.set_item_count
     FROM shop_items si
     LEFT JOIN site_items sit ON si.entry = sit.entry
     LEFT JOIN (
@@ -64,17 +64,15 @@ if ($stmt) {
     error_log("Failed to prepare shop items query: " . $site_db->error);
 }
 
-$points = 0;
 $tokens = 0;
 if (!empty($_SESSION['user_id'])) {
-    $stmt = $site_db->prepare("SELECT points, tokens FROM user_currencies WHERE account_id = ?");
+    $stmt = $site_db->prepare("SELECT tokens FROM user_currencies WHERE account_id = ?");
     if ($stmt) {
         $stmt->bind_param("i", $_SESSION['user_id']);
         $stmt->execute();
         $result = $stmt->get_result();
         $user_currency = $result->fetch_assoc();
         $stmt->close();
-        $points = $user_currency ? (int)$user_currency['points'] : 0;
         $tokens = $user_currency ? (int)$user_currency['tokens'] : 0;
     } else {
         error_log("Failed to prepare currency query: " . $site_db->error);
@@ -108,7 +106,7 @@ if (isset($_GET['status'])) {
             $status_message = '<div class="bg-green-900/40 border border-green-600/40 text-green-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-check-circle text-green-400 text-lg"></i><span>' . translate('shop_status_success', 'Purchase successful!') . '</span></div>';
             break;
         case 'insufficient_funds':
-            $status_message = '<div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-circle text-red-400 text-lg"></i><span>' . translate('shop_status_insufficient_funds', 'Insufficient points or tokens.') . '</span></div>';
+            $status_message = '<div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-circle text-red-400 text-lg"></i><span>' . translate('shop_status_insufficient_funds', 'Insufficient tokens.') . '</span></div>';
             break;
         case 'out_of_stock':
             $status_message = '<div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-circle text-red-400 text-lg"></i><span>' . translate('shop_status_out_of_stock', 'Item is out of stock.') . '</span></div>';
@@ -399,9 +397,6 @@ include_once $project_root . 'includes/header.php';
             <!-- User Balance -->
             <?php if (!empty($_SESSION['user_id'])): ?>
                 <div class="flex flex-wrap justify-center gap-4 mb-6 p-4 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.1)]">
-                    <span class="inline-flex items-center gap-2 px-4 py-2 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] font-semibold text-base force-wrap">
-                        <i class="fas fa-star"></i> <?php echo translate('shop_points', 'Points'); ?>: <?php echo $points; ?>
-                    </span>
                     <span class="inline-flex items-center gap-2 px-4 py-2 bg-[rgba(139,92,246,0.15)] border border-[rgba(139,92,246,0.3)] text-[#8b5cf6] font-semibold text-base force-wrap">
                         <i class="fas fa-gem"></i> <?php echo translate('shop_tokens', 'Tokens'); ?>: <?php echo $tokens; ?>
                     </span>
@@ -520,11 +515,10 @@ include_once $project_root . 'includes/header.php';
                                     
                                     <!-- Cost -->
                                     <div class="flex justify-center gap-4 mt-3 pt-2 border-t border-[rgba(201,162,39,0.08)]">
-                                        <?php if ($item['point_cost'] > 0): ?>
-                                            <span class="text-[#f2cf5b] font-semibold text-sm force-wrap"><i class="fas fa-star mr-1"></i> <?php echo $item['point_cost']; ?></span>
-                                        <?php endif; ?>
                                         <?php if ($item['token_cost'] > 0): ?>
                                             <span class="text-[#8b5cf6] font-semibold text-sm force-wrap"><i class="fas fa-gem mr-1"></i> <?php echo $item['token_cost']; ?></span>
+                                        <?php else: ?>
+                                            <span class="text-gray-400 font-semibold text-sm force-wrap"><?php echo translate('shop_free', 'Free'); ?></span>
                                         <?php endif; ?>
                                     </div>
                                     
