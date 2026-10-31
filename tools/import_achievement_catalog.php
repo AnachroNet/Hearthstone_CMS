@@ -52,6 +52,7 @@ const CAT_FIELD_NAME_ENUS = 2;
 
 const MAP_FIELD_ID = 0;
 const MAP_FIELD_TYPE = 2;
+const MAP_FIELD_NAME_ENUS = 5;
 const MAP_FIELD_MAX_PLAYERS = 65;
 
 $dbcDir = sahtout_data_dbc_dir();
@@ -116,15 +117,20 @@ if ($criteriaPath !== null) {
 }
 
 $dungeonMapIds = [];
+$mapNames = [];
 if ($mapPath !== null) {
     try {
-        [$mapRows, ] = sahtout_read_wdbc_records($mapPath);
+        [$mapRows, $mapStrings] = sahtout_read_wdbc_records($mapPath);
         foreach ($mapRows as $row) {
             $mapId = (int) ($row[MAP_FIELD_ID] ?? 0);
             $mapType = (int) ($row[MAP_FIELD_TYPE] ?? 0);
             $maxPlayers = (int) ($row[MAP_FIELD_MAX_PLAYERS] ?? 0);
             if ($mapId <= 0) {
                 continue;
+            }
+            $name = sahtout_dbc_string($mapStrings, (int) ($row[MAP_FIELD_NAME_ENUS] ?? 0));
+            if ($name !== '') {
+                $mapNames[$mapId] = $name;
             }
             if ($mapType === MAP_TYPE_INSTANCE && $maxPlayers > 0 && $maxPlayers <= DUNGEON_MAX_PLAYERS) {
                 $dungeonMapIds[$mapId] = true;
@@ -247,6 +253,7 @@ function sahtout_build_preset_rewards(
     array $criteriaByAchievement,
     array $meta,
     array $dungeonMapIds,
+    array $mapNames,
     bool $hasMapDbc
 ): array {
     $levelBuckets = [];
@@ -316,10 +323,16 @@ function sahtout_build_preset_rewards(
         if (!isset($criteriaByAchievement[$achId]) || $criteriaByAchievement[$achId] === []) {
             continue;
         }
+        $dungeonName = $mapNames[$mapId] ?? null;
+        if ($dungeonName !== null && strlen($dungeonName) > 128) {
+            $dungeonName = substr($dungeonName, 0, 128);
+        }
         $presets[] = [
             'achievement_id' => $achId,
             'milestone_type' => 'dungeon',
             'milestone_value' => null,
+            'instance_map_id' => $mapId,
+            'dungeon_name' => $dungeonName,
         ];
         $seen[$achId] = true;
     }
@@ -347,6 +360,7 @@ $presets = sahtout_build_preset_rewards(
     $criteriaByAchievement,
     $achievementMeta,
     $dungeonMapIds,
+    $mapNames,
     $mapPath !== null
 );
 
@@ -436,15 +450,24 @@ $lines[] = "DELETE FROM `achievement_token_rewards` WHERE `milestone_type` IN ('
 $lines[] = '';
 
 if ($presets !== []) {
-    $rewardPrefix = 'INSERT INTO `achievement_token_rewards` (`achievement_id`, `tokens`, `milestone_type`, `milestone_value`, `is_enabled`) VALUES';
+    $rewardPrefix = 'INSERT INTO `achievement_token_rewards` (`achievement_id`, `tokens`, `milestone_type`, `milestone_value`, `instance_map_id`, `dungeon_name`, `is_enabled`) VALUES';
     $rewardRows = [];
     foreach ($presets as $p) {
         $valSql = $p['milestone_value'] === null ? 'NULL' : (string) $p['milestone_value'];
+        $mapSql = isset($p['instance_map_id']) && $p['instance_map_id'] > 0
+            ? (string) (int) $p['instance_map_id']
+            : 'NULL';
+        $dungeonSql = 'NULL';
+        if (!empty($p['dungeon_name'])) {
+            $dungeonSql = "'" . sahtout_sql_escape((string) $p['dungeon_name']) . "'";
+        }
         $rewardRows[] = sprintf(
-            '(%u, 0, %s, %s, 0)',
+            '(%u, 0, %s, %s, %s, %s, 0)',
             $p['achievement_id'],
             "'" . sahtout_sql_escape($p['milestone_type']) . "'",
-            $valSql
+            $valSql,
+            $mapSql,
+            $dungeonSql
         );
     }
     for ($i = 0, $n = count($rewardRows); $i < $n; $i += $batchSize) {
