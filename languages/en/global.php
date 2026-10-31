@@ -32,6 +32,7 @@ return [
     'admin_downloads' => 'Download Management',
     'admin_sidebar_attribution' => 'Based on SahtoutCMS',
     'admin_characters' => 'Character Management',
+    'admin_teleport_locations' => 'Teleport Locations',
     'admin_shop' => 'Shop Management',
     'admin_gm_commands' => 'GM Commands',
     'admin_settings' => 'Settings',

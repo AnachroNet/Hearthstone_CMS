@@ -6,6 +6,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_comp_item_ui.php';
+require_once $project_root . 'includes/admin_teleport_locations.php';
 
 $page_class = 'characters';
 
@@ -57,14 +58,8 @@ $chars_per_page = 10;
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $offset = ($page - 1) * $chars_per_page;
 
-// Predefined teleport locations
-$predefined_locations = [
-    'stormwind' => ['name' => 'Stormwind City', 'map' => 0, 'x' => -8913.23, 'y' => 554.633, 'z' => 94.7944, 'o' => 0.0],
-    'orgrimmar' => ['name' => 'Orgrimmar', 'map' => 1, 'x' => 1552.5, 'y' => -4420.66, 'z' => 8.94802, 'o' => 0.0],
-    'shattrath' => ['name' => 'Shattrath City', 'map' => 530, 'x' => -1850.21, 'y' => 5435.82, 'z' => -10.9614, 'o' => 3.40339],
-    'dalaran' => ['name' => 'Dalaran (Northrend)', 'map' => 571, 'x' => 5804.15, 'y' => 624.771, 'z' => 647.767, 'o' => 1.64],
-    'gm_island' => ['name' => 'GM Island', 'map' => 1, 'x' => 16222.1, 'y' => 16252.1, 'z' => 12.5872, 'o' => 0.0]
-];
+$teleportLocationsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_admin_teleport_locations_table_exists($site_db);
+$teleportLocations = $teleportLocationsReady ? sahtout_fetch_admin_teleport_locations($site_db, true) : [];
 
 // Handle form submissions
 $update_message = '';
@@ -150,20 +145,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
             } elseif ($char_action === 'teleport_directly') {
                 if ($char['online'] == 0) {
-                    $location = $_POST['predefined_location'] ?? '';
-                    if (isset($predefined_locations[$location])) {
-                        $loc = $predefined_locations[$location];
-                        $stmt = $char_db->prepare("UPDATE " . DB_CHAR . ".characters SET map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ? WHERE guid = ?");
-                        $stmt->bind_param("iddddi", $loc['map'], $loc['x'], $loc['y'], $loc['z'], $loc['o'], $guid);
-                        if ($stmt->execute()) {
-                            $success = true;
-                            $update_message = '<div class="bg-green-900/40 border border-green-500/50 text-green-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_teleport_direct_success', 'Teleported %s to %s.'), htmlspecialchars($char_name), htmlspecialchars($loc['name'])) . '</div>';
-                        } else {
-                            $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_teleport_failed', 'Failed to teleport %s.'), htmlspecialchars($char_name)) . '</div>';
-                        }
-                        $stmt->close();
+                    if (!$teleportLocationsReady) {
+                        $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . translate('admin_chars_teleport_locations_unavailable', 'Teleport locations are not configured. Run the site database migration or add locations under Admin → Teleport Locations.') . '</div>';
                     } else {
-                        $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . translate('admin_chars_location_invalid', 'Invalid location selected.') . '</div>';
+                        $locationId = (int) ($_POST['teleport_location_id'] ?? 0);
+                        $loc = sahtout_admin_teleport_location_by_id($site_db, $locationId, true);
+                        if ($loc !== null) {
+                            $stmt = $char_db->prepare("UPDATE " . DB_CHAR . ".characters SET map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ? WHERE guid = ?");
+                            $stmt->bind_param(
+                                'iddddi',
+                                $loc['map'],
+                                $loc['position_x'],
+                                $loc['position_y'],
+                                $loc['position_z'],
+                                $loc['orientation'],
+                                $guid
+                            );
+                            if ($stmt->execute()) {
+                                $success = true;
+                                $update_message = '<div class="bg-green-900/40 border border-green-500/50 text-green-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_teleport_direct_success', 'Teleported %s to %s.'), htmlspecialchars($char_name), htmlspecialchars($loc['name'])) . '</div>';
+                            } else {
+                                $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_teleport_failed', 'Failed to teleport %s.'), htmlspecialchars($char_name)) . '</div>';
+                            }
+                            $stmt->close();
+                        } else {
+                            $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . translate('admin_chars_location_invalid', 'Invalid location selected.') . '</div>';
+                        }
                     }
                 } else {
                     $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_teleport_online', 'Cannot teleport %s: Character is online.'), htmlspecialchars($char_name)) . '</div>';
@@ -775,14 +782,18 @@ $page_head = ob_get_clean();
                                                         
                                                         <div id="teleportDirectlyFields-<?php echo $char['guid']; ?>" class="action-field">
                                                             <div class="mb-4">
-                                                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_chars_label_destination', 'Destination'); ?></label>
-                                                                <select name="predefined_location" class="input-dark">
-                                                                    <option value="stormwind">Stormwind City</option>
-                                                                    <option value="orgrimmar">Orgrimmar</option>
-                                                                    <option value="shattrath">Shattrath City</option>
-                                                                    <option value="dalaran">Dalaran (Northrend)</option>
-                                                                    <option value="gm_island">GM Island</option>
-                                                                </select>
+                                                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="teleport-loc-<?php echo $char['guid']; ?>"><?php echo translate('admin_chars_label_destination', 'Destination'); ?></label>
+                                                                <?php if (!$teleportLocationsReady): ?>
+                                                                    <p class="text-xs text-amber-300/90"><?php echo translate('admin_chars_teleport_locations_unavailable', 'Teleport locations are not configured. Run the site database migration or add locations under Admin → Teleport Locations.'); ?></p>
+                                                                <?php elseif ($teleportLocations === []): ?>
+                                                                    <p class="text-xs text-gray-400"><?php echo translate('admin_chars_teleport_locations_empty', 'No active teleport locations. Add some under Admin → Teleport Locations.'); ?></p>
+                                                                <?php else: ?>
+                                                                    <select id="teleport-loc-<?php echo $char['guid']; ?>" name="teleport_location_id" class="input-dark" required>
+                                                                        <?php foreach ($teleportLocations as $teleportLoc): ?>
+                                                                            <option value="<?php echo (int) $teleportLoc['id']; ?>"><?php echo htmlspecialchars($teleportLoc['name']); ?></option>
+                                                                        <?php endforeach; ?>
+                                                                    </select>
+                                                                <?php endif; ?>
                                                             </div>
                                                         </div>
 
