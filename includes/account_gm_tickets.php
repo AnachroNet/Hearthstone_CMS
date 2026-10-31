@@ -48,7 +48,7 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
     }
 
     $sql = 'SELECT t.id, t.type, t.playerGuid, t.name, t.description, t.createTime, t.lastModifiedTime,
-                   t.response, t.completed, t.needMoreHelp, t.viewed
+                   t.comment, t.response, t.completed, t.needMoreHelp, t.viewed
             FROM gm_ticket t
             INNER JOIN characters c ON c.guid = t.playerGuid AND c.account = ?
             WHERE t.type <> 2
@@ -80,6 +80,7 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
             'player_guid' => (int) $row['playerGuid'],
             'character_name' => (string) ($row['name'] ?? ''),
             'description' => (string) ($row['description'] ?? ''),
+            'comment' => (string) ($row['comment'] ?? ''),
             'response' => (string) ($row['response'] ?? ''),
             'create_time' => (int) ($row['createTime'] ?? 0),
             'last_modified_time' => (int) ($row['lastModifiedTime'] ?? 0),

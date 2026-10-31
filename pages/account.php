@@ -1138,6 +1138,15 @@ ob_start();
         .ticket-body-block {
             white-space: pre-wrap;
             word-break: break-word;
+            padding: 0.75rem 1rem;
+        }
+        .ticket-detail-panel {
+            padding: 1rem 1.25rem 1.25rem;
+        }
+        @media (min-width: 640px) {
+            .ticket-detail-panel {
+                padding: 1.25rem 1.25rem 1.5rem;
+            }
         }
 
         @media (max-width: 767px) {
@@ -1572,8 +1581,8 @@ include_once $project_root . 'includes/header.php';
                                         </div>
                                         <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform sm:ml-2"></i>
                                     </summary>
-                                    <div class="px-4 sm:px-5 pb-5 pt-0 border-t border-[rgba(201,162,39,0.08)] space-y-4">
-                                        <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400 pt-4">
+                                    <div class="ticket-detail-panel border-t border-[rgba(201,162,39,0.08)] space-y-4">
+                                        <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400">
                                             <span><?php echo translate('ticket_created', 'Created'); ?>:
                                                 <?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['create_time'])); ?></span>
                                             <?php if ($ticket['viewed']): ?>
@@ -1587,18 +1596,36 @@ include_once $project_root . 'includes/header.php';
                                             <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
                                                 <?php echo translate('ticket_your_message', 'Your message'); ?>
                                             </h4>
-                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] p-3 rounded">
+                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
                                                 <?php echo nl2br(htmlspecialchars($ticket['description'])); ?>
                                             </div>
                                         </div>
+                                        <?php
+                                        $ticketComment = trim($ticket['comment'] ?? '');
+                                        $ticketResponse = trim($ticket['response'] ?? '');
+                                        ?>
+                                        <?php if ($ticketComment !== ''): ?>
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
+                                                <?php echo translate('ticket_staff_comment', 'Staff comment'); ?>
+                                            </h4>
+                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
+                                                <?php echo nl2br(htmlspecialchars($ticket['comment'])); ?>
+                                            </div>
+                                        </div>
+                                        <?php endif; ?>
                                         <div>
                                             <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
                                                 <?php echo translate('ticket_gm_response', 'Staff response'); ?>
                                             </h4>
-                                            <?php if (trim($ticket['response']) === ''): ?>
-                                                <p class="text-sm text-gray-500 italic"><?php echo translate('ticket_no_response_yet', 'No staff response has been recorded yet.'); ?></p>
+                                            <?php if ($ticketResponse === ''): ?>
+                                                <?php if ($ticketComment === ''): ?>
+                                                <p class="text-sm text-gray-500 italic mb-0"><?php echo translate('ticket_no_response_yet', 'No staff reply or comment has been recorded yet.'); ?></p>
+                                                <?php else: ?>
+                                                <p class="text-sm text-gray-500 italic mb-0"><?php echo translate('ticket_no_formal_response', 'No formal response has been sent yet (see staff comment above).'); ?></p>
+                                                <?php endif; ?>
                                             <?php else: ?>
-                                                <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] p-3 rounded">
+                                                <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
                                                     <?php echo nl2br(htmlspecialchars($ticket['response'])); ?>
                                                 </div>
                                             <?php endif; ?>
