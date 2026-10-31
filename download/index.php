@@ -127,27 +127,22 @@ ob_start();
         }
 
         @media (min-width: 640px) {
-            .download-grid {
+            .download-grid--pair,
+            .download-grid--multi {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
         @media (min-width: 1024px) {
-            .download-grid {
+            .download-grid--multi {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
 
-        .download-grid .file-card:only-child {
+        .download-grid--single {
             max-width: 22rem;
-            width: 100%;
-            justify-self: center;
-        }
-
-        @media (min-width: 640px) {
-            .download-grid .file-card:only-child {
-                grid-column: span 1;
-            }
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .download-link-btn {
@@ -224,13 +219,15 @@ include_once $project_root . 'includes/header.php';
                             }
                             $catLabel = $categories[$catKey] ?? $catKey;
                             $icon = sahtout_download_category_icon($catKey);
+                            $itemCount = count($items);
+                            $gridLayoutClass = $itemCount >= 3 ? 'download-grid--multi' : ($itemCount === 2 ? 'download-grid--pair' : 'download-grid--single');
                         ?>
                         <section class="download-category-section">
                             <h2 class="section-heading">
                                 <i class="fas <?php echo htmlspecialchars($icon); ?> text-[#f2cf5b]"></i>
                                 <?php echo htmlspecialchars($catLabel); ?>
                             </h2>
-                            <div class="download-grid">
+                            <div class="download-grid <?php echo htmlspecialchars($gridLayoutClass); ?>">
                                 <?php foreach ($items as $item): ?>
                                 <article class="panel p-5 md:p-6 file-card flex flex-col h-full">
                                     <div class="flex items-start justify-between gap-3 mb-2">
