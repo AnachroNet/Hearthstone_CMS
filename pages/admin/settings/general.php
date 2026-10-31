@@ -158,6 +158,58 @@ include $project_root . 'includes/header.php';
                                 </div>
                             </div>
 
+                            <!-- Server timezone -->
+                            <div>
+                                <label for="site_timezone" class="form-label text-[#f2cf5b] font-bold text-sm 
+                                                                     tracking-wider block mb-2 
+                                                                     drop-shadow-[0_0_12px_rgba(201,162,39,.15),0_2px_4px_rgba(0,0,0,.8)]">
+                                    <?php echo translate('label_site_timezone', 'Server Timezone'); ?>
+                                </label>
+                                <?php
+                                $tzStored = trim((string) ($sahtout_site_settings['site.timezone'] ?? ''));
+                                $tzDisplay = $tzStored !== '' ? $tzStored : (isset($site_timezone) ? (string) $site_timezone : '');
+                                $tzOptions = [
+                                    'America/New_York',
+                                    'America/Chicago',
+                                    'America/Denver',
+                                    'America/Los_Angeles',
+                                    'America/Phoenix',
+                                    'America/Anchorage',
+                                    'Pacific/Honolulu',
+                                    'Europe/London',
+                                    'Europe/Paris',
+                                    'Europe/Berlin',
+                                    'UTC',
+                                ];
+                                ?>
+                                <input type="text"
+                                       id="site_timezone"
+                                       name="site_timezone"
+                                       list="iana_timezones"
+                                       class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] 
+                                              bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm 
+                                              focus:border-[#f2cf5b] focus:shadow-[0_0_10px_rgba(242,207,82,.2)] 
+                                              focus:bg-[#0f141e]/90 outline-none transition-all duration-200 
+                                              placeholder:text-[#96aac8]/40"
+                                       maxlength="64"
+                                       value="<?php echo htmlspecialchars($tzStored); ?>"
+                                       placeholder="<?php echo htmlspecialchars(translate('placeholder_site_timezone', 'America/New_York')); ?>">
+                                <datalist id="iana_timezones">
+                                    <?php foreach ($tzOptions as $tzOpt): ?>
+                                        <option value="<?php echo htmlspecialchars($tzOpt); ?>"></option>
+                                    <?php endforeach; ?>
+                                </datalist>
+                                <div class="text-[#6a7a8a] text-xs mt-1">
+                                    <?php echo translate('help_site_timezone', 'IANA timezone for ticket timestamps and other site dates. Leave empty to use config.local.php or PHP default.'); ?>
+                                    <?php if ($tzDisplay !== ''): ?>
+                                        <span class="text-[#96aac8] block mt-1">
+                                            <?php echo translate('help_site_timezone_active', 'Currently active:'); ?>
+                                            <?php echo htmlspecialchars($tzDisplay); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
                             <!-- Logo Upload - Centered -->
                             <div>
                                 <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider 

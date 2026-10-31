@@ -16,6 +16,12 @@ return [
     'placeholder_site_title' => 'e.g. My Awesome Site',
     'help_site_title' => 'This title appears in the browser tab, site header, and SEO.',
 
+    'label_site_timezone' => 'Server Timezone',
+    'placeholder_site_timezone' => 'America/New_York',
+    'help_site_timezone' => 'IANA timezone for ticket timestamps and other site dates. Leave empty to use config.local.php or PHP default.',
+    'help_site_timezone_active' => 'Currently active:',
+    'error_invalid_timezone' => 'Invalid timezone. Use an IANA name such as America/New_York.',
+
     // Logo
     'label_website_logo' => 'Upload Logo',
     'help_logo' => 'Upload a new logo image. PNG, JPG or SVG formats supported (max 3MB).',

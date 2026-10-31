@@ -20,6 +20,7 @@ function sahtout_site_setting_defaults(): array
     return [
         'site.title' => 'SahtoutCMS',
         'site.logo_path' => 'img/logo.png',
+        'site.timezone' => '',
         'social.links' => [
             'facebook' => '',
             'twitter' => '',
@@ -133,11 +134,21 @@ function sahtout_discord_join_url(): string
 
 function sahtout_apply_site_settings_globals(array $settings): void
 {
-    global $site_title_name, $site_logo;
+    global $site_title_name, $site_logo, $site_timezone;
     global $social_links, $discord_guild_id, $discord_widget_enabled, $discord_join_url;
 
     $site_title_name = (string) ($settings['site.title'] ?? 'SahtoutCMS');
     $site_logo = (string) ($settings['site.logo_path'] ?? 'img/logo.png');
+
+    $tz = trim((string) ($settings['site.timezone'] ?? ''));
+    if ($tz !== '') {
+        try {
+            new DateTimeZone($tz);
+            $site_timezone = $tz;
+        } catch (Exception $e) {
+            error_log('[site_settings] invalid site.timezone: ' . $tz);
+        }
+    }
 
     $defaultSocial = sahtout_site_setting_defaults()['social.links'];
     $social = $settings['social.links'] ?? $defaultSocial;

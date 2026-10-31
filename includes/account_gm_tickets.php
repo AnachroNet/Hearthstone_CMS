@@ -203,7 +203,7 @@ function sahtout_account_ticket_status_summary(array $ticket): string
             $gmName = translate('ticket_assigned_gm_generic', 'A game master');
         }
         return sprintf(
-            translate('ticket_gm_reviewing', 'GM %s is reviewing your ticket.'),
+            translate('ticket_gm_reviewing', '<GM> %s is reviewing your ticket.'),
             $gmName
         );
     }

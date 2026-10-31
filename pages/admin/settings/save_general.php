@@ -105,6 +105,15 @@ foreach ($socialPlatforms as $platform) {
 $discord_guild_id_new = preg_replace('/\D/', '', trim($_POST['discord_guild_id'] ?? ''));
 $discord_widget_enabled_new = isset($_POST['discord_widget_enabled']);
 
+$site_timezone_new = trim((string) ($_POST['site_timezone'] ?? ''));
+if ($site_timezone_new !== '') {
+    try {
+        new DateTimeZone($site_timezone_new);
+    } catch (Exception $e) {
+        $errors[] = translate('error_invalid_timezone', 'Invalid timezone. Use an IANA name such as America/New_York.');
+    }
+}
+
 if (empty($errors)) {
     if (!isset($site_db) || !($site_db instanceof mysqli)) {
         $errors[] = translate('error_database', 'Database error. Please try again later.');
@@ -118,6 +127,7 @@ if (empty($errors)) {
         $ok = $ok && sahtout_site_setting_set($site_db, 'social.links', $social_links_new, 'json', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.guild_id', $discord_guild_id_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.widget_enabled', $discord_widget_enabled_new, 'bool', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'site.timezone', $site_timezone_new, 'string', $editorId);
 
         if ($ok) {
             $success = true;
