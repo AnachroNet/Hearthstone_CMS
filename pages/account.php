@@ -520,12 +520,12 @@ function getAccountStatus($locked, $banInfo) {
     if (!empty($banInfo)) {
         $reason = htmlspecialchars($banInfo['banreason'] ?? translate('ban_no_reason', 'No reason provided'));
         $unbanDate = $banInfo['unbandate'] ? date('Y-m-d H:i:s', $banInfo['unbandate']) : translate('ban_permanent', 'Permanent');
-        return sprintf('<span class="bg-red-950/70 text-red-300 border border-red-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(239,68,68,0.25)]"><i class="fas fa-ban text-[11px] text-red-400"></i> %s (Reason: %s, Until: %s)</span>', translate('status_banned', 'Banned'), $reason, $unbanDate);
+        return sprintf('<span class="bg-red-950/70 text-red-300 border border-red-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(239,68,68,0.25)]"><i class="fa-solid fa-ban text-[11px] text-red-400"></i> %s (Reason: %s, Until: %s)</span>', translate('status_banned', 'Banned'), $reason, $unbanDate);
     }
     switch ($locked) {
-        case 1: return sprintf('<span class="bg-red-950/70 text-red-300 border border-red-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(239,68,68,0.25)]"><i class="fas fa-ban text-[11px] text-red-400"></i> %s</span>', translate('status_banned', 'Banned'));
-        case 2: return sprintf('<span class="bg-blue-950/70 text-blue-300 border border-blue-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(59,130,246,0.25)]"><i class="fas fa-snowflake text-[11px] text-blue-300"></i> %s</span>', translate('status_frozen', 'Frozen'));
-        default: return sprintf('<span class="bg-emerald-950/70 text-emerald-300 border border-emerald-600/50 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]"><i class="fas fa-shield-alt text-[11px] text-emerald-400"></i> %s</span>', translate('status_active', 'Active'));
+        case 1: return sprintf('<span class="bg-red-950/70 text-red-300 border border-red-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(239,68,68,0.25)]"><i class="fa-solid fa-ban text-[11px] text-red-400"></i> %s</span>', translate('status_banned', 'Banned'));
+        case 2: return sprintf('<span class="bg-blue-950/70 text-blue-300 border border-blue-700/60 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(59,130,246,0.25)]"><i class="fa-solid fa-snowflake text-[11px] text-blue-300"></i> %s</span>', translate('status_frozen', 'Frozen'));
+        default: return sprintf('<span class="bg-emerald-950/70 text-emerald-300 border border-emerald-600/50 px-2.5 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]"><i class="fa-solid fa-shield-halved text-[11px] text-emerald-400"></i> %s</span>', translate('status_active', 'Active'));
     }
 }
 
@@ -1116,13 +1116,13 @@ include_once $project_root . 'includes/header.php';
             
             <!-- Page Title -->
             <div class="flex flex-wrap items-center gap-4 mb-6">
-                <i class="fas fa-shield-halved text-4xl text-[#f2cf5b]"></i>
+                <i class="fa-solid fa-shield-halved text-4xl text-[#f2cf5b]"></i>
                 <h1 class="wow-title text-3xl md:text-5xl font-bold">
                     Account <span class="text-[#f2cf5b]">Dashboard</span>
                 </h1>
                 <?php if (!empty($accountInfo['last_login'])): ?>
                     <span class="ml-auto text-sm bg-black/40 px-4 py-1.5 border border-[rgba(201,162,39,0.15)] text-gray-300">
-                        <i class="far fa-clock mr-1 text-[#f2cf5b]"></i> <?php echo translate('label_last_login', 'Last login'); ?>: <span class="text-gray-200 font-semibold"><?php echo htmlspecialchars($accountInfo['last_login']); ?></span>
+                        <i class="fa-regular fa-clock mr-1 text-[#f2cf5b]"></i> <?php echo translate('label_last_login', 'Last login'); ?>: <span class="text-gray-200 font-semibold"><?php echo htmlspecialchars($accountInfo['last_login']); ?></span>
                     </span>
                 <?php endif; ?>
             </div>
@@ -1130,21 +1130,21 @@ include_once $project_root . 'includes/header.php';
             <!-- Alert Messages -->
             <?php if ($message): ?>
                 <div class="bg-green-900/40 border border-green-600/40 text-green-200 px-5 py-3 flex items-center gap-3 mb-4">
-                    <i class="fas fa-check-circle text-green-400 text-lg"></i>
+                    <i class="fa-solid fa-circle-check text-green-400 text-lg"></i>
                     <span><?php echo htmlspecialchars($message); ?></span>
                 </div>
             <?php endif; ?>
             
             <?php if ($error): ?>
                 <div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4">
-                    <i class="fas fa-exclamation-circle text-red-400 text-lg"></i>
+                    <i class="fa-solid fa-circle-exclamation text-red-400 text-lg"></i>
                     <span><?php echo htmlspecialchars($error); ?></span>
                 </div>
             <?php endif; ?>
             
             <?php if (!empty($debug_errors) && ($role === 'admin' || $gmlevel > 0)): ?>
                 <div class="bg-yellow-900/30 border border-yellow-600/30 text-yellow-200 px-5 py-3 flex items-start gap-3 mb-4">
-                    <i class="fas fa-exclamation-triangle text-yellow-400 mt-1"></i>
+                    <i class="fa-solid fa-exclamation-triangle text-yellow-400 mt-1"></i>
                     <div>
                         <strong><?php echo translate('debug_warnings', 'Debug Warnings'); ?>:</strong><br>
                         <?php echo htmlspecialchars(implode('<br>', array_unique($debug_errors))); ?>
@@ -1155,16 +1155,16 @@ include_once $project_root . 'includes/header.php';
             <!-- Navigation Tabs -->
             <div class="flex flex-wrap items-center gap-2 pb-4 mb-8 border-b border-[rgba(201,162,39,0.15)]">
                 <button type="button" class="nav-tab-gaming active px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(242,207,82,0.15)] border border-[#f2cf5b] text-[#f2cf5b] shadow-sm flex items-center justify-center gap-2 cursor-pointer" data-tab="overview">
-                    <i class="fas fa-chart-pie"></i> <?php echo translate('tab_overview', 'Overview'); ?>
+                    <i class="fa-solid fa-chart-pie"></i> <?php echo translate('tab_overview', 'Overview'); ?>
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="characters">
-                    <i class="fas fa-users"></i> <?php echo translate('tab_characters', 'Characters'); ?>
+                    <i class="fa-solid fa-users"></i> <?php echo translate('tab_characters', 'Characters'); ?>
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="activity">
-                    <i class="fas fa-history"></i> <?php echo translate('tab_activity', 'Activity'); ?>
+                    <i class="fa-solid fa-history"></i> <?php echo translate('tab_activity', 'Activity'); ?>
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="security">
-                    <i class="fas fa-shield-alt"></i> <?php echo translate('tab_security', 'Security'); ?>
+                    <i class="fa-solid fa-shield-halved"></i> <?php echo translate('tab_security', 'Security'); ?>
                 </button>
             </div>
 
@@ -1208,7 +1208,7 @@ include_once $project_root . 'includes/header.php';
                                     <?php if ($role === 'admin' || $role === 'moderator' || $gmlevel > 0): ?>
                                         <div class="pt-2">
                                             <a href="<?php echo $base_path; ?>admin/dashboard" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[rgba(242,207,82,0.15)] hover:bg-[rgba(242,207,82,0.25)] border border-[rgba(201,162,39,0.4)] text-[#f2cf5b] hover:text-white transition-all text-xs font-bold uppercase tracking-wider shadow-[0_0_12px_rgba(242,207,82,0.15)]">
-                                                <i class="fas fa-crown text-amber-400"></i> <?php echo translate('button_admin_panel', 'Admin Panel'); ?>
+                                                <i class="fa-solid fa-crown text-amber-400"></i> <?php echo translate('button_admin_panel', 'Admin Panel'); ?>
                                             </a>
                                         </div>
                                     <?php endif; ?>
@@ -1223,7 +1223,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Email -->
                                 <div class="profile-hud-cell">
                                     <div class="profile-hud-icon text-cyan-400 bg-cyan-500/10 border-cyan-500/25">
-                                        <i class="fas fa-envelope"></i>
+                                        <i class="fa-solid fa-envelope"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -1238,7 +1238,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Expansion -->
                                 <div class="profile-hud-cell">
                                     <div class="profile-hud-icon text-amber-400 bg-amber-500/10 border-amber-500/25">
-                                        <i class="fas fa-dragon"></i>
+                                        <i class="fa-solid fa-dragon"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -1253,7 +1253,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Join Date -->
                                 <div class="profile-hud-cell">
                                     <div class="profile-hud-icon text-emerald-400 bg-emerald-500/10 border-emerald-500/25">
-                                        <i class="fas fa-calendar-alt"></i>
+                                        <i class="fa-solid fa-calendar-days"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -1268,7 +1268,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Last Login -->
                                 <div class="profile-hud-cell">
                                     <div class="profile-hud-icon text-purple-400 bg-purple-500/10 border-purple-500/25">
-                                        <i class="fas fa-clock"></i>
+                                        <i class="fa-solid fa-clock"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -1290,7 +1290,7 @@ include_once $project_root . 'includes/header.php';
                         <div>
                             <div class="flex items-center justify-between mb-3">
                                 <span class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2" style="font-family:'Cinzel',serif;">
-                                    <i class="fas fa-chart-simple text-[#f2cf5b]"></i>
+                                    <i class="fa-solid fa-chart-simple text-[#f2cf5b]"></i>
                                     <?php echo translate('section_quick_stats', 'Quick Stats'); ?>
                                 </span>
                             </div>
@@ -1308,7 +1308,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Characters -->
                                 <div class="stat-hud-card group hover:border-cyan-500/40">
                                     <div class="stat-hud-icon stat-icon-cyan">
-                                        <i class="fas fa-users"></i>
+                                        <i class="fa-solid fa-users"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-baseline justify-between gap-1">
@@ -1328,7 +1328,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Total Gold -->
                                 <div class="stat-hud-card group hover:border-amber-500/40">
                                     <div class="stat-hud-icon stat-icon-amber">
-                                        <i class="fas fa-coins"></i>
+                                        <i class="fa-solid fa-coins"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-baseline gap-1">
@@ -1346,7 +1346,7 @@ include_once $project_root . 'includes/header.php';
                                 <!-- Tokens -->
                                 <div class="stat-hud-card group hover:border-purple-500/40">
                                     <div class="stat-hud-icon stat-icon-purple">
-                                        <i class="fas fa-gem"></i>
+                                        <i class="fa-solid fa-gem"></i>
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-baseline justify-between gap-1">
@@ -1354,7 +1354,7 @@ include_once $project_root . 'includes/header.php';
                                                 <?php echo number_format((int)($currencies['tokens'] ?? 0)); ?>
                                             </span>
                                             <a href="<?php echo $base_path; ?>shop" class="text-[10px] text-purple-400 hover:text-white font-semibold flex items-center gap-0.5 transition-colors">
-                                                <i class="fas fa-store text-[9px]"></i> <?php echo translate('shop_title', 'Shop'); ?>
+                                                <i class="fa-solid fa-store text-[9px]"></i> <?php echo translate('shop_title', 'Shop'); ?>
                                             </a>
                                         </div>
                                         <div class="stat-hud-label truncate">
@@ -1371,7 +1371,7 @@ include_once $project_root . 'includes/header.php';
                 <!-- CHARACTERS TAB -->
                 <div class="tab-pane hidden" id="tab-characters">
                     <h2 class="text-2xl font-bold text-white flex items-center gap-3 mb-4">
-                        <i class="fas fa-users text-[#f2cf5b]"></i>
+                        <i class="fa-solid fa-users text-[#f2cf5b]"></i>
                         <?php echo translate('section_your_characters', 'Your Characters'); ?>
                     </h2>
                     
@@ -1409,12 +1409,12 @@ include_once $project_root . 'includes/header.php';
                                                 <option value="dalaran"><?php echo translate('city_dalaran', 'Dalaran'); ?></option>
                                             </select>
                                             <button class="px-4 py-1.5 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 text-sm font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:border-[#f2cf5b]" type="submit" name="teleport_character" <?php echo $is_on_cooldown ? 'disabled' : ''; ?>>
-                                                <span class="teleport-btn-idle"><i class="fas fa-arrow-right mr-1"></i><?php echo translate('button_teleport', 'Teleport'); ?></span><span class="teleport-btn-busy"><i class="fas fa-circle-notch fa-spin mr-1"></i><?php echo translate('button_teleporting', 'Teleporting...'); ?></span>
+                                                <span class="teleport-btn-idle"><i class="fa-solid fa-arrow-right mr-1"></i><?php echo translate('button_teleport', 'Teleport'); ?></span><span class="teleport-btn-busy"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i><?php echo translate('button_teleporting', 'Teleporting...'); ?></span>
                                             </button>
                                         </div>
                                         <?php if ($is_on_cooldown): ?>
                                             <p class="mt-2 cooldown-timer text-xs" data-cooldown="<?php echo $cooldown_remaining; ?>">
-                                                <i class="fas fa-hourglass-half mr-1"></i>
+                                                <i class="fa-solid fa-hourglass-half mr-1"></i>
                                                 <?php echo sprintf(translate('teleport_cooldown', 'Cooldown: %s minute%s'), $minutes, $minutes > 1 ? 's' : ''); ?>
                                             </p>
                                         <?php endif; ?>
@@ -1424,7 +1424,7 @@ include_once $project_root . 'includes/header.php';
                         </div>
                     <?php else: ?>
                         <div class="glass-card empty-state">
-                            <span class="empty-state-icon"><i class="fas fa-user-plus"></i></span>
+                            <span class="empty-state-icon"><i class="fa-solid fa-user-plus"></i></span>
                             <p class="text-gray-300 font-semibold"><?php echo translate('no_characters', 'You have no characters yet.'); ?></p>
                             <p class="text-gray-400 text-sm"><?php echo translate('empty_no_characters_hint', 'Create a character in-game, then reload this page to see them here.'); ?></p>
                         </div>
@@ -1434,7 +1434,7 @@ include_once $project_root . 'includes/header.php';
                 <!-- ACTIVITY TAB -->
                 <div class="tab-pane hidden" id="tab-activity">
                     <h2 class="text-2xl font-bold text-white flex items-center gap-3 mb-4">
-                        <i class="fas fa-history text-[#f2cf5b]"></i>
+                        <i class="fa-solid fa-history text-[#f2cf5b]"></i>
                         <?php echo translate('section_account_activity', 'Account Activity'); ?>
                     </h2>
                     
@@ -1465,7 +1465,7 @@ include_once $project_root . 'includes/header.php';
                         </div>
                     <?php else: ?>
                         <div class="glass-card empty-state">
-                            <span class="empty-state-icon"><i class="fas fa-scroll"></i></span>
+                            <span class="empty-state-icon"><i class="fa-solid fa-scroll"></i></span>
                             <p class="text-gray-300 font-semibold"><?php echo translate('no_activity', 'No recent activity.'); ?></p>
                             <p class="text-gray-400 text-sm"><?php echo translate('empty_no_activity_hint', 'Actions like logins, teleports and shop purchases will appear here.'); ?></p>
                         </div>
@@ -1478,7 +1478,7 @@ include_once $project_root . 'includes/header.php';
                         <!-- Change Email -->
                         <div class="glass-card p-6">
                             <h3 class="text-xl font-bold text-[#f2cf5b] flex items-center gap-2">
-                                <i class="fas fa-envelope"></i> <?php echo translate('section_change_email', 'Change Email'); ?>
+                                <i class="fa-solid fa-envelope"></i> <?php echo translate('section_change_email', 'Change Email'); ?>
                             </h3>
                             <form method="post" class="mt-4 space-y-4">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -1491,7 +1491,7 @@ include_once $project_root . 'includes/header.php';
                                     <input type="email" class="w-full px-4 py-2 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.2)] text-gray-200 focus:border-[#f2cf5b] focus:outline-none transition-colors" name="new_email" required value="<?php echo htmlspecialchars($accountInfo['email'] ?? ''); ?>" placeholder="<?php echo translate('placeholder_new_email', 'Enter new email'); ?>">
                                 </div>
                                 <button class="px-6 py-2 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold cursor-pointer shadow-sm hover:border-[#f2cf5b]" type="submit" name="change_email">
-                                    <i class="fas fa-save mr-2"></i><?php echo translate('button_update_email', 'Update Email'); ?>
+                                    <i class="fa-solid fa-save mr-2"></i><?php echo translate('button_update_email', 'Update Email'); ?>
                                 </button>
                             </form>
                         </div>
@@ -1499,7 +1499,7 @@ include_once $project_root . 'includes/header.php';
                         <!-- Change Password -->
                         <div class="glass-card p-6">
                             <h3 class="text-xl font-bold text-[#f2cf5b] flex items-center gap-2">
-                                <i class="fas fa-key"></i> <?php echo translate('section_change_password', 'Change Password'); ?>
+                                <i class="fa-solid fa-key"></i> <?php echo translate('section_change_password', 'Change Password'); ?>
                             </h3>
                             <form method="post" class="mt-4 space-y-4">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -1516,7 +1516,7 @@ include_once $project_root . 'includes/header.php';
                                     <input type="password" class="w-full px-4 py-2 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.2)] text-gray-200 focus:border-[#f2cf5b] focus:outline-none transition-colors" name="confirm_password" required minlength="6" maxlength="16" placeholder="<?php echo translate('placeholder_confirm_password', 'Confirm new password'); ?>">
                                 </div>
                                 <button class="px-6 py-2 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold cursor-pointer shadow-sm hover:border-[#f2cf5b]" type="submit" name="change_password">
-                                    <i class="fas fa-lock mr-2"></i><?php echo translate('button_change_password', 'Change Password'); ?>
+                                    <i class="fa-solid fa-lock mr-2"></i><?php echo translate('button_change_password', 'Change Password'); ?>
                                 </button>
                             </form>
                         </div>
@@ -1524,7 +1524,7 @@ include_once $project_root . 'includes/header.php';
                         <!-- Change Avatar -->
                         <div class="lg:col-span-2 glass-card p-6">
                             <h3 class="text-xl font-bold text-[#f2cf5b] flex items-center gap-2">
-                                <i class="fas fa-user-astronaut"></i> <?php echo translate('section_change_avatar', 'Change Avatar'); ?>
+                                <i class="fa-solid fa-user-astronaut"></i> <?php echo translate('section_change_avatar', 'Change Avatar'); ?>
                             </h3>
                             <form method="post" class="mt-4">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -1548,7 +1548,7 @@ include_once $project_root . 'includes/header.php';
                                 </div>
                                 <input type="hidden" name="avatar" id="avatar" value="<?php echo htmlspecialchars($currencies['avatar'] ?? ''); ?>">
                                 <button class="px-6 py-2 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold mt-4 cursor-pointer shadow-sm hover:border-[#f2cf5b]" type="submit" name="change_avatar">
-                                    <i class="fas fa-check mr-2"></i><?php echo translate('button_update_avatar', 'Update Avatar'); ?>
+                                    <i class="fa-solid fa-check mr-2"></i><?php echo translate('button_update_avatar', 'Update Avatar'); ?>
                                 </button>
                             </form>
                         </div>
@@ -1557,15 +1557,15 @@ include_once $project_root . 'includes/header.php';
                     <!-- Account Actions -->
                     <div class="glass-card p-6 mt-8">
                         <h3 class="text-xl font-bold text-[#f2cf5b] flex items-center gap-2">
-                            <i class="fas fa-cog"></i> <?php echo translate('section_account_actions', 'Account Actions'); ?>
+                            <i class="fa-solid fa-cog"></i> <?php echo translate('section_account_actions', 'Account Actions'); ?>
                         </h3>
                         <div class="flex flex-wrap justify-center gap-4 mt-4">
                             <a href="<?php echo $base_path; ?>logout" class="text-[#f2cf5b] hover:text-yellow-400 transition">
-                                <i class="fas fa-sign-out-alt mr-1"></i> <?php echo translate('action_logout', 'Logout'); ?>
+                                <i class="fa-solid fa-right-from-bracket mr-1"></i> <?php echo translate('action_logout', 'Logout'); ?>
                             </a>
                             <span class="text-gray-600">|</span>
                             <a href="#" class="text-red-400 hover:text-red-300 transition">
-                                <i class="fas fa-trash-alt mr-1"></i> <?php echo translate('action_request_deletion', 'Request Account Deletion'); ?>
+                                <i class="fa-solid fa-trash-can mr-1"></i> <?php echo translate('action_request_deletion', 'Request Account Deletion'); ?>
                             </a>
                         </div>
                     </div>
@@ -1579,7 +1579,7 @@ include_once $project_root . 'includes/header.php';
 <div id="teleport-modal" class="teleport-modal fixed inset-0 items-center justify-center px-4" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="teleport-modal-title" aria-describedby="teleport-modal-message">
     <div class="absolute inset-0" data-teleport-cancel></div>
     <div class="teleport-modal-dialog glass-card relative w-full max-w-md p-6 text-center">
-        <i class="fas fa-arrow-right text-3xl text-[#f2cf5b] mb-3"></i>
+        <i class="fa-solid fa-arrow-right text-3xl text-[#f2cf5b] mb-3"></i>
         <h3 id="teleport-modal-title" class="text-xl font-bold text-[#f2cf5b]"><?php echo translate('button_teleport', 'Teleport'); ?></h3>
         <p id="teleport-modal-message" class="text-sm text-gray-300 mt-2"><?php echo translate('confirm_teleport', 'Teleport this character?'); ?></p>
         <div class="flex flex-wrap items-center justify-center gap-3 mt-6">
@@ -1587,7 +1587,7 @@ include_once $project_root . 'includes/header.php';
                 <?php echo translate('button_cancel', 'Cancel'); ?>
             </button>
             <button type="button" id="teleport-modal-confirm" class="px-6 py-2 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold cursor-pointer">
-                <i class="fas fa-arrow-right mr-1"></i><?php echo translate('button_teleport', 'Teleport'); ?>
+                <i class="fa-solid fa-arrow-right mr-1"></i><?php echo translate('button_teleport', 'Teleport'); ?>
             </button>
         </div>
     </div>
@@ -1648,7 +1648,7 @@ include_once $project_root . 'includes/header.php';
                 seconds--;
                 let minutes = Math.ceil(seconds / 60);
                 let plural = minutes > 1 ? 's' : '';
-                element.innerHTML = '<i class="fas fa-hourglass-half mr-1"></i> ' + 
+                element.innerHTML = '<i class="fa-solid fa-hourglass-half mr-1"></i> ' + 
                     '<?php echo translate('teleport_cooldown', 'Cooldown: %s minute%s'); ?>'
                     .replace('%s', minutes).replace('%s', plural);
                 if (seconds <= 0) {

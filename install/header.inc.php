@@ -48,7 +48,7 @@ $currentFlagEsc = htmlspecialchars($currentFlag);
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
     
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/fontawesome-free/css/all.min.css">
     
     <style>
         /* Only essential custom CSS for glass-morphism effects */

@@ -183,7 +183,7 @@ $db_icons = [
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/fontawesome-free/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
