@@ -103,10 +103,41 @@ function sahtout_site_setting_set(mysqli $site_db, string $key, mixed $value, st
     return $ok;
 }
 
+function sahtout_normalize_external_url(string $url): string
+{
+    $url = trim($url);
+    if ($url === '') {
+        return '';
+    }
+    if (!preg_match('#^https?://#i', $url)) {
+        $url = 'https://' . ltrim($url, '/');
+    }
+
+    return filter_var($url, FILTER_VALIDATE_URL) !== false ? $url : '';
+}
+
+/**
+ * URL for “Join Discord” buttons (invite or profile link from Admin → General social links).
+ */
+function sahtout_discord_join_url(): string
+{
+    global $social_links;
+
+    $url = sahtout_normalize_external_url((string) ($social_links['discord'] ?? ''));
+    if ($url === '') {
+        return '';
+    }
+    if (preg_match('#^https?://(?:www\.)?(?:discord\.gg|discord(?:app)?\.com)/#i', $url)) {
+        return $url;
+    }
+
+    return '';
+}
+
 function sahtout_apply_site_settings_globals(array $settings): void
 {
     global $site_title_name, $site_logo, $youtube_embed_url, $youtube_title, $youtube_description;
-    global $social_links, $discord_guild_id, $discord_widget_enabled;
+    global $social_links, $discord_guild_id, $discord_widget_enabled, $discord_join_url;
 
     $site_title_name = (string) ($settings['site.title'] ?? 'SahtoutCMS');
     $site_logo = (string) ($settings['site.logo_path'] ?? 'img/logo.png');
@@ -120,6 +151,7 @@ function sahtout_apply_site_settings_globals(array $settings): void
 
     $discord_guild_id = preg_replace('/\D/', '', (string) ($settings['discord.guild_id'] ?? ''));
     $discord_widget_enabled = !empty($settings['discord.widget_enabled']) && $discord_guild_id !== '';
+    $discord_join_url = sahtout_discord_join_url();
 }
 
 function sahtout_site_settings_from_legacy_file(): ?array

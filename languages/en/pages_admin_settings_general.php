@@ -36,7 +36,7 @@ return [
     'placeholder_twitter' => 'Twitter URL',
     'placeholder_tiktok' => 'TikTok URL',
     'placeholder_youtube' => 'YouTube URL',
-    'placeholder_discord' => 'Discord URL',
+    'placeholder_discord' => 'https://discord.gg/your-invite',
     'label_discord_widget' => 'Discord Server Widget',
     'placeholder_discord_guild_id' => 'Discord server ID (numeric)',
     'label_discord_widget_enabled' => 'Show Discord widget on the home page',
@@ -46,7 +46,7 @@ return [
     'placeholder_instagram' => 'Instagram URL',
     'placeholder_github' => 'GitHub URL',
     'placeholder_linkedin' => 'LinkedIn URL',
-    'help_social_links' => 'Enter the full URLs for your social media profiles. Leave blank to hide.',
+    'help_social_links' => 'Enter full profile URLs. Leave blank to hide in the footer. The Discord invite link also powers the home page Discord button.',
 
     // Buttons
     'btn_save_settings' => 'Save All Settings',

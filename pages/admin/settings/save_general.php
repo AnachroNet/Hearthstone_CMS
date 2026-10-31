@@ -138,19 +138,12 @@ if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
-// Handle social links (YOUR ORIGINAL CODE - UNTOUCHED)
-$social_links_new = [
-    'facebook'  => filter_input(INPUT_POST, 'facebook', FILTER_VALIDATE_URL) ?: '',
-    'twitter'   => filter_input(INPUT_POST, 'twitter', FILTER_VALIDATE_URL) ?: '',
-    'tiktok'    => filter_input(INPUT_POST, 'tiktok', FILTER_VALIDATE_URL) ?: '',
-    'youtube'   => filter_input(INPUT_POST, 'youtube', FILTER_VALIDATE_URL) ?: '',
-    'discord'   => filter_input(INPUT_POST, 'discord', FILTER_VALIDATE_URL) ?: '',
-    'twitch'    => filter_input(INPUT_POST, 'twitch', FILTER_VALIDATE_URL) ?: '',
-    'kick'      => filter_input(INPUT_POST, 'kick', FILTER_VALIDATE_URL) ?: '',
-    'instagram' => filter_input(INPUT_POST, 'instagram', FILTER_VALIDATE_URL) ?: '',
-    'github'    => filter_input(INPUT_POST, 'github', FILTER_VALIDATE_URL) ?: '',
-    'linkedin'  => filter_input(INPUT_POST, 'linkedin', FILTER_VALIDATE_URL) ?: '',
-];
+$socialPlatforms = ['facebook', 'twitter', 'tiktok', 'youtube', 'discord', 'twitch', 'kick', 'instagram', 'github', 'linkedin'];
+$social_links_new = [];
+foreach ($socialPlatforms as $platform) {
+    $raw = trim((string) ($_POST[$platform] ?? ''));
+    $social_links_new[$platform] = sahtout_normalize_external_url($raw);
+}
 
 $discord_guild_id_new = preg_replace('/\D/', '', trim($_POST['discord_guild_id'] ?? ''));
 $discord_widget_enabled_new = isset($_POST['discord_widget_enabled']);

@@ -108,6 +108,13 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         z-index: 999;
     }
+    #backToTop .back-to-top-arrow {
+        width: 1.15rem;
+        height: 1.15rem;
+        display: block;
+        flex-shrink: 0;
+        pointer-events: none;
+    }
     #backToTop:hover {
         transform: translateY(-4px) scale(1.05);
         box-shadow: 0 12px 24px rgba(242,207,82,.4), inset 0 0 0 1px rgba(255,255,255,.5);
@@ -194,8 +201,10 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
 </footer>
 
 <!-- Back to Top Button -->
-<button id="backToTop" title="<?php echo htmlspecialchars(translate('back_to_top', 'Back to Top')); ?>">
-    <i class="fas fa-arrow-up"></i>
+<button id="backToTop" type="button" title="<?php echo htmlspecialchars(translate('back_to_top', 'Back to Top')); ?>" aria-label="<?php echo htmlspecialchars(translate('back_to_top', 'Back to Top')); ?>">
+    <svg class="back-to-top-arrow" viewBox="0 0 384 512" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 109.3V480c0 17.7 14.3 32 32 32s32-14.3 32-32V109.3l114.7 114.7c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"/>
+    </svg>
 </button>
 
 <!-- Back to Top Script -->

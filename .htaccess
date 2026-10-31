@@ -9,6 +9,7 @@ RewriteRule ^ - [L]
 RewriteRule ^login/?$ pages/login.php [L]
 RewriteRule ^register/?$ pages/register.php [L]
 RewriteRule ^account/?$ pages/account.php [L]
+RewriteRule ^download/?$ download/index.php [L]
 RewriteRule ^forgot_password/?$ pages/forgot_password.php [L]
 RewriteRule ^resend_activation/?$ pages/resend_activation.php [L]
 
