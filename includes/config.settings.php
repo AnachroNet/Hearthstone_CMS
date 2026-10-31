@@ -5,26 +5,26 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 // Site Title (Editable from Admin Panel)
-$site_title_name = 'SahtoutCMS';
-
-// Featured YouTube video (Editable from Admin Panel)
-$youtube_embed_url = 'https://www.youtube.com/embed/DjuN1dE50VI?rel=0&modestbranding=1';
-$youtube_title = 'Sahtout Server Trailer';
-$youtube_description = 'Lichking Trailer, Replace it with your own ....';
+$site_title_name = 'Joezekistan';
 
 // Logo
 $site_logo = 'img/logo.png';
 
+// Featured YouTube video
+$youtube_embed_url = 'https://www.youtube.com/embed/IIqtuupvdWg?rel=0&modestbranding=1';
+$youtube_title = 'Testing';
+$youtube_description = 'Just testing the server...';
+
 // Social links
 $social_links = [
-    'facebook' => 'https://facebook.com/blodyiheb',
-    'twitter' => 'https://x.com/blodyiheb',
-    'tiktok' => 'https://tiktok.com/blodyiheb',
-    'youtube' => 'https://www.youtube.com/@Blodyone',
+    'facebook' => '',
+    'twitter' => '',
+    'tiktok' => '',
+    'youtube' => '',
     'discord' => 'https://discord.gg/chxXTXXQ6M',
-    'twitch' => 'https://twitch.tv',
-    'kick' => 'https://kick.com/blodyiheb',
-    'instagram' => 'https://instagram.com',
-    'github' => 'https://github.com/blodyiheb/SahtoutCMS',
-    'linkedin' => 'https://linkedin.com',
+    'twitch' => '',
+    'kick' => '',
+    'instagram' => '',
+    'github' => '',
+    'linkedin' => '',
 ];

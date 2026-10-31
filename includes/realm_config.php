@@ -5,11 +5,11 @@ $realmlist = array (
   0 => 
   array (
     'id' => 1,
-    'name' => 'Sahtout Realm',
-    'address' => 'realm.for.public',
+    'name' => 'Joezekistan',
+    'address' => 'joezekistan.ddns.net',
     'check_address' => '127.0.0.1',
     'port' => 8085,
-    'logo' => 'img/logos/realm1_logo.webp',
-    'player_display' => 'all',
+    'logo' => 'img/logos/realm_logo_1793447863.png',
+    'player_display' => 'separate',
   ),
 );
