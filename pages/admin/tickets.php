@@ -208,35 +208,26 @@ ob_start();
             box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35);
         }
         .table-dark { width: 100%; border-collapse: collapse; font-size: .875rem; }
+        .table-dark th {
+            text-align: left;
+            padding: .75rem 1rem;
+            color: #f2cf5b;
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            border-bottom: 1px solid rgba(201,162,39,.2);
+            background: rgba(201,162,39,.06);
+            white-space: nowrap;
+        }
         .table-dark td {
-            padding: .85rem 1rem;
+            padding: .75rem 1rem;
             border-bottom: 1px solid rgba(201,162,39,.08);
             vertical-align: middle;
         }
         .table-dark tr:hover td { background: rgba(242,207,82,.04); }
-        .ticket-admin-summary {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: .35rem .5rem;
-            min-width: 0;
-            flex: 1;
-            font-size: .8125rem;
-            line-height: 1.4;
-        }
-        .ticket-admin-summary .sep { color: rgba(156, 163, 175, 0.65); }
-        .ticket-admin-summary .label { color: rgba(156, 163, 175, 0.85); }
-        .ticket-admin-summary .val { color: #e5e7eb; }
-        .ticket-admin-summary .val-muted { color: #9ca3af; }
         .ticket-status-open { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08); }
         .ticket-status-assigned { color: #60a5fa; border-color: rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.08); }
         .ticket-status-closed { color: #9ca3af; border-color: rgba(156, 163, 175, 0.35); background: rgba(156, 163, 175, 0.08); }
-        .ticket-admin-row-inner {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            justify-content: space-between;
-        }
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -300,7 +291,18 @@ ob_start();
                         <p class="text-gray-400 text-center py-8"><?php echo translate('admin_tickets_none', 'No tickets match your filters.'); ?></p>
                     <?php else: ?>
                         <div class="overflow-x-auto -mx-4 md:-mx-6 px-4 md:px-6">
-                            <table class="table-dark min-w-[640px]">
+                            <table class="table-dark min-w-[900px]">
+                                <thead>
+                                    <tr>
+                                        <th><?php echo translate('admin_tickets_table_id', 'ID'); ?></th>
+                                        <th><?php echo translate('admin_tickets_table_status', 'Status'); ?></th>
+                                        <th><?php echo translate('admin_tickets_table_character', 'Character'); ?></th>
+                                        <th><?php echo translate('admin_tickets_table_account', 'Account'); ?></th>
+                                        <th><?php echo translate('admin_tickets_assigned_to', 'Assigned To'); ?></th>
+                                        <th><?php echo translate('admin_tickets_table_updated', 'Last updated'); ?></th>
+                                        <th><?php echo translate('admin_tickets_table_action', 'Action'); ?></th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     <?php foreach ($ticketData['tickets'] as $ticket):
                                         $accId = (int) ($ticket['account_id'] ?? 0);
@@ -311,41 +313,35 @@ ob_start();
                                         }
                                     ?>
                                     <tr>
+                                        <td class="font-mono text-[#f2cf5b] whitespace-nowrap">#<?php echo (int) $ticket['id']; ?></td>
+                                        <td><?php echo sahtout_render_ticket_status_badge_html($ticket); ?></td>
                                         <td>
-                                            <div class="ticket-admin-row-inner">
-                                                <div class="ticket-admin-summary">
-                                                    <?php echo sahtout_render_ticket_status_badge_html($ticket); ?>
-                                                    <span class="sep">·</span>
-                                                    <span class="font-mono text-[#f2cf5b]">#<?php echo (int) $ticket['id']; ?></span>
-                                                    <span class="sep">·</span>
-                                                    <span class="label"><?php echo translate('admin_tickets_table_character', 'Character'); ?>:</span>
-                                                    <?php if ($ticket['player_guid'] > 0): ?>
-                                                        <a class="val text-cyan-300 hover:text-white" href="<?php echo $base_path; ?>character?guid=<?php echo (int) $ticket['player_guid']; ?>&amp;return=<?php echo urlencode($listReturn); ?>">
-                                                            <?php echo htmlspecialchars($ticket['character_name']); ?>
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <span class="val"><?php echo htmlspecialchars($ticket['character_name']); ?></span>
-                                                    <?php endif; ?>
-                                                    <span class="sep">·</span>
-                                                    <span class="label"><?php echo translate('admin_tickets_table_account', 'Account'); ?>:</span>
-                                                    <?php if ($accId > 0): ?>
-                                                        <a class="val text-gray-300 hover:text-white" href="<?php echo $base_path; ?>admin/users?search_username=<?php echo urlencode($accountNames[$accId] ?? ''); ?>">
-                                                            <?php echo htmlspecialchars($accName); ?>
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <span class="val-muted">—</span>
-                                                    <?php endif; ?>
-                                                    <span class="sep">·</span>
-                                                    <span class="label"><?php echo translate('admin_tickets_assigned_to', 'Assigned To'); ?>:</span>
-                                                    <span class="val"><?php echo htmlspecialchars($assignedLabel); ?></span>
-                                                    <span class="sep">·</span>
-                                                    <span class="label"><?php echo translate('admin_tickets_table_updated', 'Last updated'); ?>:</span>
-                                                    <span class="val-muted whitespace-nowrap"><?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?></span>
-                                                </div>
-                                                <button type="button" class="btn-iron btn-iron-sm open-modal-btn shrink-0" data-modal="ticketModal-<?php echo (int) $ticket['id']; ?>">
-                                                    <i class="fas fa-pen"></i> <?php echo translate('admin_tickets_update_button', 'Update'); ?>
-                                                </button>
-                                            </div>
+                                            <?php if ($ticket['player_guid'] > 0): ?>
+                                                <a class="text-cyan-300 hover:text-white" href="<?php echo $base_path; ?>character?guid=<?php echo (int) $ticket['player_guid']; ?>&amp;return=<?php echo urlencode($listReturn); ?>">
+                                                    <?php echo htmlspecialchars($ticket['character_name']); ?>
+                                                </a>
+                                                <?php if ($ticket['character_online']): ?>
+                                                    <span class="text-[10px] text-emerald-400 ml-1"><?php echo translate('admin_tickets_char_online', 'Online'); ?></span>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <?php echo htmlspecialchars($ticket['character_name']); ?>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($accId > 0): ?>
+                                                <a class="text-gray-300 hover:text-white" href="<?php echo $base_path; ?>admin/users?search_username=<?php echo urlencode($accountNames[$accId] ?? ''); ?>">
+                                                    <?php echo htmlspecialchars($accName); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-gray-500">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-gray-200"><?php echo htmlspecialchars($assignedLabel); ?></td>
+                                        <td class="text-gray-400 text-xs whitespace-nowrap"><?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?></td>
+                                        <td>
+                                            <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="ticketModal-<?php echo (int) $ticket['id']; ?>">
+                                                <i class="fas fa-pen"></i> <?php echo translate('admin_tickets_update_button', 'Update'); ?>
+                                            </button>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>

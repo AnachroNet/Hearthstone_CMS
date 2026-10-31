@@ -17,6 +17,7 @@ return [
     'admin_tickets_table_character' => 'Character',
     'admin_tickets_table_account' => 'Account',
     'admin_tickets_table_updated' => 'Last updated',
+    'admin_tickets_table_action' => 'Action',
     'admin_tickets_assigned_to' => 'Assigned To',
     'admin_tickets_unassigned' => 'Unassigned',
     'admin_tickets_update_button' => 'Update',
