@@ -19,6 +19,7 @@ return [
     'tab_overview' => 'Overview',
     'tab_characters' => 'Characters',
     'tab_activity' => 'Activity',
+    'tab_tickets' => 'Support',
     'tab_security' => 'Security',
     
     // Card titles
@@ -148,5 +149,25 @@ return [
     'avatar_alt' => 'Avatar',
     'city_shattrath' => 'Shattrath',
     'city_dalaran' => 'Dalaran',
+
+    // GM / support tickets (in-game)
+    'section_support_tickets' => 'Support Tickets',
+    'tickets_intro' => 'Open a ticket in-game from the Help Request window (Esc → Help, or the ? button on the action bar). Status and staff replies for your characters appear here.',
+    'tickets_unavailable' => 'Ticket history is not available right now.',
+    'tickets_none' => 'You have no support tickets on file for your current characters.',
+    'ticket_id' => 'Ticket #%s',
+    'ticket_character' => 'Character',
+    'ticket_created' => 'Created',
+    'ticket_updated' => 'Last updated',
+    'ticket_your_message' => 'Your message',
+    'ticket_gm_response' => 'Staff response',
+    'ticket_no_response_yet' => 'No staff response has been recorded yet.',
+    'ticket_status_open' => 'Open',
+    'ticket_status_completed' => 'Completed',
+    'ticket_status_closed' => 'Closed',
+    'ticket_need_more_help' => 'Needs more help',
+    'ticket_viewed_by_staff' => 'Viewed by staff',
+    'label_open_tickets' => 'Open tickets',
+    'overview_open_tickets_link' => 'View tickets',
 ];
 ?>

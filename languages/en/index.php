@@ -8,8 +8,10 @@ return [
     'home_create_account' => 'Create Account',
     'home_download' => 'Download',
     'home_no_news' => 'No news available at this time.',
-    'home_bugtracker_title' => 'Bugtracker Coming Soon',
-    'home_bugtracker_desc' => 'Report bugs and track issues here.',
+    'home_support_title' => 'Support Tickets',
+    'home_support_desc' => 'Use the in-game Help Request window (Esc → Help) to contact staff. Log in here to view status and replies for your characters.',
+    'home_support_cta_login' => 'Log in to view tickets',
+    'home_support_cta_account' => 'View my tickets',
     'home_realm_status_error' => 'Error: Realm status unavailable.'
 ];
 ?>

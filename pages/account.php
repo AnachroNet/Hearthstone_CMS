@@ -7,6 +7,7 @@ require_once $project_root . 'includes/srp6.php';
 require_once $project_root . 'includes/config.mail.php';
 require_once $project_root . 'languages/language.php'; // Include language file for translations
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/account_gm_tickets.php';
 
 // Early session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -24,6 +25,7 @@ $activityLog = [];
 $teleport_cooldowns = [];
 $currencies = ['tokens' => 0, 'avatar' => NULL];
 $available_avatars = [];
+$gm_tickets_view = ['available' => false, 'tickets' => [], 'open_count' => 0, 'message' => null];
 $gmlevel = $_SESSION['gmlevel'] ?? 0;
 $role = $_SESSION['role'] ?? 'player';
 $debug_errors = $_SESSION['debug_errors'] ?? [];
@@ -508,6 +510,14 @@ if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_erro
         $available_avatars[] = $row;
     }
     $stmt->close();
+
+    if (!$char_db->connect_error) {
+        try {
+            $gm_tickets_view = sahtout_account_gm_tickets($char_db, (int) $_SESSION['user_id']);
+        } catch (Throwable $e) {
+            error_log('[account.php] gm tickets: ' . $e->getMessage());
+        }
+    }
 }
 
 // NOTE: Database connections are intentionally left open here.
@@ -551,6 +561,23 @@ function getGMStatus($gmlevel, $role) {
     }
     
     return sprintf('<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[rgba(201,162,39,0.12)] border border-[rgba(201,162,39,0.3)] shadow-[0_0_8px_rgba(201,162,39,0.15)]"><img src="%simg/accountimg/%s" alt="%s" class="w-4 h-4 inline-block"> <span style="color: %s">%s</span></span>', $base_path, $icon, translate('status_icon', 'Status Icon'), $color, $rank);
+}
+
+function renderGmTicketStatusBadge(string $status): string
+{
+    $map = [
+        'open' => ['ticket_status_open', 'Open', 'ticket-status-open'],
+        'closed' => ['ticket_status_closed', 'Closed', 'ticket-status-closed'],
+        'completed' => ['ticket_status_completed', 'Completed', 'ticket-status-completed'],
+    ];
+    $entry = $map[$status] ?? ['ticket_status_closed', 'Closed', 'ticket-status-closed'];
+    $label = translate($entry[0], $entry[1]);
+    $cls = $entry[2];
+    return sprintf(
+        '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border %s">%s</span>',
+        $cls,
+        htmlspecialchars($label)
+    );
 }
 
 function getOnlineStatus($online) {
@@ -1096,6 +1123,23 @@ ob_start();
             align-items: center;
         }
 
+        .ticket-card {
+            border: 1px solid rgba(201, 162, 39, 0.15);
+            background: rgba(0, 0, 0, 0.25);
+        }
+        .ticket-card summary {
+            list-style: none;
+            cursor: pointer;
+        }
+        .ticket-card summary::-webkit-details-marker { display: none; }
+        .ticket-status-open { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08); }
+        .ticket-status-closed { color: #9ca3af; border-color: rgba(156, 163, 175, 0.35); background: rgba(156, 163, 175, 0.08); }
+        .ticket-status-completed { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.08); }
+        .ticket-body-block {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
         @media (max-width: 767px) {
             .teleport-modal-dialog {
                 width: 100%;
@@ -1162,6 +1206,12 @@ include_once $project_root . 'includes/header.php';
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="activity">
                     <i class="fa-solid fa-history"></i> <?php echo translate('tab_activity', 'Activity'); ?>
+                </button>
+                <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="tickets">
+                    <i class="fa-solid fa-life-ring"></i> <?php echo translate('tab_tickets', 'Support'); ?>
+                    <?php if (!empty($gm_tickets_view['open_count'])): ?>
+                        <span class="text-[10px] min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold leading-5"><?php echo (int) $gm_tickets_view['open_count']; ?></span>
+                    <?php endif; ?>
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="security">
                     <i class="fa-solid fa-shield-halved"></i> <?php echo translate('tab_security', 'Security'); ?>
@@ -1363,6 +1413,16 @@ include_once $project_root . 'includes/header.php';
                                     </div>
                                 </div>
                             </div>
+                            <?php if (!empty($gm_tickets_view['available']) && (int) ($gm_tickets_view['open_count'] ?? 0) > 0): ?>
+                                <p class="mt-3 text-sm text-gray-400">
+                                    <i class="fa-solid fa-life-ring text-[#f2cf5b] mr-1"></i>
+                                    <?php echo (int) $gm_tickets_view['open_count']; ?>
+                                    <?php echo translate('label_open_tickets', 'Open tickets'); ?> —
+                                    <button type="button" class="text-[#f2cf5b] hover:text-white underline-offset-2 hover:underline font-semibold" data-tab="tickets" onclick="document.querySelector('.nav-tab-gaming[data-tab=tickets]')?.click();">
+                                        <?php echo translate('overview_open_tickets_link', 'View tickets'); ?>
+                                    </button>
+                                </p>
+                            <?php endif; ?>
                         </div>
 
                     </div>
@@ -1468,6 +1528,84 @@ include_once $project_root . 'includes/header.php';
                             <span class="empty-state-icon"><i class="fa-solid fa-scroll"></i></span>
                             <p class="text-gray-300 font-semibold"><?php echo translate('no_activity', 'No recent activity.'); ?></p>
                             <p class="text-gray-400 text-sm"><?php echo translate('empty_no_activity_hint', 'Actions like logins, teleports and shop purchases will appear here.'); ?></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- SUPPORT TICKETS TAB -->
+                <div class="tab-pane hidden" id="tab-tickets">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3 mb-2">
+                        <i class="fa-solid fa-life-ring text-[#f2cf5b]"></i>
+                        <?php echo translate('section_support_tickets', 'Support Tickets'); ?>
+                    </h2>
+                    <p class="text-gray-400 text-sm mb-6 max-w-2xl">
+                        <?php echo translate('tickets_intro', 'Open tickets in-game with /ticket. Status and GM replies for your characters appear here.'); ?>
+                    </p>
+
+                    <?php if (empty($gm_tickets_view['available'])): ?>
+                        <div class="glass-card empty-state">
+                            <span class="empty-state-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            <p class="text-gray-300 font-semibold"><?php echo translate('tickets_unavailable', 'Ticket history is not available right now.'); ?></p>
+                        </div>
+                    <?php elseif (empty($gm_tickets_view['tickets'])): ?>
+                        <div class="glass-card empty-state">
+                            <span class="empty-state-icon"><i class="fa-solid fa-inbox"></i></span>
+                            <p class="text-gray-300 font-semibold"><?php echo translate('tickets_none', 'You have no support tickets on file for your current characters.'); ?></p>
+                        </div>
+                    <?php else: ?>
+                        <div class="space-y-4">
+                            <?php foreach ($gm_tickets_view['tickets'] as $ticket): ?>
+                                <details class="ticket-card glass-card rounded-lg overflow-hidden group">
+                                    <summary class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                                        <div class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                                            <?php echo renderGmTicketStatusBadge($ticket['status']); ?>
+                                            <span class="font-bold text-white truncate" style="font-family:'Cinzel',serif;">
+                                                <?php echo htmlspecialchars(sprintf(translate('ticket_id', 'Ticket #%s'), $ticket['id'])); ?>
+                                            </span>
+                                            <span class="text-gray-400 text-sm truncate">
+                                                <?php echo htmlspecialchars($ticket['character_name']); ?>
+                                            </span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 sm:text-right shrink-0">
+                                            <?php echo translate('ticket_updated', 'Last updated'); ?>:
+                                            <?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?>
+                                        </div>
+                                        <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform sm:ml-2"></i>
+                                    </summary>
+                                    <div class="px-4 sm:px-5 pb-5 pt-0 border-t border-[rgba(201,162,39,0.08)] space-y-4">
+                                        <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400 pt-4">
+                                            <span><?php echo translate('ticket_created', 'Created'); ?>:
+                                                <?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['create_time'])); ?></span>
+                                            <?php if ($ticket['viewed']): ?>
+                                                <span class="text-emerald-400/90"><?php echo translate('ticket_viewed_by_staff', 'Viewed by staff'); ?></span>
+                                            <?php endif; ?>
+                                            <?php if ($ticket['need_more_help']): ?>
+                                                <span class="text-amber-300/90"><?php echo translate('ticket_need_more_help', 'Needs more help'); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
+                                                <?php echo translate('ticket_your_message', 'Your message'); ?>
+                                            </h4>
+                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] p-3 rounded">
+                                                <?php echo nl2br(htmlspecialchars($ticket['description'])); ?>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
+                                                <?php echo translate('ticket_gm_response', 'Staff response'); ?>
+                                            </h4>
+                                            <?php if (trim($ticket['response']) === ''): ?>
+                                                <p class="text-sm text-gray-500 italic"><?php echo translate('ticket_no_response_yet', 'No staff response has been recorded yet.'); ?></p>
+                                            <?php else: ?>
+                                                <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] p-3 rounded">
+                                                    <?php echo nl2br(htmlspecialchars($ticket['response'])); ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </details>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1624,6 +1762,14 @@ include_once $project_root . 'includes/header.php';
             }
         });
     });
+
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        const initialTab = params.get('tab');
+        if (!initialTab) return;
+        const btn = document.querySelector('.nav-tab-gaming[data-tab="' + initialTab + '"]');
+        if (btn) btn.click();
+    })();
 
     // Initial active styling comes from the .active class in the markup,
     // styled by .nav-tab-gaming.active in the <style> block (no inline JS styles).

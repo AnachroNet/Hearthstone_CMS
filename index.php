@@ -340,14 +340,23 @@ $result = $site_db->query($query);
                     </div>
                 </section>
 
-                <!-- BUGTRACKER -->
+                <!-- SUPPORT TICKETS -->
                 <section class="wow-panel p-3 sm:p-4 md:p-6">
                     <h2 class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <?php echo translate('home_bugtracker_title', 'Bugtracker Coming Soon'); ?>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        <?php echo translate('home_support_title', 'Support Tickets'); ?>
                     </h2>
-                    <div class="text-center py-6 sm:py-8">
-                        <p class="text-gray-400 text-sm sm:text-base force-wrap max-w-xl mx-auto"><?php echo translate('home_bugtracker_desc', 'Report bugs and track issues here.'); ?></p>
+                    <div class="text-center py-6 sm:py-8 space-y-4">
+                        <p class="text-gray-400 text-sm sm:text-base force-wrap max-w-xl mx-auto"><?php echo translate('home_support_desc', 'Use /ticket in-game to contact staff. Log in to view status and replies for your characters.'); ?></p>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <a href="<?php echo $base_path; ?>account?tab=tickets" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#1a1200] bg-gradient-to-b from-[#f6d478] to-[#c9a227] border border-[#8a6a14] hover:brightness-110 transition-all">
+                                <?php echo translate('home_support_cta_account', 'View my tickets'); ?>
+                            </a>
+                        <?php else: ?>
+                            <a href="<?php echo $base_path; ?>login" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#f2cf5b] border border-[rgba(201,162,39,0.35)] bg-[rgba(242,207,82,0.08)] hover:bg-[rgba(242,207,82,0.15)] transition-all">
+                                <?php echo translate('home_support_cta_login', 'Log in to view tickets'); ?>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </section>
             </div>
