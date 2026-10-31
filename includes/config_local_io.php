@@ -56,31 +56,90 @@ function sahtout_local_config_path(): string
     return __DIR__ . '/config.local.php';
 }
 
-function sahtout_load_local_config(bool $reload = false): array
+/**
+ * In-request cache for parsed config.local.php (see sahtout_store_local_config_cache).
+ *
+ * @return array|null Current cache, or null when cleared
+ */
+function sahtout_local_config_cache(?array $set = null, bool $clear = false): ?array
 {
     static $cached = null;
-    if (!$reload && $cached !== null) {
-        return $cached;
+    if ($clear) {
+        $cached = null;
+
+        return null;
+    }
+    if ($set !== null) {
+        $cached = $set;
+    }
+
+    return $cached;
+}
+
+function sahtout_invalidate_local_config_opcache(string $path): void
+{
+    clearstatcache(true, $path);
+    if (function_exists('opcache_invalidate')) {
+        @opcache_invalidate($path, true);
+    }
+}
+
+function sahtout_store_local_config_cache(array $config): array
+{
+    $normalized = array_replace_recursive(sahtout_default_local_config(), $config);
+    sahtout_local_config_cache($normalized);
+
+    return $normalized;
+}
+
+/**
+ * Keep config.php globals in sync after a mid-request config.local.php update.
+ */
+function sahtout_publish_local_config(array $config): void
+{
+    $normalized = sahtout_store_local_config_cache($config);
+    if (!defined('SAHTOUT_CONFIG_LOADED')) {
+        return;
+    }
+
+    global $sahtout_local, $armoryConfig;
+    $sahtout_local = $normalized;
+    $armoryConfig = $normalized['armory'] ?? [
+        'solo_pvp_display' => 'humans_only',
+        'arena_2v2_display' => 'all',
+        'arena_3v3_display' => 'all',
+        'arena_5v5_display' => 'all',
+    ];
+}
+
+function sahtout_load_local_config(bool $reload = false): array
+{
+    if (!$reload) {
+        $hit = sahtout_local_config_cache();
+        if ($hit !== null) {
+            return $hit;
+        }
+    } else {
+        sahtout_local_config_cache(null, true);
     }
 
     $path = sahtout_local_config_path();
     if (is_file($path)) {
-        $data = require $path;
+        sahtout_invalidate_local_config_opcache($path);
+        $data = include $path;
         if (is_array($data)) {
-            $cached = array_replace_recursive(sahtout_default_local_config(), $data);
-            return $cached;
+            return sahtout_store_local_config_cache($data);
         }
     }
 
     $migrated = sahtout_migrate_legacy_config_files();
     if ($migrated !== null) {
         sahtout_save_local_config($migrated);
-        $cached = $migrated;
-        return $cached;
+
+        return sahtout_store_local_config_cache($migrated);
     }
 
-    $cached = sahtout_default_local_config();
-    return $cached;
+    return sahtout_store_local_config_cache(sahtout_default_local_config());
 }
 
 function sahtout_save_local_config(array $config): bool
@@ -104,6 +163,9 @@ function sahtout_save_local_config(array $config): bool
     }
     @chmod($path, 0600);
 
+    sahtout_invalidate_local_config_opcache($path);
+    sahtout_publish_local_config($config);
+
     return true;
 }
 
@@ -114,7 +176,7 @@ function sahtout_update_local_config(array $patch): bool
     if (!sahtout_save_local_config($merged)) {
         return false;
     }
-    sahtout_load_local_config(true);
+
     return true;
 }
 
