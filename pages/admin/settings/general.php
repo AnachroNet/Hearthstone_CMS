@@ -169,36 +169,37 @@ include $project_root . 'includes/header.php';
                                 $tzStored = trim((string) ($sahtout_site_settings['site.timezone'] ?? ''));
                                 $tzDisplay = $tzStored !== '' ? $tzStored : (isset($site_timezone) ? (string) $site_timezone : '');
                                 $tzOptions = [
-                                    'America/New_York',
-                                    'America/Chicago',
-                                    'America/Denver',
-                                    'America/Los_Angeles',
-                                    'America/Phoenix',
-                                    'America/Anchorage',
-                                    'Pacific/Honolulu',
-                                    'Europe/London',
-                                    'Europe/Paris',
-                                    'Europe/Berlin',
-                                    'UTC',
+                                    '' => translate('timezone_option_default', 'Use server default (config.local / PHP)'),
+                                    'America/St_Johns' => translate('timezone_option_newfoundland', 'Newfoundland — America/St_Johns'),
+                                    'America/Halifax' => translate('timezone_option_atlantic', 'Atlantic — America/Halifax'),
+                                    'America/New_York' => translate('timezone_option_eastern', 'Eastern — America/New_York'),
+                                    'America/Chicago' => translate('timezone_option_central', 'Central — America/Chicago'),
+                                    'America/Denver' => translate('timezone_option_mountain', 'Mountain — America/Denver'),
+                                    'America/Phoenix' => translate('timezone_option_arizona', 'Arizona (no DST) — America/Phoenix'),
+                                    'America/Los_Angeles' => translate('timezone_option_pacific', 'Pacific — America/Los_Angeles'),
+                                    'America/Anchorage' => translate('timezone_option_alaska', 'Alaska — America/Anchorage'),
+                                    'Pacific/Honolulu' => translate('timezone_option_hawaii', 'Hawaii — Pacific/Honolulu'),
                                 ];
+                                if ($tzStored !== '' && !array_key_exists($tzStored, $tzOptions)) {
+                                    $tzOptions[$tzStored] = sprintf(
+                                        translate('timezone_option_legacy', '%s (saved — pick a listed zone to change)'),
+                                        $tzStored
+                                    );
+                                }
                                 ?>
-                                <input type="text"
-                                       id="site_timezone"
-                                       name="site_timezone"
-                                       list="iana_timezones"
-                                       class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] 
-                                              bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm 
-                                              focus:border-[#f2cf5b] focus:shadow-[0_0_10px_rgba(242,207,82,.2)] 
-                                              focus:bg-[#0f141e]/90 outline-none transition-all duration-200 
-                                              placeholder:text-[#96aac8]/40"
-                                       maxlength="64"
-                                       value="<?php echo htmlspecialchars($tzStored); ?>"
-                                       placeholder="<?php echo htmlspecialchars(translate('placeholder_site_timezone', 'America/New_York')); ?>">
-                                <datalist id="iana_timezones">
-                                    <?php foreach ($tzOptions as $tzOpt): ?>
-                                        <option value="<?php echo htmlspecialchars($tzOpt); ?>"></option>
+                                <select id="site_timezone"
+                                        name="site_timezone"
+                                        class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] 
+                                               bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm 
+                                               focus:border-[#f2cf5b] focus:shadow-[0_0_10px_rgba(242,207,82,.2)] 
+                                               focus:bg-[#0f141e]/90 outline-none transition-all duration-200">
+                                    <?php foreach ($tzOptions as $tzId => $tzLabel): ?>
+                                        <option value="<?php echo htmlspecialchars($tzId); ?>"
+                                            <?php echo $tzStored === $tzId ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($tzLabel); ?>
+                                        </option>
                                     <?php endforeach; ?>
-                                </datalist>
+                                </select>
                                 <div class="text-[#6a7a8a] text-xs mt-1">
                                     <?php echo translate('help_site_timezone', 'IANA timezone for ticket timestamps and other site dates. Leave empty to use config.local.php or PHP default.'); ?>
                                     <?php if ($tzDisplay !== ''): ?>

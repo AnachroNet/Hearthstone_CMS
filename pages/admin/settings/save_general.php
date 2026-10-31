@@ -106,12 +106,8 @@ $discord_guild_id_new = preg_replace('/\D/', '', trim($_POST['discord_guild_id']
 $discord_widget_enabled_new = isset($_POST['discord_widget_enabled']);
 
 $site_timezone_new = trim((string) ($_POST['site_timezone'] ?? ''));
-if ($site_timezone_new !== '') {
-    try {
-        new DateTimeZone($site_timezone_new);
-    } catch (Exception $e) {
-        $errors[] = translate('error_invalid_timezone', 'Invalid timezone. Use an IANA name such as America/New_York.');
-    }
+if (!in_array($site_timezone_new, sahtout_site_timezone_ids(), true)) {
+    $errors[] = translate('error_invalid_timezone', 'Please choose a timezone from the list.');
 }
 
 if (empty($errors)) {

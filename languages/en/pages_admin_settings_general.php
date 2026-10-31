@@ -17,10 +17,20 @@ return [
     'help_site_title' => 'This title appears in the browser tab, site header, and SEO.',
 
     'label_site_timezone' => 'Server Timezone',
-    'placeholder_site_timezone' => 'America/New_York',
-    'help_site_timezone' => 'IANA timezone for ticket timestamps and other site dates. Leave empty to use config.local.php or PHP default.',
+    'help_site_timezone' => 'Used for ticket timestamps and other site dates. Choose a North American zone, or server default to keep config.local.php / PHP settings.',
     'help_site_timezone_active' => 'Currently active:',
-    'error_invalid_timezone' => 'Invalid timezone. Use an IANA name such as America/New_York.',
+    'error_invalid_timezone' => 'Please choose a timezone from the list.',
+    'timezone_option_default' => 'Use server default (config.local / PHP)',
+    'timezone_option_newfoundland' => 'Newfoundland — America/St_Johns',
+    'timezone_option_atlantic' => 'Atlantic — America/Halifax',
+    'timezone_option_eastern' => 'Eastern — America/New_York',
+    'timezone_option_central' => 'Central — America/Chicago',
+    'timezone_option_mountain' => 'Mountain — America/Denver',
+    'timezone_option_arizona' => 'Arizona (no DST) — America/Phoenix',
+    'timezone_option_pacific' => 'Pacific — America/Los_Angeles',
+    'timezone_option_alaska' => 'Alaska — America/Anchorage',
+    'timezone_option_hawaii' => 'Hawaii — Pacific/Honolulu',
+    'timezone_option_legacy' => '%s (saved — pick a listed zone to change)',
 
     // Logo
     'label_website_logo' => 'Upload Logo',

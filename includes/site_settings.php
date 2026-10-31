@@ -15,6 +15,23 @@ function sahtout_site_settings_table_exists(mysqli $site_db): bool
     return $exists;
 }
 
+/** @return list<string> Empty string = use config.local / PHP default. */
+function sahtout_site_timezone_ids(): array
+{
+    return [
+        '',
+        'America/St_Johns',
+        'America/Halifax',
+        'America/New_York',
+        'America/Chicago',
+        'America/Denver',
+        'America/Phoenix',
+        'America/Los_Angeles',
+        'America/Anchorage',
+        'Pacific/Honolulu',
+    ];
+}
+
 function sahtout_site_setting_defaults(): array
 {
     return [
