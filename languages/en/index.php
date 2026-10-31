@@ -5,7 +5,6 @@ return [
     'home_discord_title' => 'Join Our Discord',
     'home_discord_widget_disabled' => 'Discord widget is not configured. Set a server ID in Admin → Settings → General.',
     'home_intro_title' => 'Welcome to ',
-    'home_intro_tagline' => 'Join our epic World of Warcraft server adventure today!',
     'home_create_account' => 'Create Account',
     'home_download' => 'Download',
     'home_no_news' => 'No news available at this time.',

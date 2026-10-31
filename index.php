@@ -261,8 +261,6 @@ $result = $site_db->query($query);
                     <div class="absolute -bottom-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-20" style="background:#a32626;"></div>
 
                     <div class="relative z-10">
-                        <p class="text-xs md:text-sm font-semibold tracking-[.35em] uppercase text-gray-400 mb-4"><?php echo translate('home_intro_tagline', 'Join our epic World of Warcraft server adventure today!'); ?></p>
-
                         <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-tight force-wrap">
                             <span class="text-white font-extrabold" style="font-family:'Cinzel',serif; text-shadow:0 0 20px rgba(59,130,246,.35), 0 4px 8px rgba(0,0,0,.9);"><?php echo translate('home_intro_title', 'Welcome to '); ?></span><br class="hidden md:block">
                             <span class="wow-title"><?php echo $site_title_name; ?></span>

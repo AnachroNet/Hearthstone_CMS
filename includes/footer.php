@@ -139,16 +139,13 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
     <div class="max-w-[1600px] mx-auto px-4 md:px-8 py-8 md:py-12">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
             
-            <!-- Logo & Tagline -->
+            <!-- Logo -->
             <div class="flex flex-col items-center md:items-start gap-4">
                 <a href="<?php echo htmlspecialchars($base_path); ?>" class="transition-transform duration-300 hover:scale-105 hover:drop-shadow-[0_0_12px_rgba(242,207,82,0.5)]">
                     <img src="<?php echo htmlspecialchars($base_path . ltrim($site_logo ?? 'img/logo.png', '/')); ?>"
                          alt="<?php echo htmlspecialchars(translate('footer_logo_alt', 'Server Logo')); ?>"
                          class="h-16 md:h-20 rounded">
                 </a>
-                <p class="text-gray-400 text-sm max-w-xs leading-relaxed">
-                    <?php echo translate('footer_tagline', 'Join our epic World of Warcraft server adventure today!'); ?>
-                </p>
             </div>
 
             <!-- Quick Links / Copyright -->
