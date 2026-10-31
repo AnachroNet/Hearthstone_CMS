@@ -267,6 +267,7 @@ ob_start();
     .talent-row .t-rank { color: var(--gold); font-weight: 700; font-size: .75rem; flex-shrink: 0; }
     .talent-spec-panel[hidden] { display: none !important; }
     .talent-dbc-hint { font-size: .75rem; color: var(--muted); margin-top: 1rem; }
+    .talent-tree-empty { font-size: .8rem; color: var(--muted); font-style: italic; margin: .25rem 0 0; }
 </style>
 <script>
 /* Image fallbacks: missing icons swap to data-fallback, otherwise are hidden (no broken-image boxes). */
@@ -766,14 +767,13 @@ $map = [
                     </div>
                 <?php endif; ?>
                     <div class="talent-trees">
-                        <?php foreach ($specData['trees'] as $tree):
-                            if (empty($tree['talents'])) {
-                                continue;
-                            }
-                        ?>
+                        <?php foreach ($specData['trees'] as $tree): ?>
                         <div class="talent-tree">
                             <?php if (!$flatOnly && ($tree['name'] ?? '') !== ''): ?>
                                 <h3><?= htmlspecialchars($tree['name']) ?><span><?= (int) ($tree['points'] ?? 0) ?> pts</span></h3>
+                            <?php endif; ?>
+                            <?php if (!$flatOnly && empty($tree['talents'])): ?>
+                                <p class="talent-tree-empty"><?= htmlspecialchars(translate('talents_tree_empty', 'No points spent in this tree.')) ?></p>
                             <?php endif; ?>
                             <?php foreach ($tree['talents'] as $talent):
                                 $iconUrl = !empty($talent['icon_id'])

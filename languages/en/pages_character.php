@@ -92,6 +92,7 @@ return [
     'talents_spec_secondary' => 'Secondary spec',
     'talents_dbc_hint' => 'Add Talent.dbc and TalentTab.dbc under data/dbc/ for tree names and 51/10/0-style point totals.',
     'talents_points_spent' => 'talent points spent',
+    'talents_tree_empty' => 'No points spent in this tree.',
     'warn_talents_unavailable' => 'Talent data is temporarily unavailable.',
     'pvp_none' => 'No PvP Teams',
     'pvp_rating' => 'Rating',

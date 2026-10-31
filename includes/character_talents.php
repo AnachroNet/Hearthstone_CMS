@@ -361,18 +361,16 @@ function sahtout_character_talent_view(mysqli $charDb, ?mysqli $worldDb, int $gu
         $pages = [0, 0, 0];
         $trees = [];
         if (!$view['flat_only']) {
-            foreach ($spentByTab as $tabId => $points) {
-                $info = $tabInfo[$tabId] ?? null;
-                if ($info === null) {
-                    continue;
-                }
+            foreach ($tabInfo as $tabId => $info) {
                 if ($classMask > 0 && ((int) $info['classMask'] & $classMask) === 0) {
                     continue;
                 }
-                $page = (int) $info['page'];
-                if ($page >= 0 && $page <= 2) {
-                    $pages[$page] += $points;
+                $page = (int) ($info['page'] ?? 0);
+                if ($page < 0 || $page > 2) {
+                    continue;
                 }
+                $points = (int) ($spentByTab[$tabId] ?? 0);
+                $pages[$page] += $points;
                 $trees[$tabId] = [
                     'name' => $info['name'],
                     'page' => $page,
