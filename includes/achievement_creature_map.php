@@ -15,10 +15,10 @@ function sahtout_is_dungeon_instance_map(int $mapType, int $maxPlayers): bool
     if ($mapType !== SAHTOUT_MAP_TYPE_INSTANCE) {
         return false;
     }
-    if ($maxPlayers >= 1 && $maxPlayers <= 5) {
-        return true;
+    if (in_array($maxPlayers, [20, 25, 40], true)) {
+        return false;
     }
-    if ($maxPlayers === 0) {
+    if ($maxPlayers === 0 || $maxPlayers <= 10) {
         return true;
     }
 
@@ -119,7 +119,7 @@ function sahtout_pick_boss_creature_id(array $criteria): ?int
         if ($entry <= 0) {
             continue;
         }
-        if ($qty === 1 || $qty === 0) {
+        if ($qty >= 0 && $qty <= 1) {
             $candidates[] = $entry;
         }
     }

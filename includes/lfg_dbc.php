@@ -6,11 +6,52 @@
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'dbc_reader.php';
 
+const LFG_DUNGEON_FIELD_NAME_ENUS = 1;
 const LFG_DUNGEON_FIELD_MIN_LEVEL = 18;
 const LFG_DUNGEON_FIELD_MAX_LEVEL = 19;
 const LFG_DUNGEON_FIELD_TARGET_LEVEL = 20;
 const LFG_DUNGEON_FIELD_MAP_ID = 23;
 const LFG_DUNGEON_FIELD_DIFFICULTY = 24;
+
+/**
+ * LFG dungeon entries keyed by instance map id (names from LFGDungeons.dbc).
+ *
+ * @return array<int, string> mapId => enUS name
+ */
+function sahtout_lfg_dungeon_map_names(): array
+{
+    $names = [];
+    $dir = sahtout_data_dbc_dir();
+    if ($dir === null) {
+        return $names;
+    }
+
+    $path = sahtout_find_dbc_file($dir, 'LFGDungeons.dbc');
+    if ($path === null) {
+        return $names;
+    }
+
+    try {
+        [$rows, $strings] = sahtout_read_wdbc_records($path);
+    } catch (RuntimeException $e) {
+        error_log('LFGDungeons.dbc: ' . $e->getMessage());
+
+        return $names;
+    }
+
+    foreach ($rows as $row) {
+        $mapId = (int) ($row[LFG_DUNGEON_FIELD_MAP_ID] ?? 0);
+        if ($mapId <= 0) {
+            continue;
+        }
+        $name = sahtout_dbc_string($strings, (int) ($row[LFG_DUNGEON_FIELD_NAME_ENUS] ?? 0));
+        if ($name !== '' && !isset($names[$mapId])) {
+            $names[$mapId] = $name;
+        }
+    }
+
+    return $names;
+}
 
 /** @return array<int, list<array{difficulty:int, min:int, max:int, target:int}>> */
 function sahtout_lfg_dungeon_index_by_map(): array

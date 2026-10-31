@@ -145,6 +145,13 @@ if ($mapPath !== null) {
     fwrite(STDERR, "Note: Map.dbc not found — dungeon presets include any achievement with map_id > 0.\n");
 }
 
+foreach (sahtout_lfg_dungeon_map_names() as $lfgMapId => $lfgName) {
+    $dungeonMapIds[$lfgMapId] = true;
+    if ($lfgName !== '' && !isset($mapNames[$lfgMapId])) {
+        $mapNames[$lfgMapId] = $lfgName;
+    }
+}
+
 /**
  * @param list<array{type:int, asset:int, quantity:int}> $list
  * @return array{type:?int, value:?int}
@@ -256,8 +263,7 @@ function sahtout_build_preset_rewards(
     array $meta,
     array $instanceMapByAchievement,
     array $dungeonMapIds,
-    array $mapNames,
-    bool $hasMapDbc
+    array $mapNames
 ): array {
     $levelBuckets = [];
     $questBuckets = [];
@@ -320,9 +326,6 @@ function sahtout_build_preset_rewards(
 
         $mapId = (int) ($instanceMapByAchievement[$achId] ?? 0);
         if ($mapId <= 0) {
-            continue;
-        }
-        if ($hasMapDbc && $dungeonMapIds !== [] && !isset($dungeonMapIds[$mapId])) {
             continue;
         }
 
@@ -402,8 +405,7 @@ $presets = sahtout_build_preset_rewards(
     $achievementMeta,
     $instanceMapByAchievement,
     $dungeonMapIds,
-    $mapNames,
-    $mapPath !== null
+    $mapNames
 );
 
 $outDir = $projectRoot . DIRECTORY_SEPARATOR . 'SQL' . DIRECTORY_SEPARATOR . 'Sahtout_site DATABASE'
@@ -556,6 +558,27 @@ fwrite(STDOUT, sprintf(
     QUEST_STEP,
     $presetCounts['dungeon']
 ));
+if ($presetCounts['dungeon'] === 0) {
+    fwrite(STDERR, "Warning: no dungeon presets — need Achievement_Criteria.dbc and Map.dbc or LFGDungeons.dbc in data/dbc/.\n");
+}
+$deadminesId = 628;
+if (isset($achievementMeta[$deadminesId])) {
+    $dm = $achievementMeta[$deadminesId];
+    $dmMap = $instanceMapByAchievement[$deadminesId] ?? null;
+    $dmBoss = sahtout_pick_boss_creature_id($criteriaByAchievement[$deadminesId] ?? []);
+    $dmCrit = count($criteriaByAchievement[$deadminesId] ?? []);
+    fwrite(STDOUT, sprintf(
+        "Deadmines check (id %d): title=%s, points=%d, ref=%d, criteria_rows=%d, boss_creature=%s, instance_map=%s, map36_in_set=%s.\n",
+        $deadminesId,
+        $dm['title'],
+        $dm['points'],
+        $dm['ref'],
+        $dmCrit,
+        $dmBoss === null ? 'null' : (string) $dmBoss,
+        $dmMap === null ? 'null' : (string) $dmMap,
+        isset($dungeonMapIds[36]) ? 'yes' : 'no'
+    ));
+}
 fwrite(STDOUT, "Run achievement_catalog.sql on sahtout_site once, then import achievement_catalog_import.sql.\n");
 
 exit(0);
