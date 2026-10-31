@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 translate('gm_cmd_motd_empty', 'Enter a message of the day before saving.')
             );
         } else {
-            $command = '.server set motd ' . sahtout_soap_quote_command_arg($motd);
+            $command = sahtout_motd_build_set_command($motd);
             $result = sahtout_soap_execute_command($command);
             if ($result['ok']) {
                 $serverMotd = $motd;
@@ -133,10 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($soapConfigured && !$skipMotdFetch) {
     $motdResult = sahtout_soap_execute_command('.server motd');
     if ($motdResult['ok']) {
-        $serverMotd = sahtout_soap_extract_command_message($motdResult['output'], true);
-        $serverMotd = preg_replace('/^Message of the day:\s*/i', '', $serverMotd) ?? $serverMotd;
-        $serverMotd = preg_replace('/^Server motd is:\s*/i', '', $serverMotd) ?? $serverMotd;
-        $serverMotd = trim($serverMotd);
+        $serverMotd = sahtout_motd_enus_from_command_output($motdResult['output']);
     } else {
         $motdLoadNotice = translate('gm_cmd_motd_load_failed', 'Could not load the current MOTD from the worldserver.');
     }

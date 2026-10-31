@@ -14,7 +14,7 @@ return [
     'gm_cmd_server_comm_heading' => 'Server Communication',
     'gm_cmd_soap_missing' => 'SOAP is not configured. Set it up under Admin → Settings → SOAP.',
     'gm_cmd_motd_label' => 'Server message of the day (MOTD)',
-    'gm_cmd_motd_help' => 'Loaded with .server motd and saved with .server set motd (AzerothCore).',
+    'gm_cmd_motd_help' => 'Shows and updates the enUS message only (.server motd / .server set motd enUS). Other locales are unchanged.',
     'gm_cmd_motd_save' => 'Save MOTD',
     'gm_cmd_motd_empty' => 'Enter a message of the day before saving.',
     'gm_cmd_motd_saved' => 'Server MOTD was updated.',

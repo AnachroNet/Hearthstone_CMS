@@ -106,6 +106,38 @@ function sahtout_soap_quote_command_arg(string $text): string
     return '"' . $text . '"';
 }
 
+const SAHTOUT_MOTD_LOCALE = 'enUS';
+
+function sahtout_motd_build_set_command(string $motd): string
+{
+    return '.server set motd ' . SAHTOUT_MOTD_LOCALE . ' ' . sahtout_soap_quote_command_arg($motd);
+}
+
+function sahtout_motd_enus_from_command_output(string $soapResponse): string
+{
+    $text = sahtout_soap_extract_command_message($soapResponse, true);
+    $text = preg_replace('/^Message of the day:\s*/im', '', $text) ?? $text;
+    $text = preg_replace('/^Server motd is:\s*/im', '', $text) ?? $text;
+
+    $lines = preg_split('/\r\n|\r|\n/', $text) ?: [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            continue;
+        }
+        if (preg_match('/^enUS\s*:\s*(.*)$/iu', $line, $matches)) {
+            return trim($matches[1]);
+        }
+    }
+
+    $trimmed = trim($text);
+    if ($trimmed !== '' && !preg_match('/^[a-z]{2}[A-Z]{2}\s*:/', $trimmed)) {
+        return $trimmed;
+    }
+
+    return '';
+}
+
 function sahtout_soap_extract_command_message(string $soapResponse, bool $preserveLineBreaks = false): string
 {
     $text = $soapResponse;
