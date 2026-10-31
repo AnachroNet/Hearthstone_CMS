@@ -80,6 +80,22 @@ function sahtout_dbc_int32(int $raw): int
     return $raw;
 }
 
+/** Drop invalid DBC/world map ids before SQL (signed INT columns reject 4294967295). */
+function sahtout_sanitize_map_id(?int $mapId): ?int
+{
+    if ($mapId === null || $mapId <= 0) {
+        return null;
+    }
+    if ($mapId >= 0x80000000) {
+        return null;
+    }
+    if ($mapId > 2000) {
+        return null;
+    }
+
+    return $mapId;
+}
+
 function sahtout_dbc_string(string $strings, int $offset): string
 {
     if ($offset < 0 || $offset >= strlen($strings)) {

@@ -124,12 +124,12 @@ if ($mapPath !== null) {
     try {
         [$mapRows, $mapStrings] = sahtout_read_wdbc_records($mapPath);
         foreach ($mapRows as $row) {
-            $mapId = (int) ($row[MAP_FIELD_ID] ?? 0);
-            $mapType = (int) ($row[MAP_FIELD_TYPE] ?? 0);
-            $maxPlayers = (int) ($row[MAP_FIELD_MAX_PLAYERS] ?? 0);
-            if ($mapId <= 0) {
+            $mapId = sahtout_sanitize_map_id((int) ($row[MAP_FIELD_ID] ?? 0));
+            if ($mapId === null) {
                 continue;
             }
+            $mapType = (int) ($row[MAP_FIELD_TYPE] ?? 0);
+            $maxPlayers = (int) ($row[MAP_FIELD_MAX_PLAYERS] ?? 0);
             $name = sahtout_dbc_string($mapStrings, (int) ($row[MAP_FIELD_NAME_ENUS] ?? 0));
             if ($name !== '') {
                 $mapNames[$mapId] = $name;
@@ -146,6 +146,10 @@ if ($mapPath !== null) {
 }
 
 foreach (sahtout_lfg_dungeon_map_names() as $lfgMapId => $lfgName) {
+    $lfgMapId = sahtout_sanitize_map_id($lfgMapId);
+    if ($lfgMapId === null) {
+        continue;
+    }
     $dungeonMapIds[$lfgMapId] = true;
     if ($lfgName !== '' && !isset($mapNames[$lfgMapId])) {
         $mapNames[$lfgMapId] = $lfgName;
@@ -466,8 +470,8 @@ foreach ($achRows as $row) {
     $critValSql = $critVal === null ? 'NULL' : (string) $critVal;
     $bossId = sahtout_pick_boss_creature_id($criteriaByAchievement[$id] ?? []);
     $bossSql = $bossId !== null && $bossId > 0 ? (string) $bossId : 'NULL';
-    $instanceMap = $instanceMapByAchievement[$id] ?? null;
-    $instanceMapSql = ($instanceMap !== null && (int) $instanceMap > 0) ? (string) (int) $instanceMap : 'NULL';
+    $instanceMap = sahtout_sanitize_map_id($instanceMapByAchievement[$id] ?? null);
+    $instanceMapSql = $instanceMap !== null ? (string) $instanceMap : 'NULL';
 
     $valueRows[] = sprintf(
         '(%u, %s, %s, %u, %s, %u, %d, %d, %u, %s, %s, %s, %s)',
@@ -504,9 +508,8 @@ if ($presets !== []) {
     $rewardRows = [];
     foreach ($presets as $p) {
         $valSql = $p['milestone_value'] === null ? 'NULL' : (string) $p['milestone_value'];
-        $mapSql = isset($p['instance_map_id']) && $p['instance_map_id'] > 0
-            ? (string) (int) $p['instance_map_id']
-            : 'NULL';
+        $presetMap = sahtout_sanitize_map_id(isset($p['instance_map_id']) ? (int) $p['instance_map_id'] : null);
+        $mapSql = $presetMap !== null ? (string) $presetMap : 'NULL';
         $dungeonSql = 'NULL';
         if (!empty($p['dungeon_name'])) {
             $dungeonSql = "'" . sahtout_sql_escape((string) $p['dungeon_name']) . "'";

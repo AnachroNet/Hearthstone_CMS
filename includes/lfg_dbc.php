@@ -40,8 +40,8 @@ function sahtout_lfg_dungeon_map_names(): array
     }
 
     foreach ($rows as $row) {
-        $mapId = (int) ($row[LFG_DUNGEON_FIELD_MAP_ID] ?? 0);
-        if ($mapId <= 0) {
+        $mapId = sahtout_sanitize_map_id((int) ($row[LFG_DUNGEON_FIELD_MAP_ID] ?? 0));
+        if ($mapId === null) {
             continue;
         }
         $name = sahtout_dbc_string($strings, (int) ($row[LFG_DUNGEON_FIELD_NAME_ENUS] ?? 0));
@@ -81,8 +81,8 @@ function sahtout_lfg_dungeon_index_by_map(): array
     }
 
     foreach ($rows as $row) {
-        $mapId = (int) ($row[LFG_DUNGEON_FIELD_MAP_ID] ?? 0);
-        if ($mapId <= 0) {
+        $mapId = sahtout_sanitize_map_id((int) ($row[LFG_DUNGEON_FIELD_MAP_ID] ?? 0));
+        if ($mapId === null) {
             continue;
         }
         $index[$mapId][] = [

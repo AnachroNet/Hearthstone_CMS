@@ -70,7 +70,7 @@ function sahtout_guess_instance_map_from_title(string $title, array $mapNames, a
         }
     }
 
-    return $bestId;
+    return sahtout_sanitize_map_id($bestId);
 }
 
 /** CLI / import: connect to world DB when config.local.php exists. */
@@ -170,8 +170,8 @@ function sahtout_load_creature_instance_maps(?mysqli $worldDb, array $creatureId
         $res = $stmt->get_result();
         while ($row = $res->fetch_assoc()) {
             $cid = (int) ($row['id'] ?? 0);
-            $mid = (int) ($row['map'] ?? 0);
-            if ($cid > 0 && $mid > 0) {
+            $mid = sahtout_sanitize_map_id((int) ($row['map'] ?? 0));
+            if ($cid > 0 && $mid !== null) {
                 $map[$cid][] = $mid;
             }
         }
@@ -196,6 +196,7 @@ function sahtout_resolve_instance_map_id(
     array $dungeonMapIds,
     bool $requireDungeonMap
 ): ?int {
+    $achievementMapId = sahtout_sanitize_map_id($achievementMapId) ?? 0;
     if ($achievementMapId > 0) {
         if (!$requireDungeonMap || isset($dungeonMapIds[$achievementMapId])) {
             return $achievementMapId;
@@ -213,7 +214,8 @@ function sahtout_resolve_instance_map_id(
 
     if ($requireDungeonMap && $dungeonMapIds !== []) {
         foreach ($maps as $mapId) {
-            if (isset($dungeonMapIds[$mapId])) {
+            $mapId = sahtout_sanitize_map_id($mapId);
+            if ($mapId !== null && isset($dungeonMapIds[$mapId])) {
                 return $mapId;
             }
         }
@@ -221,7 +223,7 @@ function sahtout_resolve_instance_map_id(
         return null;
     }
 
-    return $maps[0];
+    return sahtout_sanitize_map_id($maps[0]);
 }
 
 /**
