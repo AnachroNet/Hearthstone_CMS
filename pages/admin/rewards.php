@@ -103,21 +103,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rewardsReady) {
                         $dungeonNameParam = ($milestoneType === 'dungeon' && $dungeonName !== '')
                             ? $dungeonName
                             : null;
+                        $dungeonMinParam = null;
+                        $dungeonMaxParam = null;
+                        $dungeonTargetParam = null;
+                        if ($milestoneType === 'dungeon' && $instanceMapIdParam !== null) {
+                            $lfgLevels = sahtout_lfg_dungeon_levels_for_map((int) $instanceMapIdParam);
+                            if ($lfgLevels !== null) {
+                                $dungeonMinParam = ($lfgLevels['min'] ?? 0) > 0 ? (int) $lfgLevels['min'] : null;
+                                $dungeonMaxParam = ($lfgLevels['max'] ?? 0) > 0 ? (int) $lfgLevels['max'] : null;
+                                $dungeonTargetParam = ($lfgLevels['target'] ?? 0) > 0 ? (int) $lfgLevels['target'] : null;
+                            }
+                        }
 
                         $stmt = $site_db->prepare(
                             'INSERT INTO achievement_token_rewards
-                             (achievement_id, tokens, milestone_type, milestone_value, instance_map_id, dungeon_name, is_enabled)
-                             VALUES (?, ?, ?, ?, ?, ?, ?)'
+                             (achievement_id, tokens, milestone_type, milestone_value, instance_map_id, dungeon_name,
+                              dungeon_min_level, dungeon_max_level, dungeon_target_level, is_enabled)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
                         );
                         if ($stmt) {
                             $stmt->bind_param(
-                                'iisiisi',
+                                'iisiisiiii',
                                 $achievementId,
                                 $tokens,
                                 $milestoneType,
                                 $milestoneValueParam,
                                 $instanceMapIdParam,
                                 $dungeonNameParam,
+                                $dungeonMinParam,
+                                $dungeonMaxParam,
+                                $dungeonTargetParam,
                                 $isEnabled
                             );
                         }
@@ -339,7 +354,15 @@ $milestoneLabels = [
                                 <div class="font-semibold text-white"><?php echo htmlspecialchars($title); ?></div>
                                 <div class="text-xs text-gray-500">ID <?php echo $achId; ?></div>
                             </td>
-                            <td><span class="type-pill"><?php echo htmlspecialchars($milestoneLabels[$type] ?? $type); ?></span></td>
+                            <td>
+                                <span class="type-pill"><?php echo htmlspecialchars($milestoneLabels[$type] ?? $type); ?></span>
+                                <?php
+                                $typeSubtitle = sahtout_admin_milestone_type_subtitle($row);
+                                if ($typeSubtitle !== null && $typeSubtitle !== ''):
+                                ?>
+                                    <div class="text-xs text-gray-500 mt-1"><?php echo htmlspecialchars($typeSubtitle); ?></div>
+                                <?php endif; ?>
+                            </td>
                             <td class="text-gray-300 text-sm"><?php echo htmlspecialchars(sahtout_admin_reward_detail_label($row)); ?></td>
                             <td colspan="3">
                                 <form method="post" action="<?php echo $formAction; ?>" class="flex flex-wrap items-end gap-3 justify-end">

@@ -3,6 +3,8 @@ if (!defined('ALLOWED_ACCESS')) {
     exit('Direct access not allowed.');
 }
 
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'lfg_dbc.php';
+
 function sahtout_admin_achievement_rewards_table_exists(mysqli $siteDb): bool
 {
     static $exists = null;
@@ -184,6 +186,50 @@ function sahtout_admin_format_catalog_search_row(array $row): array
         'criteria_value' => isset($row['criteria_value']) ? (int) $row['criteria_value'] : null,
         'map_id' => (int) ($row['map_id'] ?? 0),
     ];
+}
+
+/** Subtitle under milestone type pill (dungeon level from DB or LFGDungeons.dbc). */
+function sahtout_admin_milestone_type_subtitle(array $row): ?string
+{
+    $type = (string) ($row['milestone_type'] ?? '');
+    if ($type === 'dungeon') {
+        $min = (int) ($row['dungeon_min_level'] ?? 0);
+        $max = (int) ($row['dungeon_max_level'] ?? 0);
+        $target = (int) ($row['dungeon_target_level'] ?? 0);
+        if ($min > 0 || $max > 0 || $target > 0) {
+            $caption = sahtout_format_dungeon_level_caption([
+                'min' => $min,
+                'max' => $max,
+                'target' => $target,
+            ]);
+            if ($caption !== null) {
+                return $caption;
+            }
+        }
+        $mapId = (int) ($row['instance_map_id'] ?? 0);
+        if ($mapId <= 0) {
+            $mapId = (int) ($row['catalog_map_id'] ?? 0);
+        }
+        if ($mapId > 0) {
+            return sahtout_format_dungeon_level_caption(sahtout_lfg_dungeon_levels_for_map($mapId));
+        }
+
+        return null;
+    }
+
+    if ($type === 'level') {
+        $value = isset($row['milestone_value']) ? (int) $row['milestone_value'] : 0;
+
+        return $value > 0 ? 'Level ' . $value : null;
+    }
+
+    if ($type === 'quest_count') {
+        $value = isset($row['milestone_value']) ? (int) $row['milestone_value'] : 0;
+
+        return $value > 0 ? number_format($value) . ' quests' : null;
+    }
+
+    return null;
 }
 
 function sahtout_admin_reward_detail_label(array $row): string

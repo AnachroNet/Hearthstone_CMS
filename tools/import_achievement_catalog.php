@@ -8,6 +8,7 @@
  *   Achievement_Criteria.dbc
  *   Achievement_Category.dbc
  *   Map.dbc (recommended — distinguishes 5-player dungeons from raids)
+ *   LFGDungeons.dbc (recommended — dungeon level bands on reward presets)
  *
  * Usage (from Web/SahtoutCMS):
  *   php tools/import_achievement_catalog.php
@@ -22,6 +23,7 @@ if (PHP_SAPI !== 'cli') {
 
 $projectRoot = dirname(__DIR__);
 require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'dbc_reader.php';
+require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'lfg_dbc.php';
 
 /** @see AzerothCore DBCEnums.h */
 const CRITERIA_REACH_LEVEL = 5;
@@ -327,12 +329,16 @@ function sahtout_build_preset_rewards(
         if ($dungeonName !== null && strlen($dungeonName) > 128) {
             $dungeonName = substr($dungeonName, 0, 128);
         }
+        $lfgLevels = sahtout_lfg_dungeon_levels_for_map($mapId);
         $presets[] = [
             'achievement_id' => $achId,
             'milestone_type' => 'dungeon',
             'milestone_value' => null,
             'instance_map_id' => $mapId,
             'dungeon_name' => $dungeonName,
+            'dungeon_min_level' => $lfgLevels['min'] ?? null,
+            'dungeon_max_level' => $lfgLevels['max'] ?? null,
+            'dungeon_target_level' => $lfgLevels['target'] ?? null,
         ];
         $seen[$achId] = true;
     }
@@ -450,7 +456,7 @@ $lines[] = "DELETE FROM `achievement_token_rewards` WHERE `milestone_type` IN ('
 $lines[] = '';
 
 if ($presets !== []) {
-    $rewardPrefix = 'INSERT INTO `achievement_token_rewards` (`achievement_id`, `tokens`, `milestone_type`, `milestone_value`, `instance_map_id`, `dungeon_name`, `is_enabled`) VALUES';
+    $rewardPrefix = 'INSERT INTO `achievement_token_rewards` (`achievement_id`, `tokens`, `milestone_type`, `milestone_value`, `instance_map_id`, `dungeon_name`, `dungeon_min_level`, `dungeon_max_level`, `dungeon_target_level`, `is_enabled`) VALUES';
     $rewardRows = [];
     foreach ($presets as $p) {
         $valSql = $p['milestone_value'] === null ? 'NULL' : (string) $p['milestone_value'];
@@ -461,13 +467,22 @@ if ($presets !== []) {
         if (!empty($p['dungeon_name'])) {
             $dungeonSql = "'" . sahtout_sql_escape((string) $p['dungeon_name']) . "'";
         }
+        $minSql = isset($p['dungeon_min_level']) && (int) $p['dungeon_min_level'] > 0
+            ? (string) (int) $p['dungeon_min_level'] : 'NULL';
+        $maxSql = isset($p['dungeon_max_level']) && (int) $p['dungeon_max_level'] > 0
+            ? (string) (int) $p['dungeon_max_level'] : 'NULL';
+        $targetSql = isset($p['dungeon_target_level']) && (int) $p['dungeon_target_level'] > 0
+            ? (string) (int) $p['dungeon_target_level'] : 'NULL';
         $rewardRows[] = sprintf(
-            '(%u, 0, %s, %s, %s, %s, 0)',
+            '(%u, 0, %s, %s, %s, %s, %s, %s, %s, 0)',
             $p['achievement_id'],
             "'" . sahtout_sql_escape($p['milestone_type']) . "'",
             $valSql,
             $mapSql,
-            $dungeonSql
+            $dungeonSql,
+            $minSql,
+            $maxSql,
+            $targetSql
         );
     }
     for ($i = 0, $n = count($rewardRows); $i < $n; $i += $batchSize) {
