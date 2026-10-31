@@ -123,9 +123,8 @@ function sahtout_compensation_resolve_ticket_mail_context(mysqli $charDb, int $t
  * @param list<array{entry: int, count: int}> $items
  * @return array{ok: bool, message: string, soap_output: string}
  */
-function sahtout_admin_compensation_send_ingame_mail(
-    mysqli $charDb,
-    int $ticketId,
+function sahtout_admin_soap_send_to_character(
+    string $charName,
     string $subject,
     string $body,
     array $items
@@ -134,14 +133,23 @@ function sahtout_admin_compensation_send_ingame_mail(
         return ['ok' => false, 'message' => $code, 'soap_output' => $soapOutput];
     };
 
-    $ctx = sahtout_compensation_resolve_ticket_mail_context($charDb, $ticketId, $subject, $body);
-    if (!$ctx['ok']) {
-        return $fail($ctx['message']);
+    if (!sahtout_soap_is_configured()) {
+        return $fail('soap_not_configured');
     }
 
-    $charName = $ctx['character_name'];
-    $quotedSubject = sahtout_compensation_soap_quote($ctx['subject']);
-    $quotedBody = sahtout_compensation_soap_quote($ctx['body']);
+    $charName = trim($charName);
+    if (!sahtout_compensation_valid_character_name($charName)) {
+        return $fail('invalid_character');
+    }
+
+    $subject = sahtout_compensation_sanitize_mail_text($subject, 128);
+    $body = sahtout_compensation_sanitize_mail_text($body, 800);
+    if ($subject === '' || $body === '') {
+        return $fail('invalid_mail_text');
+    }
+
+    $quotedSubject = sahtout_compensation_soap_quote($subject);
+    $quotedBody = sahtout_compensation_soap_quote($body);
 
     if ($items === []) {
         $command = sprintf('.send mail %s %s %s', $charName, $quotedSubject, $quotedBody);
@@ -173,6 +181,34 @@ function sahtout_admin_compensation_send_ingame_mail(
     }
 
     return ['ok' => true, 'message' => 'mail_sent', 'soap_output' => $result['soap_output']];
+}
+
+/**
+ * @param list<array{entry: int, count: int}> $items
+ * @return array{ok: bool, message: string, soap_output: string}
+ */
+function sahtout_admin_compensation_send_ingame_mail(
+    mysqli $charDb,
+    int $ticketId,
+    string $subject,
+    string $body,
+    array $items
+): array {
+    $fail = static function (string $code, string $soapOutput = ''): array {
+        return ['ok' => false, 'message' => $code, 'soap_output' => $soapOutput];
+    };
+
+    $ctx = sahtout_compensation_resolve_ticket_mail_context($charDb, $ticketId, $subject, $body);
+    if (!$ctx['ok']) {
+        return $fail($ctx['message']);
+    }
+
+    return sahtout_admin_soap_send_to_character(
+        $ctx['character_name'],
+        $ctx['subject'],
+        $ctx['body'],
+        $items
+    );
 }
 
 /**

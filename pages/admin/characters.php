@@ -5,8 +5,13 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/admin_comp_item_ui.php';
 
 $page_class = 'characters';
+
+$soapConfigured = sahtout_soap_is_configured();
+$defaultSendItemsSubject = translate('admin_chars_send_items_default_subject', 'Items from the GM team');
+$defaultSendItemsBody = translate('admin_chars_send_items_default_body', 'Please find your items attached.');
 
 define('DB_AUTH', $db_auth_name);
 define('DB_CHAR', $db_char_name);
@@ -162,6 +167,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     }
                 } else {
                     $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_teleport_online', 'Cannot teleport %s: Character is online.'), htmlspecialchars($char_name)) . '</div>';
+                }
+            } elseif ($char_action === 'send_items') {
+                if (!$soapConfigured) {
+                    $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . translate('admin_chars_send_items_soap_missing', 'SOAP is not configured. Set it up under Admin → Settings → SOAP to send in-game items.') . '</div>';
+                } else {
+                    $itemEntries = isset($_POST['comp_item_entry']) && is_array($_POST['comp_item_entry'])
+                        ? $_POST['comp_item_entry']
+                        : [];
+                    $itemQuantities = isset($_POST['comp_item_qty']) && is_array($_POST['comp_item_qty'])
+                        ? $_POST['comp_item_qty']
+                        : [];
+                    $mailSubject = (string) ($_POST['mail_subject'] ?? $defaultSendItemsSubject);
+                    $mailBody = (string) ($_POST['mail_body'] ?? $defaultSendItemsBody);
+
+                    $normalized = sahtout_compensation_normalize_item_rows($itemEntries, $itemQuantities);
+                    if (!$normalized['ok']) {
+                        $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . translate('admin_tickets_comp_invalid_item', 'Each item row needs an entry ID and a quantity (1–200), or leave both empty.') . '</div>';
+                    } elseif ($normalized['items'] === []) {
+                        $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . translate('admin_chars_send_items_none', 'Add at least one item before sending.') . '</div>';
+                    } else {
+                        $sendResult = sahtout_admin_soap_send_to_character(
+                            $char_name,
+                            $mailSubject,
+                            $mailBody,
+                            $normalized['items']
+                        );
+                        if ($sendResult['ok']) {
+                            $success = true;
+                            $update_message = '<div class="bg-green-900/40 border border-green-500/50 text-green-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . sprintf(translate('admin_chars_send_items_success', 'In-game item mail was sent to %s.'), htmlspecialchars($char_name)) . '</div>';
+                        } else {
+                            $errorText = match ($sendResult['message']) {
+                                'invalid_mail_text' => translate('admin_tickets_comp_invalid_mail', 'Mail subject and body are required.'),
+                                'invalid_character' => translate('admin_tickets_comp_invalid_character', 'This ticket character name cannot be used for mail commands.'),
+                                'soap_failed' => translate('admin_tickets_comp_soap_failed', 'The worldserver rejected the mail command. Check SOAP logs.'),
+                                default => translate('admin_chars_send_items_failed', 'Failed to send items.'),
+                            };
+                            $update_message = '<div class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-sm mb-6 flex items-center gap-3">' . $errorText . '</div>';
+                        }
+                    }
                 }
             }
         }
@@ -539,7 +583,10 @@ ob_start();
             }
         }
     </style>
-<?php $page_head = ob_get_clean(); ?>
+<?php
+sahtout_admin_comp_item_styles();
+$page_head = ob_get_clean();
+?>
 
 <?php include $project_root . 'includes/header.php'; ?>
 
@@ -664,7 +711,7 @@ ob_start();
 
                                             <!-- Manage Modal -->
                                             <div id="manageModal-<?php echo $char['guid']; ?>" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-                                                <div class="panel w-full max-w-lg p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+                                                <div class="panel w-full max-w-xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
                                                     <button class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl" onclick="closeModal('manageModal-<?php echo $char['guid']; ?>')">&times;</button>
                                                     <h3 class="wow-title text-2xl mb-6"><?php echo translate('admin_chars_manage_modal_title', 'Manage Character: ') . htmlspecialchars($char['name']); ?></h3>
                                                     
@@ -680,6 +727,7 @@ ob_start();
                                                                 <option value="change_level"><?php echo translate('admin_chars_action_change_level', 'Change Level'); ?></option>
                                                                 <option value="teleport"><?php echo translate('admin_chars_action_teleport', 'Teleport (Custom)'); ?></option>
                                                                 <option value="teleport_directly"><?php echo translate('admin_chars_action_teleport_direct', 'Teleport Directly'); ?></option>
+                                                                <option value="send_items" <?php echo $soapConfigured ? '' : 'disabled'; ?>><?php echo translate('admin_chars_action_send_items', 'Send Items'); ?></option>
                                                             </select>
                                                         </div>
                                                         
@@ -737,6 +785,26 @@ ob_start();
                                                                 </select>
                                                             </div>
                                                         </div>
+
+                                                        <div id="sendItemsFields-<?php echo $char['guid']; ?>" class="action-field space-y-4">
+                                                            <?php if (!$soapConfigured): ?>
+                                                                <p class="text-amber-300/90 text-xs"><?php echo translate('admin_chars_send_items_soap_missing', 'SOAP is not configured. Set it up under Admin → Settings → SOAP to send in-game items.'); ?></p>
+                                                            <?php else: ?>
+                                                                <p class="text-xs text-gray-500"><?php echo translate('admin_chars_send_items_help', 'Items are sent via in-game mail (SOAP). The character may be online or offline.'); ?></p>
+                                                                <div>
+                                                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="mail-subject-<?php echo $char['guid']; ?>"><?php echo translate('admin_tickets_comp_mail_subject', 'Mail subject'); ?></label>
+                                                                    <input type="text" id="mail-subject-<?php echo $char['guid']; ?>" name="mail_subject" class="input-dark" maxlength="128" value="<?php echo htmlspecialchars($defaultSendItemsSubject); ?>">
+                                                                </div>
+                                                                <div>
+                                                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="mail-body-<?php echo $char['guid']; ?>"><?php echo translate('admin_tickets_comp_mail_body', 'Mail message'); ?></label>
+                                                                    <textarea id="mail-body-<?php echo $char['guid']; ?>" name="mail_body" class="input-dark textarea-dark min-h-[5rem] resize-y" rows="3" maxlength="800"><?php echo htmlspecialchars($defaultSendItemsBody); ?></textarea>
+                                                                </div>
+                                                                <div>
+                                                                    <span class="block text-xs text-gray-400 mb-2"><?php echo translate('admin_chars_send_items_items_heading', 'Items (up to 5)'); ?></span>
+                                                                    <?php sahtout_admin_comp_item_attachment_grid(true); ?>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </div>
                                                         
                                                         <div class="flex justify-end gap-4 pt-4 mt-4 border-t border-[rgba(201,162,39,.1)]">
                                                             <button type="button" class="btn-iron" onclick="closeModal('manageModal-<?php echo $char['guid']; ?>')"><?php echo translate('admin_chars_cancel_button', 'Cancel'); ?></button>
@@ -785,6 +853,8 @@ ob_start();
         </main>
     </div>
 
+    <?php sahtout_admin_comp_item_lookup_modal(); ?>
+
     <script>
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
@@ -802,9 +872,10 @@ ob_start();
             const levelFields = document.getElementById('levelFields-' + id);
             const teleportFields = document.getElementById('teleportFields-' + id);
             const teleportDirectlyFields = document.getElementById('teleportDirectlyFields-' + id);
+            const sendItemsFields = document.getElementById('sendItemsFields-' + id);
             
             // Hide all
-            [goldFields, levelFields, teleportFields, teleportDirectlyFields].forEach(el => {
+            [goldFields, levelFields, teleportFields, teleportDirectlyFields, sendItemsFields].forEach(el => {
                 if (el) el.classList.remove('active');
             });
             
@@ -817,6 +888,8 @@ ob_start();
                 teleportFields.classList.add('active');
             } else if (action.value === 'teleport_directly' && teleportDirectlyFields) {
                 teleportDirectlyFields.classList.add('active');
+            } else if (action.value === 'send_items' && sendItemsFields) {
+                sendItemsFields.classList.add('active');
             }
         }
 
@@ -844,6 +917,7 @@ ob_start();
             }
         });
     </script>
+    <?php sahtout_admin_comp_item_lookup_script($base_path); ?>
 <?php
 $site_db->close();
 $auth_db->close();
