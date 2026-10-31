@@ -264,6 +264,18 @@ ob_start();
             overflow-wrap: anywhere;
             word-break: break-word;
         }
+
+        .news-list-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 640px) {
+            .news-list-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 1.75rem;
+            }
+        }
     </style>
 <?php
 $page_head .= ob_get_clean();
@@ -369,7 +381,7 @@ if ($is_single && $is_404) {
                         <?php echo translate('no_news', 'No news available at this time.'); ?>
                     </div>
                 <?php else: ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div class="news-list-grid">
                         <?php while ($news = $news_result->fetch_assoc()): ?>
                             <?php 
                             $card_color = $category_colors[$news['category']]['badge'] ?? '#f2cf5b';
