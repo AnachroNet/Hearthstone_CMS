@@ -133,13 +133,5 @@ return [
     'pvp_no_games' => 'No games this season',
     'pvp_personal_rating' => 'Personal rating',
     'pvp_this_character' => 'This character',
-    'model_loading' => 'Loading 3D character…',
-    'model_error' => 'Unable to load this 3D model. Check Your 3D Files or Please try again.',
-    'model_show' => 'Show',
-    'model_hide' => 'Hide',
-    'model_show_aria' => 'Show 3D model',
-    'model_hide_aria' => 'Hide 3D model',
-    'model_canvas_aria' => 'Interactive 3D character model',
-    'model_hint' => 'Drag to rotate. Shows the race and gender model, not equipped gear.'
 ];
 ?>

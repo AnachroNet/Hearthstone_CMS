@@ -107,12 +107,6 @@ ob_start();
         border: 1px solid var(--gold-line);
     }
     .character-image .default-image { display: block; width: 100%; height: 100%; object-fit: contain; padding: 1rem; }
-    .character-image canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
-    .model-loading, .model-error {
-        position: absolute; z-index: 2; left: .75rem; right: .75rem; bottom: .75rem; padding: .6rem; text-align: center; font-size: .85rem;
-        background: rgba(3,4,10,.9); border: 1px solid rgba(201,162,39,.4); color: var(--gold);
-    }
-    .model-error { color: #fca5a5; border-color: rgba(248,113,113,.5); }
     [hidden] { display: none !important; }
 
     /* Tabs */
@@ -196,19 +190,6 @@ ob_start();
         display: flex; align-items: center; gap: .6rem; margin: 0 0 1rem; padding: .6rem .9rem; font-size: .85rem; color: #fcd34d;
         background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3);
     }
-
-    /* 3D model toggle button */
-    .toggle-btn {
-        display: inline-flex; align-items: center; justify-content: center; gap: .55rem; width: 100%; padding: .7rem 1rem;
-        font-weight: 700; font-size: .9rem; letter-spacing: .04em; color: var(--gold); cursor: pointer;
-        background: var(--card); border: 1px solid var(--gold-line); transition: background .2s, color .2s, border-color .2s;
-    }
-    .toggle-btn:hover:not(:disabled) { border-color: rgba(242,207,82,.5); background: rgba(242,207,82,.08); }
-    .toggle-btn[aria-pressed="true"] { color: #17130a; border-color: var(--gold-dim); background: linear-gradient(180deg, #f2cf5b, #a77d19); }
-    .toggle-btn:disabled { cursor: default; opacity: .7; }
-    .toggle-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-    .toggle-hint { font-size: .7rem; color: var(--muted); text-align: center; }
-    .toggle-hint i { color: var(--gold); margin-right: .25rem; }
 
     /* Arena */
     .pvp-section { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
@@ -490,24 +471,25 @@ if ($ilvl > 0) {
                 $raceIcon = $race['icon'] ?? 'unknown';
                 $faction = $factionOf($character['race']);
 
-                // Average item level (ignores shirt & tabard)
-                $ilvlSum = 0; $ilvlCount = 0;
                 // Average item level (ignores shirt & tabard, and items with no iLvl)
-$ilvlSum = 0; $ilvlCount = 0;
-foreach ($items as $s => $it) {
-    if ($s === 3 || $s === 18) continue;                 // shirt & tabard
-    $lvl = (int)($it['ItemLevel'] ?? 0);
-    if ($lvl <= 0) continue;                             // no iLvl → don't count it
-    $ilvlSum += $lvl;
-    $ilvlCount++;
-}
-$avgIlvl = $ilvlCount ? round($ilvlSum / $ilvlCount) : 0;
+                $ilvlSum = 0;
+                $ilvlCount = 0;
+                foreach ($items as $s => $it) {
+                    if ($s === 3 || $s === 18) {
+                        continue;
+                    }
+                    $lvl = (int)($it['ItemLevel'] ?? 0);
+                    if ($lvl <= 0) {
+                        continue;
+                    }
+                    $ilvlSum += $lvl;
+                    $ilvlCount++;
+                }
                 $avgIlvl = $ilvlCount ? round($ilvlSum / $ilvlCount) : 0;
 
                 // Avatar: img/characterarmor/avatar/{raceId}-{gender}.png  (e.g. 1-0.png = Human male)
                 $avatarPath = "{$base_path}img/characterarmor/avatar/{$character['race']}-{$genderId}.png";
                 $avatarFallback = "{$base_path}img/accountimg/race/{$genderDir}/{$raceIcon}.png";
-                $modelPath = "{$base_path}3dmodels/character/$raceIcon/$genderDir/$raceIcon.gltf";
             ?>
 
             <!-- Hero -->
@@ -551,22 +533,12 @@ $avgIlvl = $ilvlCount ? round($ilvlSum / $ilvlCount) : 0;
                 </div>
 
                 <div class="center-col">
-                    <div class="character-image" id="character-viewer" style="--cc: <?= $classColor ?>">
+                    <div class="character-image" style="--cc: <?= $classColor ?>">
                         <img src="<?= htmlspecialchars($avatarPath) ?>"
                              alt="<?= htmlspecialchars(($race['name'] ?? 'Character') . ' avatar') ?>"
                              class="default-image"
-                             onerror="this.onerror=function(){this.onerror=null;this.src='<?= htmlspecialchars($base_path . '3dmodels/3d_default.gif', ENT_QUOTES) ?>';};this.src='<?= htmlspecialchars($avatarFallback, ENT_QUOTES) ?>';">
-                        <div class="model-loading" id="model-loading" role="status" aria-live="polite" hidden>
-                            <i class="fas fa-circle-notch fa-spin"></i> <span><?= translate('model_loading', 'Loading 3D character…') ?></span>
-                        </div>
-                        <div class="model-error" id="model-error" role="alert" hidden><?= translate('model_error', 'Unable to load this 3D model. Check Your 3D Files or Please try again.') ?></div>
+                             onerror="this.onerror=null;this.src='<?= htmlspecialchars($avatarFallback, ENT_QUOTES) ?>';">
                     </div>
-
-                    <button type="button" class="toggle-btn" id="model-toggle" aria-pressed="false" aria-label="<?= htmlspecialchars(translate('model_show_aria', 'Show 3D model')) ?>">
-                        <i class="fa-solid fa-eye"></i><span><?= translate('model_show', 'Show') ?></span>
-                        
-                    </button>
-                    <p class="toggle-hint" id="toggle-hint" hidden><i class="fas fa-arrows-alt"></i><?= translate('model_hint', 'Drag to rotate. Shows the race and gender model, not equipped gear.') ?></p>
 
                     <div class="weapons">
                         <?php foreach ([15, 16, 17] as $slot) $renderSlot($slot, 'compact'); ?>
@@ -577,202 +549,6 @@ $avgIlvl = $ilvlCount ? round($ilvlSum / $ilvlCount) : 0;
                     <?php foreach ([9, 5, 6, 7, 10, 11, 12, 13] as $slot) $renderSlot($slot, 'right'); ?>
                 </div>
             </div>
-
-            <script type="importmap">
-                { "imports": { "three": "https://esm.sh/three@0.167.1", "three/addons/": "https://esm.sh/three@0.167.1/examples/jsm/" } }
-            </script>
-            <script type="module">
-                import * as THREE from 'three';
-                import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-                import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-                const container = document.getElementById('character-viewer');
-                const toggle = document.getElementById('model-toggle');
-                const loading = document.getElementById('model-loading');
-                const errorMessage = document.getElementById('model-error');
-                const hint = document.getElementById('toggle-hint');
-                const defaultImage = container.querySelector('.default-image');
-                const modelPath = <?= json_encode($modelPath) ?>;
-
-                // Translated UI strings (i18n via PHP)
-                const T = {
-                    show: <?= json_encode(translate('model_show', 'Show')) ?>,
-                    hide: <?= json_encode(translate('model_hide', 'Hide')) ?>,
-                    showAria: <?= json_encode(translate('model_show_aria', 'Show 3D model')) ?>,
-                    hideAria: <?= json_encode(translate('model_hide_aria', 'Hide 3D model')) ?>,
-                    canvasAria: <?= json_encode(translate('model_canvas_aria', 'Interactive 3D character model')) ?>
-                };
-
-                // One lifecycle for everything three.js creates, so retries never stack listeners or loops.
-                let renderer = null, scene = null, camera = null, controls = null, mixer = null, clock = null;
-                let frame = null, resizeObserver = null, modelReady = false, busy = false, errorTimer = null;
-
-                function setUI(on) {
-                    toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-                    hint.hidden = !(on && modelReady);
-                }
-
-                function stopLoop() {
-                    if (frame !== null) { cancelAnimationFrame(frame); frame = null; }
-                }
-
-                function startLoop() {
-                    if (frame !== null || !renderer) return;
-                    clock.getDelta(); // discard time spent paused so animations don't jump
-                    const tick = () => {
-                        frame = requestAnimationFrame(tick);
-                        controls.update();
-                        if (mixer) mixer.update(clock.getDelta());
-                        renderer.render(scene, camera);
-                    };
-                    tick();
-                }
-
-                function resize() {
-    if (!renderer) return;
-    const w = container.clientWidth, h = container.clientHeight;
-    if (!w || !h) return;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h, false);
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
-}
-
-   function teardown() {
-    stopLoop();
-    if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null; }
-    if (controls) { controls.dispose(); controls = null; }
-    if (renderer) { renderer.dispose(); renderer.domElement.remove(); renderer = null; }
-    scene = camera = mixer = clock = null;
-    modelReady = false;
-    // Reset UI so a bfcache restore never shows a stale "Hide" button
-    if (defaultImage) defaultImage.style.display = 'block';
-    if (hint) hint.hidden = true;
-    if (toggle) {
-        toggle.setAttribute('aria-pressed', 'false');
-        toggle.setAttribute('aria-label', T.showAria);
-        const s = toggle.querySelector('span');
-        if (s) s.textContent = T.show;
-    }
-}
-
-                function setup() {
-                    const w = container.clientWidth, h = container.clientHeight;
-                    scene = new THREE.Scene();
-                    camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 1000);
-renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });                    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
-                    renderer.setSize(w, h);
-                    renderer.outputColorSpace = THREE.SRGBColorSpace;
-                    renderer.domElement.setAttribute('aria-label', T.canvasAria);
-                    renderer.domElement.style.display = 'none';
-                    container.appendChild(renderer.domElement);
-
-                    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-                    const light = new THREE.DirectionalLight(0xffffff, 2);
-                    light.position.set(5, 8, 6);
-                    scene.add(light);
-
-                    controls = new OrbitControls(camera, renderer.domElement);
-                    controls.enableDamping = true;
-                    clock = new THREE.Clock();
-
-                    resizeObserver = new ResizeObserver(resize); // the only resize handler
-                    resizeObserver.observe(container);
-                }
-
-                function frameModel(model) {
-                    const box = new THREE.Box3().setFromObject(model);
-                    const center = box.getCenter(new THREE.Vector3());
-                    const size = box.getSize(new THREE.Vector3());
-                    const max = Math.max(size.x, size.y, size.z) || 1;
-                    const dist = max / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-                    camera.position.set(center.x + dist * 0.15, center.y + size.y * 0.08, center.z + dist * 1.8);
-                    camera.near = Math.max(max / 1000, 0.01);
-                    camera.far = max * 100;
-                    camera.updateProjectionMatrix();
-                    controls.target.copy(center);
-                    // Keep the wheel from zooming the model too far in or out; no panning away either
-                    const d = camera.position.distanceTo(center);
-                    controls.enablePan = false;
-                    controls.zoomSpeed = 0.5;
-                    controls.minDistance = d * 0.75;
-                    controls.maxDistance = d * 1.25;
-                    controls.update();
-                }
-function show3D() {
-    defaultImage.style.display = 'none';
-    renderer.domElement.style.display = 'block';
-    setUI(true);
-    resize();
-    renderer.render(scene, camera);
-    startLoop();
-
-    toggle.setAttribute('aria-pressed', 'true');
-    toggle.setAttribute('aria-label', T.hideAria);
-    toggle.querySelector('span').textContent = T.hide;
-}
-
-function show2D() {
-    stopLoop(); // no rendering while hidden
-    if (renderer) renderer.domElement.style.display = 'none';
-    defaultImage.style.display = 'block';
-    setUI(false);
-
-    toggle.setAttribute('aria-pressed', 'false');
-    toggle.setAttribute('aria-label', T.showAria);
-    toggle.querySelector('span').textContent = T.show;
-}
-                async function enable3D() {
-                    if (busy) return;
-                    if (modelReady) { show3D(); return; }
-                    busy = true;
-                    toggle.disabled = true;
-                    clearTimeout(errorTimer);
-                    errorMessage.hidden = true;
-                    loading.hidden = false;
-                    try {
-                        setup();
-                        const gltf = await new Promise((res, rej) => new GLTFLoader().load(modelPath, res, undefined, rej));
-                        scene.add(gltf.scene);
-                        frameModel(gltf.scene);
-                        if (gltf.animations?.length) {
-                            mixer = new THREE.AnimationMixer(gltf.scene);
-                            mixer.clipAction(gltf.animations[0]).play();
-                        }
-                        modelReady = true;
-                        show3D();
-                    } catch (err) {
-                        console.error('3D viewer failed:', err);
-                        teardown(); // full cleanup so the next attempt starts clean
-                        defaultImage.style.display = 'block';
-                        setUI(false);
-                        errorMessage.hidden = false;
-                        errorTimer = setTimeout(() => { errorMessage.hidden = true; }, 5000);
-                    } finally {
-                        busy = false;
-                        toggle.disabled = false;
-                        loading.hidden = true;
-                    }
-                }
-
-               toggle.addEventListener('click', () => {
-    if (busy) return;
-    if (toggle.getAttribute('aria-pressed') === 'true') show2D();
-    else enable3D();
-});
-                document.addEventListener('visibilitychange', () => {
-                    if (!modelReady) return;
-                    if (document.hidden) stopLoop(); else if (toggle.getAttribute('aria-pressed') === 'true') startLoop();
-                });
-                // bfcache: pagehide fires on navigate away, pageshow restores it.
-// teardown() resets UI; on restore we simply start from a clean 2D state.
-window.addEventListener('pagehide', teardown);
-window.addEventListener('pageshow', (e) => {
-    if (e.persisted) teardown();
-});
-            </script>
 
             <!-- Tabs -->
             <div class="tabs" role="tablist" aria-label="<?= htmlspecialchars(translate('tabs_label', 'Character details')) ?>">
