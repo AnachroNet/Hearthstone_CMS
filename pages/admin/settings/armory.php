@@ -21,11 +21,8 @@ $errors = $_SESSION['armory_settings_errors'] ?? [];
 $success = $_SESSION['armory_settings_success'] ?? false;
 unset($_SESSION['armory_settings_errors'], $_SESSION['armory_settings_success']);
 
-$armoryConfigFile = $project_root . 'includes/armory_config.php';
-$armoryConfig = [];
-
-if (file_exists($armoryConfigFile)) {
-    require_once $armoryConfigFile;
+if (!isset($armoryConfig) || !is_array($armoryConfig)) {
+    require_once $project_root . 'includes/armory_config.php';
 }
 
 $allowedModes = ['all', 'humans_only'];

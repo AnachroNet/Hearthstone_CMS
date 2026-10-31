@@ -5,11 +5,9 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/armory_playerbots.php';
 
-// Load Armory Configuration
-$armoryConfigFile = $project_root . 'includes/armory_config.php';
-$armoryConfig = [];
-if (file_exists($armoryConfigFile)) {
-    require_once $armoryConfigFile;
+// Armory display settings come from config.local.php via includes/config.php (session).
+if (!isset($armoryConfig) || !is_array($armoryConfig)) {
+    require_once $project_root . 'includes/armory_config.php';
 }
 
 $soloPvPDisplay = $armoryConfig['solo_pvp_display'] ?? 'all';

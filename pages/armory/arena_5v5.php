@@ -9,11 +9,8 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/armory_playerbots.php';
 
-// Load Armory Configuration
-$armoryConfigFile = $project_root . 'includes/armory_config.php';
-$armoryConfig = [];
-if (file_exists($armoryConfigFile)) {
-    require_once $armoryConfigFile;
+if (!isset($armoryConfig) || !is_array($armoryConfig)) {
+    require_once $project_root . 'includes/armory_config.php';
 }
 
 $arena5v5Display = $armoryConfig['arena_5v5_display'] ?? 'all';
