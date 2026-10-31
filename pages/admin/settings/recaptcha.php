@@ -67,26 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $capConfigContent = "<?php
-if (!defined('ALLOWED_ACCESS')) {
-    header('HTTP/1.1 403 Forbidden');
-    exit(translate('error_direct_access', 'Direct access not allowed.'));
-}
-\$captcha_type = '" . addslashes($captcha_type) . "';
-\$recaptcha_enabled = " . ($recaptcha_enabled ? 'true' : 'false') . ";
-\$recaptcha_site_key = '" . addslashes($recaptcha_site_key) . "';
-\$recaptcha_secret_key = '" . addslashes($recaptcha_secret_key) . "';
-define('CAPTCHA_TYPE', \$captcha_type);
-define('RECAPTCHA_ENABLED', \$recaptcha_enabled);
-define('RECAPTCHA_SITE_KEY', \$recaptcha_site_key);
-define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
-?>";
-
-        $capConfigDir = dirname($configCapFile);
-        if (!is_writable($capConfigDir)) {
-            $errors[] = sprintf(translate('err_cap_dir_not_writable', 'reCAPTCHA config directory is not writable: %s'), $capConfigDir);
-        } elseif (file_put_contents($configCapFile, $capConfigContent) === false) {
-            $errors[] = sprintf(translate('err_failed_write_cap', 'Failed to write reCAPTCHA config file: %s'), $configCapFile);
+        require_once $project_root . 'includes/config_local_io.php';
+        if (!sahtout_update_local_config([
+            'recaptcha' => [
+                'enabled' => (bool) $recaptcha_enabled,
+                'site_key' => $recaptcha_site_key,
+                'secret_key' => $recaptcha_secret_key,
+            ],
+        ])) {
+            $errors[] = translate('err_failed_write_cap', 'Failed to write reCAPTCHA settings to config.local.php');
         } else {
             $success = true;
             $recaptcha_status = $recaptcha_enabled ? 'enabled' : 'disabled';

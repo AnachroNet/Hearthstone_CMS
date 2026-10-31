@@ -148,43 +148,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]
         ];
 
-        $configPhp  = "<?php\n";
-        $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
-        $configPhp .= '$realmlist = ' . var_export($newRealmList, true) . ";\n";
-
-        $configDir = dirname($realmsFile);
-        $tmpConfigFile = $configDir . '/.realm_config_' . bin2hex(random_bytes(8)) . '.tmp';
-
-        if (file_put_contents($tmpConfigFile, $configPhp, LOCK_EX) === false) {
-            @unlink($tmpConfigFile);
-            $errors[] = sprintf(translate('err_write_realm_config', 'Cannot write realm configuration file: %s'), $realmsFile);
+        require_once $project_root . 'includes/config_local_io.php';
+        if (!sahtout_update_local_config(['realms' => $newRealmList])) {
+            $errors[] = translate('err_write_realm_config', 'Cannot write realm configuration to config.local.php');
         } else {
-            $renamed = false;
-            for ($attempt = 0; $attempt < 3; $attempt++) {
-                if (PHP_OS_FAMILY === 'Windows' && file_exists($realmsFile)) {
-                    @unlink($realmsFile);
-                }
-                if (@rename($tmpConfigFile, $realmsFile)) {
-                    $renamed = true;
-                    break;
-                }
-                usleep(50000);
+            $realmlist = [];
+            foreach ($newRealmList as $idx => $realm) {
+                $realmlist[$idx] = $realm;
             }
-
-            if (file_exists($tmpConfigFile)) {
-                @unlink($tmpConfigFile);
-            }
-
-            if (!$renamed) {
-                $errors[] = sprintf(translate('err_write_realm_config', 'Cannot write realm configuration file: %s'), $realmsFile);
-            } else {
-                if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($realmsFile, true);
-                }
-
-                $success = true;
-                $playerbotsMissing = !armory_playerbots_table_exists($char_db ?? null);
-            }
+            $success = true;
+            $playerbotsMissing = !armory_playerbots_table_exists($char_db ?? null);
         }
     }
 }

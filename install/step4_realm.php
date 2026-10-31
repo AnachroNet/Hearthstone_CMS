@@ -1,6 +1,7 @@
 <?php 
 define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
+require_once __DIR__ . '/../includes/config_local_io.php';
 include __DIR__ . '/header.inc.php';
 
 // Set current step for progress stepper
@@ -8,7 +9,6 @@ $current_step = 4;
 
 $errors = [];
 $success = false;
-$realmsFile = $project_root . 'includes/realm_config.php';
 $defaultLogo = 'img/logos/realm1_logo.webp'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -71,27 +71,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Save realm_config.php if no errors
     if (empty($errors)) {
         $newRealmList = [
             [
                 'id' => 1,
                 'name' => $realmName,
                 'address' => $realmIP,
-                'port' => $realmPort,
-                'logo' => $logo_path
-            ]
+                'check_address' => $realmIP,
+                'port' => (int) $realmPort,
+                'logo' => $logo_path,
+                'player_display' => 'separate',
+            ],
         ];
 
-        $configPhp  = "<?php\n";
-        $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
-        $configPhp .= '$realmlist = ' . var_export($newRealmList, true) . ";\n";
-
-        $configDir = dirname($realmsFile);
-        if (!is_writable($configDir)) {
-            $errors[] = "❌ " . sprintf(translate('err_config_dir_not_writable_realm', 'Configuration directory is not writable: %s'), $configDir);
-        } elseif (file_put_contents($realmsFile, $configPhp) === false) {
-            $errors[] = "❌ " . sprintf(translate('err_write_realm_config', 'Cannot write realm configuration file: %s'), $realmsFile);
+        if (!sahtout_update_local_config(['realms' => $newRealmList])) {
+            $errors[] = "❌ " . translate('err_write_realm_config', 'Cannot write realm configuration to config.local.php');
         } else {
             $success = true;
         }

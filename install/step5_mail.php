@@ -158,120 +158,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = true;
         }
         
-        // Save configuration if SMTP test passed or SMTP is disabled
         if ($success) {
-            // Unified config: raw variables (var_export) + the central
-            // getMailer() function - identical to what the admin panel
-            // (pages/admin/settings/smtp.php) generates.
-            $configContent = "<?php\n";
-            $configContent .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
-            $configContent .= "\$smtp_enabled = " . var_export((bool)$smtp_enabled, true) . ";\n";
-            $configContent .= "\$smtp_host = " . var_export($smtp_host, true) . ";\n";
-            $configContent .= "\$smtp_user = " . var_export($smtp_user, true) . ";\n";
-            $configContent .= "\$smtp_pass = " . var_export($smtp_pass, true) . ";\n";
-            $configContent .= "\$smtp_from = " . var_export($smtp_from, true) . ";\n";
-            $configContent .= "\$smtp_name = " . var_export($smtp_name, true) . ";\n";
-            $configContent .= "\$smtp_port = " . var_export((int)$smtp_port, true) . ";\n";
-            $configContent .= "\$smtp_secure = " . var_export($smtp_secure, true) . ";\n";
-            $configContent .= "\$smtp_allow_self_signed = " . var_export((bool)$smtp_allow_self_signed, true) . ";\n\n";
-            $configContent .= <<<'MAILER'
-if (!function_exists('getMailer')) {
-    /**
-     * Build a configured PHPMailer instance from the SMTP settings above.
-     *
-     * Falls back to the PHP mail() function when SMTP is disabled.
-     *
-     * @return \PHPMailer\PHPMailer\PHPMailer
-     */
-    function getMailer(): \PHPMailer\PHPMailer\PHPMailer
-    {
-        global $smtp_enabled, $smtp_host, $smtp_user, $smtp_pass, $smtp_from, $smtp_name, $smtp_port, $smtp_secure, $smtp_allow_self_signed;
-
-        // Lazy-load PHPMailer so including this file never fatals when the
-        // Composer dependencies have not been installed yet.
-        $autoload = __DIR__ . '/../vendor/autoload.php';
-        if (!is_file($autoload)) {
-            throw new \RuntimeException(
-                'PHPMailer is not installed. Run "composer install" in the project root to enable email features.'
-            );
-        }
-        require_once $autoload;
-
-        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-        try {
-            $mail->CharSet = 'UTF-8';
-            $mail->isHTML(true);
-
-            if (!empty($smtp_enabled)) {
-                // SMTP transport (Gmail, Resend, SendGrid, Amazon SES, cPanel, ...)
-                $mail->isSMTP();
-                $mail->Host = $smtp_host;
-                $mail->SMTPAuth = true;
-                $mail->Username = $smtp_user;
-                $mail->Password = $smtp_pass;
-                $mail->Port = (int) $smtp_port;
-                $mail->SMTPSecure = $smtp_secure === 'ssl'
-                    ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
-                    : ($smtp_secure === 'tls'
-                        ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS
-                        : '');
-                // Never force opportunistic TLS when encryption is set to "None"
-                $mail->SMTPAutoTLS = !empty($smtp_secure);
-                $mail->Timeout = 15;
-
-                // Only bypass TLS certificate verification for local development or when explicitly enabled
-                $isLocalHost = in_array(strtolower((string)$smtp_host), ['localhost', '127.0.0.1', '::1'], true)
-                    || (is_string($smtp_host) && (str_ends_with(strtolower($smtp_host), '.local') || str_ends_with(strtolower($smtp_host), '.test')));
-                if (!empty($smtp_allow_self_signed) || $isLocalHost) {
-                    $mail->SMTPOptions = [
-                        'ssl' => [
-                            'verify_peer' => false,
-                            'verify_peer_name' => false,
-                            'allow_self_signed' => true,
-                        ],
-                    ];
-                }
-            } else {
-                // Fallback to the PHP mail() function when SMTP is disabled
-                $mail->isMail();
-            }
-
-            // Resolve sender address: prefer valid $smtp_from unless it is the unconfigured default placeholder and $smtp_user is a valid mailbox
-            $isPlaceholderFrom = empty($smtp_from) || $smtp_from === 'noreply@yourdomain.com';
-            if ($isPlaceholderFrom && filter_var($smtp_user ?? '', FILTER_VALIDATE_EMAIL)) {
-                $fromAddress = $smtp_user;
-            } elseif (filter_var($smtp_from ?? '', FILTER_VALIDATE_EMAIL)) {
-                $fromAddress = $smtp_from;
-            } elseif (filter_var($smtp_user ?? '', FILTER_VALIDATE_EMAIL)) {
-                $fromAddress = $smtp_user;
-            } else {
-                $fromAddress = !empty($smtp_from) ? $smtp_from : 'noreply@yourdomain.com';
-            }
-            $fromName = !empty($smtp_name) ? $smtp_name : 'Sahtout Account';
-            $mail->setFrom($fromAddress, $fromName);
-        } catch (\Exception $e) {
-            $mail->ErrorInfo = $e->getMessage();
-        }
-
-        return $mail;
-    }
-}
-MAILER;
-            $configContent .= "\n?>";
-
-            $configDir = dirname($configMailFile);
-            if (!is_writable($configDir)) {
-                $errors[] = sprintf(translate('err_write_mail_config', 'Cannot write to %s.'), $configDir);
+            require_once __DIR__ . '/../includes/config_local_io.php';
+            if (!sahtout_update_local_config([
+                'smtp' => [
+                    'enabled' => (bool) $smtp_enabled,
+                    'host' => $smtp_host,
+                    'user' => $smtp_user,
+                    'pass' => $smtp_pass,
+                    'from' => $smtp_from,
+                    'name' => $smtp_name,
+                    'port' => (int) $smtp_port,
+                    'secure' => $smtp_secure,
+                    'allow_self_signed' => (bool) $smtp_allow_self_signed,
+                ],
+            ])) {
+                $errors[] = translate('err_write_mail_config', 'Cannot write SMTP settings to config.local.php');
                 $success = false;
-            } elseif (file_put_contents($configMailFile, $configContent) === false) {
-                $errors[] = sprintf(translate('err_write_mail_config', 'Cannot write to %s.'), $configMailFile);
-                $success = false;
-            } else {
-                // Production servers with OPcache keep serving the old cached
-                // config for several seconds; force an immediate refresh.
-                if (function_exists('opcache_invalidate')) {
-                    @opcache_invalidate($configMailFile, true);
-                }
             }
         }
     }

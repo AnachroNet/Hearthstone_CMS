@@ -69,56 +69,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Only write the configuration if every submitted value was valid.
-       if (empty($postErrors)) {
-    $configPhp  = "<?php\n";
-    $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
-    $configPhp .= '$armoryConfig = ' . var_export($newConfig, true) . ";\n";
-
-    $configDir = dirname($armoryConfigFile);
-
-    if (!is_writable($configDir)) {
-        $postErrors[] = sprintf(translate('err_config_dir_not_writable', 'Config directory is not writable: %s'), htmlspecialchars($configDir, ENT_QUOTES, 'UTF-8'));
-    } else {
-        $tmpConfigFile = $configDir . '/.armory_config_' . bin2hex(random_bytes(8)) . '.tmp';
-
-        if (file_put_contents($tmpConfigFile, $configPhp, LOCK_EX) === false) {
-            $postErrors[] = translate('err_write_armory_config', 'Cannot write armory configuration file.');
-        } else {
-            $renamed = false;
-            for ($attempt = 0; $attempt < 3; $attempt++) {
-                // Windows-safe rename fallback
-                if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' && file_exists($armoryConfigFile)) {
-                    @unlink($armoryConfigFile);
-                }
-                
-                if (@rename($tmpConfigFile, $armoryConfigFile)) {
-                    $renamed = true;
-                    break;
-                }
-                usleep(50000); // 50ms wait
-            }
-
-            // Cleanup residual tmp file if rename failed
-            if (file_exists($tmpConfigFile)) {
-                @unlink($tmpConfigFile);
-            }
-
-            if (!$renamed) {
-                $postErrors[] = translate('err_write_armory_config', 'Cannot write armory configuration file.');
+        if (empty($postErrors)) {
+            require_once $project_root . 'includes/config_local_io.php';
+            if (!sahtout_update_local_config(['armory' => $newConfig])) {
+                $postErrors[] = translate('err_write_armory_config', 'Cannot write armory settings to config.local.php');
             } else {
-                // Invalidate OPCache handle
-                if (function_exists('opcache_invalidate')) {
-                    opcache_invalidate($armoryConfigFile, true);
-                }
-
+                $armoryConfig = $newConfig;
                 $_SESSION['armory_settings_success'] = true;
                 header("Location: {$base_path}admin/settings/armory");
                 exit;
             }
         }
-    }
-}
     }
 
     if (!empty($postErrors)) {

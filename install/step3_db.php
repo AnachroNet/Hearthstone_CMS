@@ -1,6 +1,7 @@
 <?php
 define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../includes/paths.php';
+require_once __DIR__ . '/../includes/config_local_io.php';
 require_once __DIR__ . '/header.inc.php';
 require_once __DIR__ . '/languages/language.php';
 
@@ -15,8 +16,7 @@ $dbStatus = [];
 $cfgDir = realpath(__DIR__ . '/../includes');
 if (!$cfgDir) $cfgDir = __DIR__ . '/../includes';
 
-$configFile    = $cfgDir . '/config.php';
-$configCapFile = $cfgDir . '/config.cap.php';
+$configLocalFile = $cfgDir . '/config.local.php';
 
 $default_site_key   = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 $default_secret_key = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
@@ -141,46 +141,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $cfg = "<?php\nif (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');\n\n";
-        foreach ($dbGroups as $key => $g) {
-            $p = "db_{$key}_";
-            $cfg .= "\${$p}host = " . var_export($g['host'], true) . ";\n";
-            $cfg .= "\${$p}port = " . var_export($g['port'], true) . ";\n";
-            $cfg .= "\${$p}user = " . var_export($g['user'], true) . ";\n";
-            $cfg .= "\${$p}pass = " . var_export($g['pass'], true) . ";\n";
-            $cfg .= "\${$p}name = " . var_export($g['name'], true) . ";\n\n";
-        }
-
-        $cfg .= "\$auth_db  = new mysqli(\$db_auth_host,  \$db_auth_user,  \$db_auth_pass,  \$db_auth_name,  \$db_auth_port);\n";
-        $cfg .= "\$world_db = new mysqli(\$db_world_host, \$db_world_user, \$db_world_pass, \$db_world_name, \$db_world_port);\n";
-        $cfg .= "\$char_db  = new mysqli(\$db_char_host,  \$db_char_user,  \$db_char_pass,  \$db_char_name,  \$db_char_port);\n";
-        $cfg .= "\$site_db  = new mysqli(\$db_site_host,  \$db_site_user,  \$db_site_pass,  \$db_site_name,  \$db_site_port);\n\n";
-
-        $cfg .= "if (\$auth_db->connect_error)  die('Auth DB Connection failed: '  . \$auth_db->connect_error);\n";
-        $cfg .= "if (\$world_db->connect_error) die('World DB Connection failed: ' . \$world_db->connect_error);\n";
-        $cfg .= "if (\$char_db->connect_error)  die('Char DB Connection failed: '  . \$char_db->connect_error);\n";
-        $cfg .= "if (\$site_db->connect_error)  die('Site DB Connection failed: '  . \$site_db->connect_error);\n";
-        $cfg .= "?>\n";
-
-        $cap = "<?php\nif (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');\n";
-        $cap .= "\$recaptcha_enabled    = " . var_export((bool)$recaptcha_enabled, true) . ";\n";
-        $cap .= "\$recaptcha_site_key   = " . var_export($recaptcha_site_key, true) . ";\n";
-        $cap .= "\$recaptcha_secret_key = " . var_export($recaptcha_secret_key, true) . ";\n";
-        $cap .= "define('RECAPTCHA_ENABLED', \$recaptcha_enabled);\n";
-        $cap .= "define('RECAPTCHA_SITE_KEY', \$recaptcha_site_key);\n";
-        $cap .= "define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);\n";
-        $cap .= "?>\n";
-
         if (!is_writable($cfgDir)) {
             $errors[] = translate('err_config_dir_not_writable', 'Configuration directory is not writable: %s', $cfgDir);
         } else {
-            if (file_put_contents($configFile, $cfg) === false) {
-                $errors[] = translate('err_failed_write_config', 'Failed to write config.php');
+            $local = sahtout_load_local_config(true);
+            $local = array_replace_recursive($local, sahtout_installer_db_groups_to_local($dbGroups));
+            $local['recaptcha'] = [
+                'enabled' => (bool) $recaptcha_enabled,
+                'site_key' => $recaptcha_site_key,
+                'secret_key' => $recaptcha_secret_key,
+            ];
+            if (!sahtout_save_local_config($local)) {
+                $errors[] = translate('err_failed_write_config', 'Failed to write config.local.php');
+            } else {
+                $success = true;
             }
-            if (file_put_contents($configCapFile, $cap) === false) {
-                $errors[] = translate('err_failed_write_cap', 'Failed to write config.cap.php');
-            }
-            if (empty($errors)) $success = true;
         }
     }
 

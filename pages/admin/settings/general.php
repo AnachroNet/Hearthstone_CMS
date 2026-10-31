@@ -305,6 +305,33 @@ include $project_root . 'includes/header.php';
                                 </div>
                             </div>
 
+                            <!-- Discord widget (home page) -->
+                            <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
+                                <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
+                                    <?php echo translate('label_discord_widget', 'Discord Server Widget'); ?>
+                                </label>
+                                <div class="flex items-stretch mb-2">
+                                    <span class="flex items-center justify-center px-4 py-3 min-w-12 bg-[#0a0e16]/90 border border-[#c9a227]/30 border-r-0 text-[#f2cf5b] rounded-l-sm">
+                                        <i class="fab fa-discord"></i>
+                                    </span>
+                                    <input type="text"
+                                           name="discord_guild_id"
+                                           inputmode="numeric"
+                                           pattern="[0-9]*"
+                                           class="flex-1 px-4 py-3 text-[0.95rem] text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 border-l-0 rounded-r-sm focus:border-[#f2cf5b] outline-none"
+                                           placeholder="<?php echo translate('placeholder_discord_guild_id', 'Discord server ID (numeric)'); ?>"
+                                           value="<?php echo htmlspecialchars($discord_guild_id ?? ''); ?>">
+                                </div>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mb-1">
+                                    <input type="checkbox" name="discord_widget_enabled" value="1" class="rounded border-[#c9a227]/40"
+                                        <?php echo !empty($discord_widget_enabled) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_discord_widget_enabled', 'Show Discord widget on the home page'); ?>
+                                </label>
+                                <div class="text-[#6a7a8a] text-xs mt-1">
+                                    <?php echo translate('help_discord_guild_id', 'Enable the Server Widget in Discord → Server Settings → Widget, then paste your server ID here.'); ?>
+                                </div>
+                            </div>
+
                             <!-- Save Button -->
                             <div class="pt-4 border-t border-[rgba(201,162,39,.1)] flex justify-end">
                                 <button type="submit" class="btn-clip inline-flex items-center gap-2 px-6 py-3 

@@ -1,9 +1,8 @@
 <?php
-if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }
+if (!defined('ALLOWED_ACCESS')) {
+    exit('Forbidden');
+}
 
-$armoryConfig = array (
-  'solo_pvp_display' => 'humans_only',
-  'arena_2v2_display' => 'all',
-  'arena_3v3_display' => 'all',
-  'arena_5v5_display' => 'all',
-);
+if (!defined('SAHTOUT_CONFIG_LOADED')) {
+    require_once __DIR__ . '/config.php';
+}

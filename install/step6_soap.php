@@ -36,18 +36,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$gmLevel || $gmLevel < 3) {
             $error = sprintf(translate('err_soap_gm_level', 'Account \'%s\' exists but is not GM level 3.'), htmlspecialchars($soapUser));
         } else {
-            $configContent = "<?php
-if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }
-
-\$soap_url  = '$soapUrl';
-\$soap_user = '$soapUser';
-\$soap_pass = '$soapPass';
-?>";
-
-            if (file_put_contents($soapConfigFile, $configContent)) {
+            require_once __DIR__ . '/../includes/config_local_io.php';
+            if (sahtout_update_local_config([
+                'soap' => [
+                    'url' => $soapUrl,
+                    'user' => $soapUser,
+                    'pass' => $soapPass,
+                ],
+            ])) {
                 $success = true;
             } else {
-                $error = translate('err_write_soap_config', 'Cannot write to') . " $soapConfigFile. " . translate('err_check_permissions', 'Check folder permissions.');
+                $error = translate('err_write_soap_config', 'Cannot write SOAP settings to config.local.php.');
             }
         }
     }

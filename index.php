@@ -4,7 +4,6 @@ define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
-require_once $project_root . 'includes/config.settings.php';
 
 $page_class = "home";
 $page_title = $site_title_name . " " . translate('home_page_title', 'Home');
@@ -533,14 +532,20 @@ $result = $site_db->query($query);
                                 <?php echo translate('home_discord_title', 'Join Our Discord'); ?>
                             </h3>
                             <div class="discord-widget-container bg-black/30 p-1 sm:p-2 border border-[#c9a227]/20 rounded-sm">
-				<iframe src="https://discord.com/widget?id=1565397868179624108&theme=dark"
-				  width="100%"
-				  height="340"
-				  allowtransparency="true"
-				  frameborder="0"
-				  sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
-				  class="rounded-sm">
-				</iframe>
+                                <?php if (!empty($discord_widget_enabled) && !empty($discord_guild_id)): ?>
+                                <iframe src="https://discord.com/widget?id=<?php echo htmlspecialchars($discord_guild_id); ?>&theme=dark"
+                                  width="100%"
+                                  height="340"
+                                  allowtransparency="true"
+                                  frameborder="0"
+                                  sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+                                  class="rounded-sm"
+                                  title="<?php echo translate('home_discord_title', 'Join Our Discord'); ?>"></iframe>
+                                <?php else: ?>
+                                <p class="text-center text-sm text-gray-400 py-8 px-3">
+                                    <?php echo translate('home_discord_widget_disabled', 'Discord widget is not configured. Set a server ID in Admin → Settings → General.'); ?>
+                                </p>
+                                <?php endif; ?>
                             </div>
                         </div>
 

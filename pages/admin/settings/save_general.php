@@ -17,7 +17,7 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST
     exit;
 }
 
-require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/site_settings.php';
 
 function normalizeYouTubeEmbedUrl(string $value): string
 {
@@ -152,44 +152,30 @@ $social_links_new = [
     'linkedin'  => filter_input(INPUT_POST, 'linkedin', FILTER_VALIDATE_URL) ?: '',
 ];
 
-// Update config.settings.php only if no errors
+$discord_guild_id_new = preg_replace('/\D/', '', trim($_POST['discord_guild_id'] ?? ''));
+$discord_widget_enabled_new = isset($_POST['discord_widget_enabled']);
+
 if (empty($errors)) {
-    $config_file = $project_root . 'includes/config.settings.php';
-    if (!is_writable($config_file)) {
-        $errors[] = translate('error_file_write_failed', 'Configuration file is not writable.');
+    if (!isset($site_db) || !($site_db instanceof mysqli)) {
+        $errors[] = translate('error_database', 'Database error. Please try again later.');
+    } elseif (!sahtout_site_settings_table_exists($site_db)) {
+        $errors[] = translate('error_file_write_failed', 'Site settings table is missing. Import site_settings.sql on sahtout_site.');
     } else {
-        $config_content = "<?php\n";
-        $config_content .= "if (!defined('ALLOWED_ACCESS')) {\n";
-        $config_content .= "    header('HTTP/1.1 403 Forbidden');\n";
-        $config_content .= "    exit('Direct access not allowed.');\n";
-        $config_content .= "}\n\n";
+        $editorId = (int) ($_SESSION['user_id'] ?? 0);
+        $ok = true;
+        $ok = $ok && sahtout_site_setting_set($site_db, 'site.title', $site_title_name_new, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'site.logo_path', $logo_path, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'home.youtube_embed_url', $youtube_embed_url_new, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'home.youtube_title', $youtube_title_new, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'home.youtube_description', $youtube_description_new, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'social.links', $social_links_new, 'json', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'discord.guild_id', $discord_guild_id_new, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'discord.widget_enabled', $discord_widget_enabled_new, 'bool', $editorId);
 
-        // === NEW: Site Title ===
-        $config_content .= "// Site Title (Editable from Admin Panel)\n";
-        $config_content .= "\$site_title_name = " . var_export($site_title_name_new, true) . ";\n\n";
-
-        // === Logo ===
-        $config_content .= "// Logo\n";
-        $config_content .= "\$site_logo = " . var_export($logo_path, true) . ";\n\n";
-
-        // === Featured YouTube Video ===
-        $config_content .= "// Featured YouTube video\n";
-        $config_content .= "\$youtube_embed_url = " . var_export($youtube_embed_url_new, true) . ";\n";
-        $config_content .= "\$youtube_title = " . var_export($youtube_title_new, true) . ";\n";
-        $config_content .= "\$youtube_description = " . var_export($youtube_description_new, true) . ";\n\n";
-
-        // === Social Links ===
-        $config_content .= "// Social links\n";
-        $config_content .= "\$social_links = [\n";
-        foreach ($social_links_new as $key => $value) {
-            $config_content .= "    '$key' => " . var_export($value, true) . ",\n";
-        }
-        $config_content .= "];\n";
-
-        if (file_put_contents($config_file, $config_content)) {
+        if ($ok) {
             $success = true;
         } else {
-            $errors[] = translate('error_file_write_failed', 'Failed to update configuration file.');
+            $errors[] = translate('error_file_write_failed', 'Failed to update site settings.');
         }
     }
 }
