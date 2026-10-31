@@ -89,8 +89,8 @@ function sahtout_admin_fetch_achievement_rewards(mysqli $siteDb): array
     $sql = $joinCatalog
         ? 'SELECT r.achievement_id, r.tokens, r.milestone_type, r.milestone_value, r.instance_map_id,
                   r.dungeon_name, r.dungeon_min_level, r.dungeon_max_level, r.dungeon_target_level,
-                  r.is_enabled, c.title_enus, c.map_id AS catalog_map_id, c.boss_creature_id,
-                  c.instance_map_id AS catalog_instance_map_id
+                  r.is_enabled, c.title_enus, c.description_enus, c.map_id AS catalog_map_id,
+                  c.boss_creature_id, c.instance_map_id AS catalog_instance_map_id
            FROM achievement_token_rewards r
            LEFT JOIN achievement_catalog c ON c.achievement_id = r.achievement_id
            ORDER BY FIELD(r.milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
@@ -113,6 +113,23 @@ function sahtout_admin_fetch_achievement_rewards(mysqli $siteDb): array
     $res->free();
 
     return $rows;
+}
+
+/**
+ * @param list<array<string, mixed>> $rewardRows
+ * @return array<int, string> creature entry => name
+ */
+function sahtout_admin_creature_names_for_rewards(?mysqli $worldDb, array $rewardRows): array
+{
+    $ids = [];
+    foreach ($rewardRows as $row) {
+        $bossId = (int) ($row['boss_creature_id'] ?? 0);
+        if ($bossId > 0) {
+            $ids[] = $bossId;
+        }
+    }
+
+    return sahtout_load_creature_template_names($worldDb, $ids);
 }
 
 /**
@@ -266,7 +283,7 @@ function sahtout_admin_milestone_type_subtitle(array $row): ?string
     return null;
 }
 
-function sahtout_admin_reward_detail_label(array $row): string
+function sahtout_admin_reward_detail_label(array $row, array $creatureNames = []): string
 {
     $type = (string) ($row['milestone_type'] ?? '');
     $value = isset($row['milestone_value']) ? (int) $row['milestone_value'] : null;
@@ -274,7 +291,7 @@ function sahtout_admin_reward_detail_label(array $row): string
     return match ($type) {
         'level' => $value !== null ? 'Level ' . $value : '—',
         'quest_count' => $value !== null ? number_format($value) . ' quests' : '—',
-        'dungeon' => (static function () use ($row): string {
+        'dungeon' => (static function () use ($row, $creatureNames): string {
             $parts = [];
             $name = (string) ($row['dungeon_name'] ?? '');
             if ($name !== '') {
@@ -282,7 +299,8 @@ function sahtout_admin_reward_detail_label(array $row): string
             }
             $bossId = (int) ($row['boss_creature_id'] ?? 0);
             if ($bossId > 0) {
-                $parts[] = 'Boss ' . $bossId;
+                $bossLabel = $creatureNames[$bossId] ?? null;
+                $parts[] = ($bossLabel !== null && $bossLabel !== '') ? $bossLabel : ('Boss ' . $bossId);
             }
             if ($parts !== []) {
                 return implode(' · ', $parts);

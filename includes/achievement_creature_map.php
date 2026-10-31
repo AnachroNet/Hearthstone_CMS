@@ -186,6 +186,51 @@ function sahtout_load_creature_instance_maps(?mysqli $worldDb, array $creatureId
 }
 
 /**
+ * @param list<int> $entryIds creature_template.entry
+ * @return array<int, string>
+ */
+function sahtout_load_creature_template_names(?mysqli $worldDb, array $entryIds): array
+{
+    $entryIds = array_values(array_unique(array_filter(array_map('intval', $entryIds), static fn (int $id): bool => $id > 0)));
+    if ($worldDb === null || $worldDb->connect_error || $entryIds === []) {
+        return [];
+    }
+
+    $tableCheck = $worldDb->query("SHOW TABLES LIKE 'creature_template'");
+    if (!$tableCheck || $tableCheck->num_rows === 0) {
+        $tableCheck?->free();
+
+        return [];
+    }
+    $tableCheck->free();
+
+    $names = [];
+    $chunkSize = 200;
+    for ($i = 0, $n = count($entryIds); $i < $n; $i += $chunkSize) {
+        $chunk = array_slice($entryIds, $i, $chunkSize);
+        $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+        $stmt = $worldDb->prepare("SELECT entry, name FROM creature_template WHERE entry IN ($placeholders)");
+        if (!$stmt) {
+            continue;
+        }
+        $types = str_repeat('i', count($chunk));
+        $stmt->bind_param($types, ...$chunk);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $entry = (int) ($row['entry'] ?? 0);
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($entry > 0 && $name !== '') {
+                $names[$entry] = $name;
+            }
+        }
+        $stmt->close();
+    }
+
+    return $names;
+}
+
+/**
  * @param array<int, list<int>> $creatureToMaps
  * @param array<int, bool> $dungeonMapIds
  */

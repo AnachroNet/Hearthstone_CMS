@@ -164,6 +164,13 @@ if (isset($_GET['status'])) {
 }
 
 $allRewards = $rewardsReady ? sahtout_admin_fetch_achievement_rewards($site_db) : [];
+global $world_db;
+$rewardCreatureNames = $catalogReady
+    ? sahtout_admin_creature_names_for_rewards(
+        (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null,
+        $allRewards
+    )
+    : [];
 
 $page_title = translate('admin_rewards_page_title', 'Reward Management');
 $page_meta_description = translate('admin_rewards_meta', 'Configure achievement token rewards');
@@ -353,11 +360,15 @@ $milestoneLabels = [
                             if ($title === '') {
                                 $title = translate('admin_rewards_unknown_title', 'Achievement #%d', $achId);
                             }
+                            $achDescription = trim((string) ($row['description_enus'] ?? ''));
                         ?>
                         <tr>
                             <td>
                                 <div class="font-semibold text-white"><?php echo htmlspecialchars($title); ?></div>
-                                <div class="text-xs text-gray-500">ID <?php echo $achId; ?></div>
+                                <?php if ($achDescription !== ''): ?>
+                                    <div class="text-xs text-gray-400 mt-1 max-w-xl"><?php echo htmlspecialchars($achDescription); ?></div>
+                                <?php endif; ?>
+                                <div class="text-xs text-gray-500 mt-1">ID <?php echo $achId; ?></div>
                             </td>
                             <td>
                                 <span class="type-pill"><?php echo htmlspecialchars($milestoneLabels[$type] ?? $type); ?></span>
@@ -368,7 +379,7 @@ $milestoneLabels = [
                                     <div class="text-xs text-gray-500 mt-1"><?php echo htmlspecialchars($typeSubtitle); ?></div>
                                 <?php endif; ?>
                             </td>
-                            <td class="text-gray-300 text-sm"><?php echo htmlspecialchars(sahtout_admin_reward_detail_label($row)); ?></td>
+                            <td class="text-gray-300 text-sm"><?php echo htmlspecialchars(sahtout_admin_reward_detail_label($row, $rewardCreatureNames)); ?></td>
                             <td colspan="3">
                                 <form method="post" action="<?php echo $formAction; ?>" class="flex flex-wrap items-end gap-3 justify-end">
                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
