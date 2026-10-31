@@ -1539,7 +1539,7 @@ include_once $project_root . 'includes/header.php';
                         <?php echo translate('section_support_tickets', 'Support Tickets'); ?>
                     </h2>
                     <p class="text-gray-400 text-sm mb-6 max-w-2xl">
-                        <?php echo translate('tickets_intro', 'Open tickets in-game with /ticket. Status and GM replies for your characters appear here.'); ?>
+                        <?php echo translate('tickets_intro', 'Click the ? (Help) icon on the action bar to submit a ticket. Status and staff replies for your characters appear here.'); ?>
                     </p>
 
                     <?php if (empty($gm_tickets_view['available'])): ?>

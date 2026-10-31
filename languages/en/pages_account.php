@@ -152,7 +152,7 @@ return [
 
     // GM / support tickets (in-game)
     'section_support_tickets' => 'Support Tickets',
-    'tickets_intro' => 'Open a ticket in-game from the Help Request window (Esc → Help, or the ? button on the action bar). Status and staff replies for your characters appear here.',
+    'tickets_intro' => 'Click the ? (Help) icon on the action bar—the same row as Quest Log, Spellbook, and Talents—to submit a ticket. Status and staff replies for your characters appear here.',
     'tickets_unavailable' => 'Ticket history is not available right now.',
     'tickets_none' => 'You have no support tickets on file for your current characters.',
     'ticket_id' => 'Ticket #%s',

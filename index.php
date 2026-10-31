@@ -347,7 +347,7 @@ $result = $site_db->query($query);
                         <?php echo translate('home_support_title', 'Support Tickets'); ?>
                     </h2>
                     <div class="text-center py-6 sm:py-8 space-y-4">
-                        <p class="text-gray-400 text-sm sm:text-base force-wrap max-w-xl mx-auto"><?php echo translate('home_support_desc', 'Use /ticket in-game to contact staff. Log in to view status and replies for your characters.'); ?></p>
+                        <p class="text-gray-400 text-sm sm:text-base force-wrap max-w-xl mx-auto"><?php echo translate('home_support_desc', 'Click the ? (Help) icon on the in-game action bar to contact staff. Log in here to view status and replies.'); ?></p>
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <a href="<?php echo $base_path; ?>account?tab=tickets" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#1a1200] bg-gradient-to-b from-[#f6d478] to-[#c9a227] border border-[#8a6a14] hover:brightness-110 transition-all">
                                 <?php echo translate('home_support_cta_account', 'View my tickets'); ?>
