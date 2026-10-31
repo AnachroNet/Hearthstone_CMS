@@ -44,7 +44,6 @@ return [
 'settings_nav_recaptcha'   => 'reCAPTCHA',
 'settings_nav_realm'       => 'Realm',
 'settings_nav_soap'        => 'SOAP',
-'settings_nav_page_manager'=> 'Page Manager',
 
     
     // Social media alt text

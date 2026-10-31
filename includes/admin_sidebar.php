@@ -215,14 +215,6 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
             </li>
 
             <li>
-                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'teleport_locations' || $active_page === 'teleport_locations') ? 'active-link' : ''; ?>" 
-                   href="<?php echo $base_path; ?>admin/teleport_locations">
-                    <i class="fas fa-map-marker-alt w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
-                    <?php echo translate('admin_teleport_locations', 'Teleport Locations'); ?>
-                </a>
-            </li>
-
-            <li>
                 <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'anews' || $active_page === 'anews') ? 'active-link' : ''; ?>" 
                    href="<?php echo $base_path; ?>admin/anews">
                     <i class="fas fa-newspaper w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
@@ -243,6 +235,14 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
                    href="<?php echo $base_path; ?>admin/downloads">
                     <i class="fas fa-cloud-download-alt w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
                     <?php echo translate('admin_downloads', 'Download Management'); ?>
+                </a>
+            </li>
+
+            <li>
+                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'teleport_locations' || $active_page === 'teleport_locations') ? 'active-link' : ''; ?>" 
+                   href="<?php echo $base_path; ?>admin/teleport_locations">
+                    <i class="fas fa-map-marker-alt w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
+                    <?php echo translate('admin_teleport_locations', 'Teleport Locations'); ?>
                 </a>
             </li>
             
