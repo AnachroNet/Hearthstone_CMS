@@ -132,86 +132,6 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
         }
     }
 
-    /* ============================================
-       Support / Donation Section
-       ============================================ */
-    .support-section {
-        padding: 10px 12px 8px 12px;
-    }
-
-    /* Static banner (non-clickable) */
-    .support-static-banner {
-        width: 100%;
-        height: auto;
-        display: block;
-        max-height: 50px;
-        object-fit: contain;
-        margin-bottom: 10px;
-        opacity: 0.9;
-    }
-
-    /* Side-by-side row */
-    .donate-row {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-    }
-
-    .donate-btn {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex: 1 1 0;
-        height: 40px;
-        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 8px;
-        text-decoration: none;
-    }
-
-    /* The image inside swaps via opacity */
-    .donate-btn img {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-height: 100%;
-        max-width: 100%;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-        transition: opacity 0.25s ease, filter 0.35s ease;
-        pointer-events: none;
-        border: none;
-    }
-
-    /* Default: show icon, hide full button */
-    .donate-btn .img-icon {
-        opacity: 1;
-        max-height: 36px;
-    }
-
-    .donate-btn .img-full {
-        opacity: 0;
-        max-height: 40px;
-        max-width: 95%;
-    }
-
-    /* On hover: swap */
-    .donate-btn:hover .img-icon {
-        opacity: 0;
-    }
-
-    .donate-btn:hover .img-full {
-        opacity: 1;
-    }
-
-    /* Subtle hover lift + glow */
-    .donate-btn:hover {
-        transform: translateY(-2px);
-        filter: drop-shadow(0 0 10px rgba(201,162,39,0.35));
-    }
 </style>
 
 <!-- Mobile Hamburger Button -->
@@ -275,26 +195,18 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
             </li>
             
             <li>
-                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'anews' || $active_page === 'anews') ? 'active-link' : ''; ?>" 
-                   href="<?php echo $base_path; ?>admin/anews">
-                    <i class="fas fa-newspaper w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
-                    <?php echo translate('admin_news', 'News Management'); ?>
-                </a>
-            </li>
-
-            <li>
-                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'downloads' || $active_page === 'downloads') ? 'active-link' : ''; ?>" 
-                   href="<?php echo $base_path; ?>admin/downloads">
-                    <i class="fas fa-cloud-download-alt w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
-                    <?php echo translate('admin_downloads', 'Download links'); ?>
-                </a>
-            </li>
-            
-            <li>
                 <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'characters' || $active_page === 'characters') ? 'active-link' : ''; ?>" 
                    href="<?php echo $base_path; ?>admin/characters">
                     <i class="fas fa-user-edit w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
                     <?php echo translate('admin_characters', 'Character Management'); ?>
+                </a>
+            </li>
+
+            <li>
+                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'anews' || $active_page === 'anews') ? 'active-link' : ''; ?>" 
+                   href="<?php echo $base_path; ?>admin/anews">
+                    <i class="fas fa-newspaper w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
+                    <?php echo translate('admin_news', 'News Management'); ?>
                 </a>
             </li>
             
@@ -303,6 +215,14 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
                    href="<?php echo $base_path; ?>admin/ashop">
                     <i class="fas fa-shopping-cart w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
                     <?php echo translate('admin_shop', 'Shop Management'); ?>
+                </a>
+            </li>
+
+            <li>
+                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'downloads' || $active_page === 'downloads') ? 'active-link' : ''; ?>" 
+                   href="<?php echo $base_path; ?>admin/downloads">
+                    <i class="fas fa-cloud-download-alt w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
+                    <?php echo translate('admin_downloads', 'Download Management'); ?>
                 </a>
             </li>
             
@@ -343,62 +263,9 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
         </ul>
     </nav>
 
-    <!-- Support / Donation Section -->
-    <div class="relative z-10 support-section shrink-0 border-t border-[rgba(201,162,39,.15)]">
-
-        <!-- Static banner (non-clickable) -->
-        <?php 
-        $support_banner = __DIR__ . '/../img/support-button.png';
-        if (file_exists($support_banner)): ?>
-            <img src="<?php echo $base_path; ?>img/support-button.png"
-                 alt="Support the Server"
-                 loading="lazy"
-                 class="support-static-banner">
-        <?php endif; ?>
-
-        <!-- Side-by-side icon buttons — icon → full button on hover -->
-        <div class="donate-row">
-
-            <!-- Buy Me a Coffee -->
-            <a href="https://buymeacoffee.com/sahtoutdev"
-               target="_blank"
-               rel="noopener noreferrer"
-               aria-label="Buy Me a Coffee"
-               class="donate-btn">
-                <img src="<?php echo $base_path; ?>img/extra/bmcicon.png"
-                     alt="Buy Me a Coffee"
-                     loading="lazy"
-                     class="img-icon">
-                <img src="<?php echo $base_path; ?>img/extra/bmc-button.svg"
-                     alt=""
-                     loading="lazy"
-                     aria-hidden="true"
-                     class="img-full">
-            </a>
-
-            <!-- Ko-fi -->
-            <a href="https://ko-fi.com/sahtoutdev"
-               target="_blank"
-               rel="noopener noreferrer"
-               aria-label="Support on Ko-fi"
-               class="donate-btn">
-                <img src="<?php echo $base_path; ?>img/extra/kofiicon.png"
-                     alt="Support Me on Ko-fi"
-                     loading="lazy"
-                     class="img-icon">
-                <img src="<?php echo $base_path; ?>img/extra/support_me_on_kofi_blue.png"
-                     alt=""
-                     loading="lazy"
-                     aria-hidden="true"
-                     class="img-full">
-            </a>
-
-        </div>
-    </div>
-
     <!-- Footer -->
     <div class="relative z-10 px-4 py-3 border-t border-[rgba(201,162,39,.1)] shrink-0 text-center text-[0.65rem] text-gray-500 font-['Inter'] tracking-widest uppercase">
-        <span>© <?php echo date('Y'); ?> Sahtout WoW</span>
+        <span><?php echo translate('admin_sidebar_attribution', 'Based on SahtoutCMS'); ?></span>
     </div>
 </aside>
 

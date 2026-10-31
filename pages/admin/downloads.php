@@ -93,7 +93,7 @@ if (isset($_GET['status'])) {
 
 $allDownloads = $tableReady ? sahtout_fetch_downloads($site_db, false) : [];
 
-$page_title = translate('admin_downloads_page_title', 'Download links');
+$page_title = translate('admin_downloads_page_title', 'Download Management');
 $page_meta_description = translate('admin_downloads_meta', 'Manage external download links');
 $page_meta_robots = 'noindex';
 
@@ -210,7 +210,7 @@ if ($flash !== '') {
     <?php include $project_root . 'includes/admin_sidebar.php'; ?>
     <main class="main-content-area flex-1 p-4 md:p-8">
         <div class="max-w-5xl mx-auto space-y-8">
-            <h1 class="wow-title text-2xl md:text-3xl"><?php echo translate('admin_downloads_heading', 'Download links'); ?></h1>
+            <h1 class="wow-title text-2xl md:text-3xl"><?php echo translate('admin_downloads_heading', 'Download Management'); ?></h1>
             <p class="text-gray-400 text-sm"><?php echo translate('admin_downloads_help', 'Add public URLs (Google Drive, torrent pages, etc.). Lower sort order appears first within each category.'); ?></p>
 
             <?php echo $alertHtml; ?>
