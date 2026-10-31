@@ -96,6 +96,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_ticket') {
+    $csrf = (string) ($_POST['csrf_token'] ?? '');
+    $redirectParams = array_filter([
+        'status' => $_POST['return_status'] ?? null,
+        'search' => $_POST['return_search'] ?? null,
+        'page' => $_POST['return_page'] ?? null,
+    ]);
+
+    if (!hash_equals((string) ($_SESSION['csrf_token'] ?? ''), $csrf)) {
+        $redirectParams['msg'] = 'comp_csrf';
+        $redirectParams['msg_type'] = 'danger';
+    } elseif (!isset($char_db) || $char_db->connect_error) {
+        $redirectParams['msg'] = 'comp_unavailable';
+        $redirectParams['msg_type'] = 'danger';
+    } else {
+        $ticketId = (int) ($_POST['ticket_id'] ?? 0);
+        $result = sahtout_admin_delete_gm_ticket($char_db, $ticketId);
+
+        if (!$result['ok']) {
+            $redirectParams['msg'] = $result['message'];
+            $redirectParams['msg_type'] = 'danger';
+        } else {
+            $redirectParams['msg'] = $result['message'];
+            if ($result['reload_ok'] === false) {
+                $redirectParams['reload'] = '0';
+            }
+        }
+    }
+
+    header('Location: ' . $base_path . 'admin/tickets?' . http_build_query($redirectParams));
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ticket_compensation') {
     $csrf = (string) ($_POST['csrf_token'] ?? '');
     $redirectParams = array_filter([
@@ -166,6 +199,8 @@ if (isset($_GET['msg'])) {
         'saved' => translate('admin_tickets_saved', 'Ticket saved.'),
         'closed' => translate('admin_tickets_closed', 'Ticket closed.'),
         'reopened' => translate('admin_tickets_reopened', 'Ticket reopened.'),
+        'deleted' => translate('admin_tickets_deleted', 'Ticket was deleted.'),
+        'delete_failed' => translate('admin_tickets_delete_failed', 'Could not delete ticket.'),
         'not_found' => translate('admin_tickets_not_found', 'Ticket not found.'),
         'invalid_assignee' => translate('admin_tickets_invalid_assignee', 'Selected GM is not valid for assignment.'),
         'already_closed' => translate('admin_tickets_already_closed', 'Ticket is already closed.'),
@@ -440,9 +475,22 @@ $page_head = ob_get_clean();
                                         <td class="text-gray-200"><?php echo htmlspecialchars($assignedLabel); ?></td>
                                         <td class="text-gray-400 text-xs whitespace-nowrap"><?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?></td>
                                         <td>
-                                            <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="ticketModal-<?php echo (int) $ticket['id']; ?>">
-                                                <i class="fas fa-pen"></i> <?php echo translate('admin_tickets_update_button', 'Update'); ?>
-                                            </button>
+                                            <div class="flex flex-wrap gap-2">
+                                                <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="ticketModal-<?php echo (int) $ticket['id']; ?>">
+                                                    <i class="fas fa-pen"></i> <?php echo translate('admin_tickets_update_button', 'Update'); ?>
+                                                </button>
+                                                <form method="post" action="<?php echo htmlspecialchars($base_path . 'admin/tickets'); ?>" class="inline" onsubmit="return confirm(<?php echo json_encode(translate('admin_tickets_delete_confirm', 'Permanently delete this ticket from the database?')); ?>);">
+                                                    <input type="hidden" name="action" value="delete_ticket">
+                                                    <input type="hidden" name="ticket_id" value="<?php echo (int) $ticket['id']; ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                    <input type="hidden" name="return_status" value="<?php echo htmlspecialchars($statusFilter); ?>">
+                                                    <input type="hidden" name="return_search" value="<?php echo htmlspecialchars($search); ?>">
+                                                    <input type="hidden" name="return_page" value="<?php echo (int) $page; ?>">
+                                                    <button type="submit" class="btn-iron btn-iron-sm btn-danger-outline">
+                                                        <i class="fas fa-trash"></i> <?php echo translate('admin_tickets_delete_button', 'Delete'); ?>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>

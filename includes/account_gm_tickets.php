@@ -700,6 +700,54 @@ function sahtout_admin_save_gm_ticket(
     ];
 }
 
+/**
+ * @return array{ok: bool, message: string, reload_ok: ?bool}
+ */
+function sahtout_admin_delete_gm_ticket(mysqli $charDb, int $ticketId): array
+{
+    $fail = static function (string $message): array {
+        return ['ok' => false, 'message' => $message, 'reload_ok' => null];
+    };
+
+    if ($ticketId <= 0) {
+        return $fail('not_found');
+    }
+
+    if (!sahtout_gm_ticket_table_exists($charDb)) {
+        return $fail('update_failed');
+    }
+
+    $ticket = sahtout_admin_gm_ticket_by_id($charDb, $ticketId);
+    if ($ticket === null) {
+        return $fail('not_found');
+    }
+
+    $stmt = $charDb->prepare('DELETE FROM gm_ticket WHERE id = ? AND type <> 2');
+    if (!$stmt) {
+        error_log('[account_gm_tickets] admin delete prepare failed: ' . $charDb->error);
+        return $fail('delete_failed');
+    }
+    $stmt->bind_param('i', $ticketId);
+    if (!$stmt->execute() || $stmt->affected_rows <= 0) {
+        error_log('[account_gm_tickets] admin delete execute failed: ' . $stmt->error);
+        $stmt->close();
+        return $fail('delete_failed');
+    }
+    $stmt->close();
+
+    require_once __DIR__ . '/soap_client.php';
+    $reloadOk = null;
+    if (sahtout_soap_is_configured()) {
+        $reloadOk = sahtout_try_reload_gm_tickets();
+    }
+
+    return [
+        'ok' => true,
+        'message' => 'deleted',
+        'reload_ok' => $reloadOk,
+    ];
+}
+
 function sahtout_render_ticket_status_badge_html(array $ticket): string
 {
     $badgeKey = sahtout_account_ticket_summary_badge_key($ticket);
