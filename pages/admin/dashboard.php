@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/playerbot_accounts.php';
 
 $page_class = 'dashboard';
 define('DB_AUTH', $db_auth_name);
@@ -39,13 +40,18 @@ function getAccountStatus($locked, $banInfo) {
 
 global $site_db, $auth_db, $char_db;
 
-// Quick Stats
-$total_users_query = "SELECT COUNT(*) AS count FROM " . DB_SITE . ".user_currencies";
+// Quick Stats (playerbot RNDBOT* accounts excluded from account metrics; characters include bots)
+$total_users_query = "SELECT COUNT(*) AS count FROM " . DB_SITE . ".user_currencies uc
+    JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id
+    WHERE 1=1"
+    . sahtout_sql_exclude_playerbots('a.username')
+    . sahtout_sql_exclude_playerbots('uc.username');
 $total_users_result = $site_db->query($total_users_query);
 $total_users = $total_users_result->fetch_assoc()['count'];
 $total_users_result->free();
 
-$total_accounts_query = "SELECT COUNT(*) AS count FROM " . DB_AUTH . ".account";
+$total_accounts_query = "SELECT COUNT(*) AS count FROM " . DB_AUTH . ".account a WHERE 1=1"
+    . sahtout_sql_exclude_playerbots('a.username');
 $total_accounts_result = $auth_db->query($total_accounts_query);
 $total_accounts = $total_accounts_result->fetch_assoc()['count'];
 $total_accounts_result->free();
@@ -55,7 +61,10 @@ $total_chars_result = $char_db->query($total_chars_query);
 $total_chars = $total_chars_result->fetch_assoc()['count'];
 $total_chars_result->free();
 
-$total_bans_query = "SELECT COUNT(*) AS count FROM " . DB_AUTH . ".account_banned WHERE active = 1";
+$total_bans_query = "SELECT COUNT(*) AS count FROM " . DB_AUTH . ".account_banned ab
+    JOIN " . DB_AUTH . ".account a ON ab.id = a.id
+    WHERE ab.active = 1"
+    . sahtout_sql_exclude_playerbots('a.username');
 $total_bans_result = $auth_db->query($total_bans_query);
 $total_bans = $total_bans_result->fetch_assoc()['count'];
 $total_bans_result->free();
@@ -68,7 +77,8 @@ $role_filter = isset($_GET['role_filter']) && in_array($_GET['role_filter'], ['a
 // Get recent admins/moderators
 $users_query = "SELECT account_id, username, tokens, role, last_updated
                 FROM " . DB_SITE . ".user_currencies
-                WHERE role IN ('admin', 'moderator')";
+                WHERE role IN ('admin', 'moderator')"
+    . sahtout_sql_exclude_playerbots('username');
 $params = [];
 $types = '';
 
@@ -135,7 +145,8 @@ if (!empty($account_ids)) {
 $bans_query = "SELECT ab.id, ab.bandate, ab.unbandate, ab.banreason, a.username 
                FROM " . DB_AUTH . ".account_banned ab 
                JOIN " . DB_AUTH . ".account a ON ab.id = a.id 
-               WHERE ab.active = 1 
+               WHERE ab.active = 1"
+    . sahtout_sql_exclude_playerbots('a.username') . "
                ORDER BY ab.bandate DESC 
                LIMIT 5";
 $bans_result = $auth_db->query($bans_query);

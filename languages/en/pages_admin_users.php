@@ -11,6 +11,7 @@ return [
     'admin_users_update_failed' => 'Failed to update user.',
     'admin_users_action_success' => 'Action completed successfully.',
     'admin_users_action_failed' => 'Failed to complete action.',
+    'admin_users_playerbot_not_manageable' => 'Playerbot accounts cannot be managed from this panel.',
     
     // Search & Filters
     'admin_users_search_username_placeholder' => 'Search username...',

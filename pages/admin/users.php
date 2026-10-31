@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/playerbot_accounts.php';
 
 $page_class = 'users';
 define('DB_AUTH', $db_auth_name);
@@ -63,6 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $update_message = alert_danger(translate('admin_users_csrf_error', 'CSRF token validation failed.'));
         } else {
             $account_id = (int)$_POST['account_id'];
+            if (!sahtout_auth_account_is_manageable($auth_db, $account_id)) {
+                $update_message = alert_danger(translate('admin_users_playerbot_not_manageable', 'Playerbot accounts cannot be managed from this panel.'));
+            } else {
             $tokens = (int)$_POST['tokens'];
             $role = in_array($_POST['role'], ['player', 'moderator', 'admin']) ? $_POST['role'] : 'player';
             $email = trim($_POST['email']);
@@ -82,12 +86,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } else {
                 $update_message = alert_danger(translate('admin_users_update_failed', 'Failed to update user.'));
             }
+            }
         }
     } elseif ($_POST['action'] === 'manage_account') {
         if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $update_message = alert_danger(translate('admin_users_csrf_error', 'CSRF token validation failed.'));
         } else {
             $account_id = (int)$_POST['account_id'];
+            if (!sahtout_auth_account_is_manageable($auth_db, $account_id)) {
+                $update_message = alert_danger(translate('admin_users_playerbot_not_manageable', 'Playerbot accounts cannot be managed from this panel.'));
+            } else {
             $ban_action = $_POST['ban_action'] ?? '';
             $gmlevel = isset($_POST['gmlevel']) && in_array($_POST['gmlevel'], ['player', '1', '2', '3']) ? $_POST['gmlevel'] : '';
             $success = true;
@@ -137,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             } elseif (empty($update_message)) {
                 $update_message = alert_danger(translate('admin_users_action_failed', 'Failed to complete action.'));
             }
+            }
         }
     }
 }
@@ -150,7 +159,9 @@ function alert_success($msg) {
 }
 
 // Count total website users
-$count_query = "SELECT COUNT(*) as total FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1";
+$count_query = "SELECT COUNT(*) as total FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1"
+    . sahtout_sql_exclude_playerbots('a.username')
+    . sahtout_sql_exclude_playerbots('uc.username');
 $params = [];
 $types = '';
 if ($search_username) {
@@ -179,7 +190,9 @@ $total_website_pages = ceil($total_website_users / $users_per_page);
 
 // Fetch website users
 $users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.tokens, uc.role, uc.last_updated, a.email
-                FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1";
+                FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1"
+    . sahtout_sql_exclude_playerbots('a.username')
+    . sahtout_sql_exclude_playerbots('uc.username');
 $params = [];
 $types = '';
 if ($search_username) {
@@ -210,7 +223,8 @@ $users_result = $stmt->get_result();
 $stmt->close();
 
 // Count total in-game accounts
-$count_query = "SELECT COUNT(*) as total FROM " . DB_AUTH . ".account a LEFT JOIN " . DB_AUTH . ".account_access aa ON a.id = aa.id WHERE 1=1";
+$count_query = "SELECT COUNT(*) as total FROM " . DB_AUTH . ".account a LEFT JOIN " . DB_AUTH . ".account_access aa ON a.id = aa.id WHERE 1=1"
+    . sahtout_sql_exclude_playerbots('a.username');
 $params = [];
 $types = '';
 if ($search_username) {
@@ -248,7 +262,8 @@ $total_ingame_pages = ceil($total_ingame_accounts / $users_per_page);
 $accounts_query = "SELECT a.id, a.username, a.email, a.joindate, a.last_login, a.online, aa.gmlevel
                   FROM " . DB_AUTH . ".account a
                   LEFT JOIN " . DB_AUTH . ".account_access aa ON a.id = aa.id
-                  WHERE 1=1";
+                  WHERE 1=1"
+    . sahtout_sql_exclude_playerbots('a.username');
 $params = [];
 $types = '';
 if ($search_username) {
