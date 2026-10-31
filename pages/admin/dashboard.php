@@ -410,6 +410,45 @@ ob_start();
         .status-admin { color: #f2cf5b; font-weight: 700; }
         .status-moderator { color: #6a8cff; font-weight: 700; }
 
+        /* Quick stats: always one row (sidebar shrinks main area below Tailwind lg) */
+        .dashboard-stat-row {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 0.65rem;
+        }
+        .dashboard-stat-row .panel,
+        .dashboard-stat-row > a.panel {
+            min-width: 0;
+            padding: 0.85rem 0.5rem !important;
+        }
+        .dashboard-stat-row .stat-number {
+            font-size: 1.15rem !important;
+        }
+        .dashboard-stat-row .text-xs {
+            font-size: 0.6rem !important;
+            line-height: 1.25;
+        }
+        @media (min-width: 768px) {
+            .dashboard-stat-row {
+                gap: 1rem;
+            }
+            .dashboard-stat-row .panel,
+            .dashboard-stat-row > a.panel {
+                padding: 1.25rem 1rem !important;
+            }
+            .dashboard-stat-row .stat-number {
+                font-size: 1.5rem !important;
+            }
+            .dashboard-stat-row .text-xs {
+                font-size: 0.75rem !important;
+            }
+        }
+        @media (min-width: 1280px) {
+            .dashboard-stat-row .stat-number {
+                font-size: 1.875rem !important;
+            }
+        }
+
         /* Main content area - works with sidebar */
         .main-content-area {
             transition: margin-left 0.3s ease, width 0.3s ease;
@@ -491,7 +530,7 @@ ob_start();
                     </div>
 
                     <!-- Quick Stats -->
-                    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+                    <div class="dashboard-stat-row">
                         <div class="panel p-4 md:p-6 text-center">
                             <div class="stat-number text-xl md:text-2xl lg:text-3xl"><?php echo htmlspecialchars($total_users); ?></div>
                             <div class="text-[#b8c8ff] text-xs md:text-sm font-semibold uppercase tracking-wider mt-1 md:mt-2"><?php echo translate('admin_dashboard_total_website_users', 'Website Users'); ?></div>
