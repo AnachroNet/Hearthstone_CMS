@@ -74,20 +74,6 @@ ob_start();
         letter-spacing: .02em;
     }
 
-    .tag-pill {
-        display: inline-flex; align-items: center; gap: .5rem;
-        padding: .4rem 1.2rem;
-        background: rgba(0,0,0,.6);
-        border: 1px solid rgba(201,162,39,.4);
-        clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-        color: var(--gold-primary);
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        text-shadow: 0 0 8px rgba(242,207,82,.3);
-    }
-
     /* ============ STEP CARDS (PANELS) ============ */
     .wow-step-card {
         position: relative;
@@ -299,18 +285,9 @@ require_once $project_root . 'includes/header.php';
             
             <!-- Hero Header -->
             <div class="text-center mb-16 fade-up relative z-10">
-                <div class="tag-pill mb-6">
-                    <span class="w-2 h-2 bg-[#f2cf5b] animate-pulse" style="clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></span>
-                    <span><?php echo translate('quickstart_guide', 'Quickstart Guide'); ?></span>
-                </div>
-                
-                <h1 class="text-4xl md:text-6xl lg:text-7xl mb-6 wow-title">
+                <h1 class="text-4xl md:text-6xl lg:text-7xl wow-title">
                     <?php echo translate('how_to_play_title', 'How to Play'); ?>
                 </h1>
-                
-                <p class="text-base md:text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed drop-shadow-lg">
-                    <?php echo translate('how_to_play_subtitle', 'Join our server in 4 simple steps and start your Wrath of the Lich King adventure today!'); ?>
-                </p>
             </div>
             
             <!-- 2x2 Steps Grid -->

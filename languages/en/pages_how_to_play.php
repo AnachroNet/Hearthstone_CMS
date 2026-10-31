@@ -1,7 +1,6 @@
 <?php
 return [
     'how_to_play_title' => 'How to Play',
-    'how_to_play_subtitle' => 'Join our server in 4 simple steps and start your Wrath of the Lich King adventure today!',
     'step_1_title' => 'Create an Account',
     'step_1_desc' => 'Register a free account using our website:',
     'create_account' => 'Create Account',
@@ -22,7 +21,6 @@ return [
     'cta_title' => 'Ready to Begin Your Journey?',
     'cta_desc' => 'Create an account now and start your adventure in the world of Azeroth!',
     'cta_button' => 'Get Started Now',
-    'quickstart_guide' => 'Quickstart Guide',
     'copy' => 'Copy',
     'copied' => 'Copied!',
     'ready_to_play' => 'Ready to play! Enjoy your adventure.'
