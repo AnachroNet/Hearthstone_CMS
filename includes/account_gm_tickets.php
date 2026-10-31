@@ -368,6 +368,7 @@ function sahtout_admin_gm_tickets(
 
     $listSql = "SELECT t.id, t.type, t.playerGuid, t.name, t.description, t.comment, t.response,
                        t.createTime, t.lastModifiedTime, t.completed, t.needMoreHelp, t.viewed,
+                       t.assignedTo, t.closedBy, t.escalated,
                        c.account AS account_id, c.online AS character_online
                 FROM gm_ticket t
                 LEFT JOIN characters c ON c.guid = t.playerGuid
@@ -386,9 +387,14 @@ function sahtout_admin_gm_tickets(
     $stmt->bind_param($listTypes, ...$listParams);
     $stmt->execute();
     $res = $stmt->get_result();
+    $assignGuids = [];
     while ($row = $res->fetch_assoc()) {
         $type = (int) ($row['type'] ?? 0);
         $completed = (int) ($row['completed'] ?? 0);
+        $assignedTo = (int) ($row['assignedTo'] ?? 0);
+        if ($assignedTo > 0) {
+            $assignGuids[$assignedTo] = true;
+        }
         $out['tickets'][] = [
             'id' => (int) $row['id'],
             'type' => $type,
@@ -405,6 +411,10 @@ function sahtout_admin_gm_tickets(
             'viewed' => (int) ($row['viewed'] ?? 0) === 1,
             'account_id' => isset($row['account_id']) ? (int) $row['account_id'] : 0,
             'character_online' => (int) ($row['character_online'] ?? 0) === 1,
+            'assigned_to' => $assignedTo,
+            'assigned_to_name' => '',
+            'closed_by' => (int) ($row['closedBy'] ?? 0),
+            'escalated' => (int) ($row['escalated'] ?? 0),
         ];
     }
     if ($res) {
@@ -412,8 +422,298 @@ function sahtout_admin_gm_tickets(
     }
     $stmt->close();
 
+    if ($assignGuids !== []) {
+        $gmNames = sahtout_gm_character_names($charDb, array_keys($assignGuids));
+        foreach ($out['tickets'] as &$ticket) {
+            $gid = (int) ($ticket['assigned_to'] ?? 0);
+            if ($gid > 0 && isset($gmNames[$gid])) {
+                $ticket['assigned_to_name'] = $gmNames[$gid];
+            }
+        }
+        unset($ticket);
+    }
+
     $out['available'] = true;
     return $out;
+}
+
+/**
+ * Characters on accounts with GM level 3 (for ticket assignment).
+ *
+ * @return list<array{guid: int, name: string, account_id: int}>
+ */
+function sahtout_gm_level3_characters(mysqli $authDb, mysqli $charDb, string $authDbName): array
+{
+    $accountIds = [];
+    $authTable = '`' . str_replace('`', '', $authDbName) . '`.account_access';
+    $sql = "SELECT DISTINCT id FROM {$authTable} WHERE gmlevel = 3";
+    $res = $authDb->query($sql);
+    if (!$res) {
+        error_log('[account_gm_tickets] gm level 3 accounts query failed: ' . $authDb->error);
+        return [];
+    }
+    while ($row = $res->fetch_assoc()) {
+        $accountIds[] = (int) $row['id'];
+    }
+    $res->free();
+
+    $accountIds = array_values(array_unique(array_filter($accountIds)));
+    if ($accountIds === []) {
+        return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+    $stmt = $charDb->prepare("SELECT guid, name, account FROM characters WHERE account IN ($placeholders) ORDER BY name ASC");
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param(str_repeat('i', count($accountIds)), ...$accountIds);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $out = [];
+    while ($row = $res->fetch_assoc()) {
+        $out[] = [
+            'guid' => (int) $row['guid'],
+            'name' => (string) $row['name'],
+            'account_id' => (int) $row['account'],
+        ];
+    }
+    if ($res) {
+        $res->free();
+    }
+    $stmt->close();
+
+    return $out;
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function sahtout_admin_gm_ticket_by_id(mysqli $charDb, int $ticketId): ?array
+{
+    if ($ticketId <= 0 || !sahtout_gm_ticket_table_exists($charDb)) {
+        return null;
+    }
+
+    $sql = 'SELECT t.id, t.type, t.playerGuid, t.name, t.description, t.comment, t.response,
+                   t.createTime, t.lastModifiedTime, t.completed, t.needMoreHelp, t.viewed,
+                   t.assignedTo, t.closedBy, t.escalated, t.resolvedBy,
+                   c.account AS account_id, c.online AS character_online
+            FROM gm_ticket t
+            LEFT JOIN characters c ON c.guid = t.playerGuid
+            WHERE t.id = ? AND t.type <> 2
+            LIMIT 1';
+
+    $stmt = $charDb->prepare($sql);
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $ticketId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+    if ($res) {
+        $res->free();
+    }
+    $stmt->close();
+
+    if (!$row) {
+        return null;
+    }
+
+    $type = (int) ($row['type'] ?? 0);
+    $completed = (int) ($row['completed'] ?? 0);
+    $assignedTo = (int) ($row['assignedTo'] ?? 0);
+    $ticket = [
+        'id' => (int) $row['id'],
+        'type' => $type,
+        'status' => sahtout_gm_ticket_status_key($type, $completed),
+        'player_guid' => (int) ($row['playerGuid'] ?? 0),
+        'character_name' => (string) ($row['name'] ?? ''),
+        'description' => (string) ($row['description'] ?? ''),
+        'comment' => (string) ($row['comment'] ?? ''),
+        'response' => (string) ($row['response'] ?? ''),
+        'create_time' => (int) ($row['createTime'] ?? 0),
+        'last_modified_time' => (int) ($row['lastModifiedTime'] ?? 0),
+        'completed' => $completed === 1,
+        'need_more_help' => (int) ($row['needMoreHelp'] ?? 0) === 1,
+        'viewed' => (int) ($row['viewed'] ?? 0) === 1,
+        'account_id' => isset($row['account_id']) ? (int) $row['account_id'] : 0,
+        'character_online' => (int) ($row['character_online'] ?? 0) === 1,
+        'assigned_to' => $assignedTo,
+        'assigned_to_name' => '',
+        'closed_by' => (int) ($row['closedBy'] ?? 0),
+        'escalated' => (int) ($row['escalated'] ?? 0),
+        'resolved_by' => (int) ($row['resolvedBy'] ?? 0),
+    ];
+
+    if ($assignedTo > 0) {
+        $names = sahtout_gm_character_names($charDb, [$assignedTo]);
+        if (isset($names[$assignedTo])) {
+            $ticket['assigned_to_name'] = $names[$assignedTo];
+        }
+    }
+
+    return $ticket;
+}
+
+function sahtout_gm_ticket_is_open(array $ticket): bool
+{
+    return (int) ($ticket['type'] ?? 1) === 0 && empty($ticket['completed']);
+}
+
+function sahtout_gm_ticket_is_closed_state(array $ticket): bool
+{
+    $status = (string) ($ticket['status'] ?? '');
+    return $status === 'closed' || $status === 'completed';
+}
+
+/**
+ * @param list<array{guid: int, name: string, account_id: int}> $gmCharacters
+ * @return array{ok: bool, message: string, reload_ok: ?bool}
+ */
+function sahtout_admin_save_gm_ticket(
+    mysqli $charDb,
+    int $ticketId,
+    string $comment,
+    string $response,
+    int $assignedTo,
+    string $stateAction,
+    array $gmCharacters
+): array {
+    $fail = static function (string $message): array {
+        return ['ok' => false, 'message' => $message, 'reload_ok' => null];
+    };
+
+    $ticket = sahtout_admin_gm_ticket_by_id($charDb, $ticketId);
+    if ($ticket === null) {
+        return $fail('not_found');
+    }
+
+    $allowedGuids = [];
+    foreach ($gmCharacters as $gm) {
+        $allowedGuids[(int) $gm['guid']] = true;
+    }
+
+    if ($assignedTo < 0) {
+        $assignedTo = 0;
+    }
+    if ($assignedTo > 0 && !isset($allowedGuids[$assignedTo])) {
+        return $fail('invalid_assignee');
+    }
+
+    $stateAction = strtolower(trim($stateAction));
+    if (!in_array($stateAction, ['save', 'close', 'reopen'], true)) {
+        $stateAction = 'save';
+    }
+
+    $type = (int) $ticket['type'];
+    $completed = !empty($ticket['completed']) ? 1 : 0;
+    $closedBy = (int) $ticket['closed_by'];
+    $resolvedBy = (int) $ticket['resolved_by'];
+    $escalated = (int) $ticket['escalated'];
+
+    if ($stateAction === 'close') {
+        if (!sahtout_gm_ticket_is_open($ticket)) {
+            return $fail('already_closed');
+        }
+        $type = 1;
+        $completed = 0;
+        if ($assignedTo > 0) {
+            $closedBy = $assignedTo;
+        } elseif ((int) $ticket['assigned_to'] > 0) {
+            $closedBy = (int) $ticket['assigned_to'];
+        } else {
+            $closedBy = -1;
+        }
+        $resolvedBy = $closedBy > 0 ? $closedBy : -1;
+    } elseif ($stateAction === 'reopen') {
+        if (!sahtout_gm_ticket_is_closed_state($ticket)) {
+            return $fail('already_open');
+        }
+        $type = 0;
+        $completed = 0;
+        $closedBy = 0;
+        $resolvedBy = 0;
+    }
+
+    $prevAssigned = (int) $ticket['assigned_to'];
+    if ($assignedTo !== $prevAssigned) {
+        if ($assignedTo === 0) {
+            if ($escalated === 1) {
+                $escalated = 0;
+            } elseif ($escalated === 3) {
+                $escalated = 2;
+            }
+        } elseif ($escalated === 0) {
+            $escalated = 1;
+        } elseif ($escalated === 2) {
+            $escalated = 3;
+        }
+    }
+
+    $now = time();
+    $viewed = 1;
+
+    $sql = 'UPDATE gm_ticket SET type = ?, completed = ?, closedBy = ?, resolvedBy = ?,
+            assignedTo = ?, comment = ?, response = ?, escalated = ?, viewed = ?, lastModifiedTime = ?
+            WHERE id = ? AND type <> 2';
+
+    $stmt = $charDb->prepare($sql);
+    if (!$stmt) {
+        error_log('[account_gm_tickets] admin update prepare failed: ' . $charDb->error);
+        return $fail('update_failed');
+    }
+
+    $stmt->bind_param(
+        'iiiiissiiii',
+        $type,
+        $completed,
+        $closedBy,
+        $resolvedBy,
+        $assignedTo,
+        $comment,
+        $response,
+        $escalated,
+        $viewed,
+        $now,
+        $ticketId
+    );
+
+    if (!$stmt->execute()) {
+        error_log('[account_gm_tickets] admin update execute failed: ' . $stmt->error);
+        $stmt->close();
+        return $fail('update_failed');
+    }
+    $stmt->close();
+
+    require_once __DIR__ . '/soap_client.php';
+    $reloadOk = sahtout_try_reload_gm_tickets();
+
+    return [
+        'ok' => true,
+        'message' => 'saved',
+        'reload_ok' => $reloadOk,
+    ];
+}
+
+function sahtout_render_ticket_status_badge_html(array $ticket): string
+{
+    $badgeKey = sahtout_account_ticket_summary_badge_key($ticket);
+    $map = [
+        'open' => ['ticket_status_open', 'Open', 'ticket-status-open'],
+        'assigned' => ['ticket_status_assigned', 'Assigned', 'ticket-status-assigned'],
+        'closed' => ['ticket_status_closed', 'Closed', 'ticket-status-closed'],
+    ];
+    $entry = $map[$badgeKey] ?? ['ticket_status_closed', 'Closed', 'ticket-status-closed'];
+    $label = translate($entry[0], $entry[1]);
+    $cls = $entry[2];
+
+    return sprintf(
+        '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border %s">%s</span>',
+        htmlspecialchars($cls, ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($label, ENT_QUOTES, 'UTF-8')
+    );
 }
 
 /**
