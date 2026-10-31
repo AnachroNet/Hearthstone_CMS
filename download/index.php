@@ -101,8 +101,53 @@ ob_start();
             font-size: 1.15rem;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .download-category-section + .download-category-section {
+            margin-top: 3rem;
+        }
+
+        .download-list-block {
+            width: 100%;
+            max-width: 64rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .download-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            justify-content: center;
+            row-gap: 2rem;
+            column-gap: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .download-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .download-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        .download-grid .file-card:only-child {
+            max-width: 22rem;
+            width: 100%;
+            justify-self: center;
+        }
+
+        @media (min-width: 640px) {
+            .download-grid .file-card:only-child {
+                grid-column: span 1;
+            }
         }
 
         .download-link-btn {
@@ -129,11 +174,11 @@ ob_start();
         }
 
         .file-card {
-            transition: transform 0.25s ease, border-color 0.25s ease;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
         }
         .file-card:hover {
-            transform: translateY(-4px);
             border-color: rgba(201,162,39,0.45);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(201, 162, 39, 0.15);
         }
 
         .info-box {
@@ -152,7 +197,7 @@ include_once $project_root . 'includes/header.php';
 ?>
     <div class="main-wrapper">
         <main class="flex-1 flex flex-col items-center w-full px-4 py-6 md:py-12">
-            <div class="container mx-auto max-w-5xl w-full">
+            <div class="container mx-auto max-w-6xl w-full">
 
                 <h1 class="wow-title text-3xl md:text-4xl text-center mb-3">
                     <?php echo translate('download_title_h1', 'Downloads'); ?>
@@ -162,16 +207,16 @@ include_once $project_root . 'includes/header.php';
                 </p>
 
                 <?php if (!$tableReady): ?>
-                    <div class="panel p-8 text-center info-box rounded-sm">
+                    <div class="panel p-8 text-center info-box rounded-sm download-list-block">
                         <p><?php echo translate('download_table_missing', 'Download links are not configured yet. An administrator must import site_downloads.sql and add links in Admin → Downloads.'); ?></p>
                     </div>
                 <?php elseif (empty($downloads)): ?>
-                    <div class="panel p-8 text-center">
+                    <div class="panel p-8 text-center download-list-block">
                         <div class="text-5xl text-[#f2cf5b] mb-4"><i class="fas fa-folder-open"></i></div>
                         <p class="text-gray-400"><?php echo translate('download_none_published', 'No download links are published yet. Check back soon.'); ?></p>
                     </div>
                 <?php else: ?>
-                    <div class="space-y-10">
+                    <div class="download-list-block">
                         <?php foreach (sahtout_download_category_order() as $catKey):
                             $items = $grouped[$catKey] ?? [];
                             if ($items === []) {
@@ -180,12 +225,12 @@ include_once $project_root . 'includes/header.php';
                             $catLabel = $categories[$catKey] ?? $catKey;
                             $icon = sahtout_download_category_icon($catKey);
                         ?>
-                        <section>
+                        <section class="download-category-section">
                             <h2 class="section-heading">
                                 <i class="fas <?php echo htmlspecialchars($icon); ?> text-[#f2cf5b]"></i>
                                 <?php echo htmlspecialchars($catLabel); ?>
                             </h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div class="download-grid">
                                 <?php foreach ($items as $item): ?>
                                 <article class="panel p-5 md:p-6 file-card flex flex-col h-full">
                                     <div class="flex items-start justify-between gap-3 mb-2">
