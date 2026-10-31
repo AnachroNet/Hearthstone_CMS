@@ -1304,7 +1304,7 @@ include_once $project_root . 'includes/header.php';
                                     $totalGold += $char['money'];
                                 }
                             ?>
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <!-- Characters -->
                                 <div class="stat-hud-card group hover:border-cyan-500/40">
                                     <div class="stat-hud-icon stat-icon-cyan">
