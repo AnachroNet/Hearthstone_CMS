@@ -19,7 +19,6 @@
             profileToggle.addEventListener('click', (e) => {
                 e.stopPropagation();
                 dropdownMenu.classList.toggle('show');
-                document.getElementById('langOptions').classList.remove('show');
             });
 
             // Close dropdown when clicking outside
@@ -42,46 +41,4 @@
             
             // Initial check
             handleViewportChange();
-        }
-
-        // Language dropdown toggle
-        const langToggle = document.getElementById('langSelected');
-        const langOptions = document.getElementById('langOptions');
-
-        if (langToggle && langOptions) {
-            langToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                langOptions.classList.toggle('show');
-                if (dropdownMenu) {
-                    dropdownMenu.classList.remove('show'); // Close profile menu when language is opened
-                }
-            });
-
-            // Close language dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.lang-dropdown')) {
-                    langOptions.classList.remove('show');
-                }
-            });
-
-            // Language selection
-            document.querySelectorAll('.lang-options li').forEach(option => {
-                option.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const lang = this.getAttribute('data-value');
-                    const flagSrc = this.getAttribute('data-flag');
-                    const langLabel = this.textContent.trim();
-
-                    // Update displayed flag and label
-                    const flagIcon = document.getElementById('flagIcon');
-                    flagIcon.src = flagSrc;
-                    flagIcon.alt = langLabel;
-                    document.getElementById('langLabel').textContent = langLabel;
-
-                    // Update URL with lang parameter and reload
-                    const url = new URL(window.location);
-                    url.searchParams.set('lang', lang);
-                    window.location.href = url.toString();
-                });
-            });
         }

@@ -47,22 +47,6 @@ $page_meta_robots      = isset($page_meta_robots) ? $page_meta_robots : 'index';
 $page_head             = isset($page_head) ? $page_head : '';
 $page_body_class       = isset($page_body_class) ? $page_body_class : '';
 
-// Get current URL without query string
-$currentUrl = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$currentUrl = rtrim($currentUrl, '/');
-
-// Function to generate language URLs
-function getLanguageUrl($lang) {
-    global $currentUrl;
-
-    $query = $_GET;
-    $query['lang'] = $lang;
-
-    $queryString = http_build_query($query);
-
-    return $currentUrl . '?' . $queryString;
-}
-
 // Fetch user tokens, email, avatar, gmlevel, and role if logged in
 $tokens = 0;
 $email = 'user@example.com';
@@ -181,69 +165,6 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
-// Get current language and flag
-$current_lang = $_SESSION['lang'] ?? 'en';
-
-$languages = [
-    'en' => [
-        'name' => 'English',
-        'flag_url' => $base_path . 'languages/flags/en.png',
-        'flag_path' => $project_root . 'languages/flags/en.png'
-    ],
-    'fr' => [
-        'name' => 'Français',
-        'flag_url' => $base_path . 'languages/flags/fr.png',
-        'flag_path' => $project_root . 'languages/flags/fr.png'
-    ],
-    'es' => [
-        'name' => 'Español',
-        'flag_url' => $base_path . 'languages/flags/es.png',
-        'flag_path' => $project_root . 'languages/flags/es.png'
-    ],
-    'de' => [
-        'name' => 'Deutsch',
-        'flag_url' => $base_path . 'languages/flags/de.png',
-        'flag_path' => $project_root . 'languages/flags/de.png'
-    ],
-    'ru' => [
-        'name' => 'Русский',
-        'flag_url' => $base_path . 'languages/flags/ru.png',
-        'flag_path' => $project_root . 'languages/flags/ru.png'
-    ],
-    'pt' => [
-        'name' => 'Português',
-        'flag_url' => $base_path . 'languages/flags/pt.png',
-        'flag_path' => $project_root . 'languages/flags/pt.png'
-    ],
-    'cn' => [
-        'name' => '中文',
-        'flag_url' => $base_path . 'languages/flags/cn.png',
-        'flag_path' => $project_root . 'languages/flags/cn.png'
-    ],
-];
-
-// Fallback flag image if not found
-$fallback_flag_url = $base_path . 'languages/flags/world.png';
-$fallback_flag_path = $project_root . 'languages/flags/world.png';
-
-foreach ($languages as $code => &$lang_data) {
-    if (!file_exists($lang_data['flag_path'])) {
-        error_log("Flag image not found: {$lang_data['flag_path']}. Using fallback: {$fallback_flag_url}");
-        $lang_data['flag_url'] = $fallback_flag_url;
-        $lang_data['flag_path'] = $fallback_flag_path;
-    }
-}
-unset($lang_data);
-
-// Safety fallback if language is invalid
-if (!isset($languages[$current_lang])) {
-    $current_lang = 'en';
-}
-
-$current_lang_name = $languages[$current_lang]['name'];
-$current_lang_code = $current_lang;
-$current_lang_flag = $languages[$current_lang]['flag_url'];
-
 // Check if on auth page for transparent header
 $is_auth_page = in_array($page_class, ['login', 'register']);
 
@@ -252,7 +173,7 @@ $esc_base = htmlspecialchars($base_path, ENT_QUOTES, 'UTF-8');
 $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo htmlspecialchars($current_lang_code, ENT_QUOTES, 'UTF-8'); ?>">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -389,8 +310,7 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
         }
 
         /* ============ DROPDOWNS ============ */
-        #profileDropdownContainer,
-        #langDropdownContainer {
+        #profileDropdownContainer {
             position: relative;
         }
 
@@ -412,8 +332,7 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
             z-index: 0;
         }
 
-        .dropdown-menu,
-        .lang-options {
+        .dropdown-menu {
             position: absolute !important;
             right: 0 !important;
             left: auto !important;
@@ -421,23 +340,12 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
             z-index: 10050 !important;
             min-width: 0;
             max-width: calc(100vw - 1rem);
-        }
-
-        .dropdown-menu {
             width: min(14rem, calc(100vw - 1rem)) !important;
-        }
-
-        .lang-options {
-            width: min(10rem, calc(100vw - 1rem)) !important;
         }
 
         @media (max-width: 479px) {
             .dropdown-menu {
                 width: min(14rem, calc(100vw - 7rem)) !important;
-            }
-
-            .lang-options {
-                width: min(10rem, calc(100vw - 1.5rem)) !important;
             }
         }
 
@@ -460,14 +368,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
         .dropdown-item > i,
         .dropdown-item > img {
             flex-shrink: 0;
-        }
-
-        .lang-options .dropdown-item > span {
-            flex: 1 1 auto;
-            min-width: 0;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            word-break: break-word;
         }
 
         .dropdown-item:hover {
@@ -539,38 +439,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
             border-color: var(--gold-primary);
             box-shadow: 0 0 20px rgba(242,207,82,.6), inset 0 0 8px rgba(0,0,0,.8);
             transform: scale(1.05);
-        }
-
-        /* ============ LANGUAGE SWITCHER ============ */
-        .lang-btn {
-            display: flex;
-            align-items: center;
-            gap: .4rem;
-            padding: .4rem .65rem;
-            background: var(--iron-bg);
-            border: 1px solid rgba(201,162,39,.3);
-            color: var(--gold-primary);
-            font-weight: 700;
-            font-size: .78rem;
-            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-            transition: all .2s ease;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .lang-btn:hover {
-            border-color: var(--gold-primary);
-            background: linear-gradient(180deg, rgba(201,162,39,.2), rgba(201,162,39,.05));
-        }
-
-        #langLabel {
-            display: none;
-        }
-
-        @media (min-width: 480px) {
-            #langLabel {
-                display: inline;
-            }
         }
 
         /* ============ HAMBURGER ============ */
@@ -655,8 +523,7 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
             }
         }
 
-        .dropdown-menu.show,
-        .lang-options.show {
+        .dropdown-menu.show {
             display: block !important;
         }
     </style>
@@ -784,29 +651,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
                         </div>
                     </div>
                 <?php endif; ?>
-
-                <!-- Language Dropdown -->
-                <div id="langDropdownContainer">
-                    <div class="lang-btn" id="langSelected">
-                        <img src="<?php echo htmlspecialchars($current_lang_flag, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($current_lang_name, ENT_QUOTES, 'UTF-8'); ?>" class="w-5 h-3.5 rounded-sm object-cover" id="flagIcon">
-                        <span id="langLabel"><?php echo htmlspecialchars($current_lang_name, ENT_QUOTES, 'UTF-8'); ?></span>
-                        <i class="fas fa-chevron-down text-[10px] ml-0.5"></i>
-                    </div>
-
-                    <ul class="wow-dropdown lang-options mt-3 hidden list-none p-0 m-0" id="langOptions">
-                        <?php foreach ($languages as $code => $lang_data): ?>
-                            <li data-value="<?php echo htmlspecialchars($code, ENT_QUOTES, 'UTF-8'); ?>"
-                                data-flag="<?php echo htmlspecialchars($lang_data['flag_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                                data-name="<?php echo htmlspecialchars($lang_data['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                class="dropdown-item !py-2 !px-3 text-sm force-wrap">
-                                <img src="<?php echo htmlspecialchars($lang_data['flag_url'], ENT_QUOTES, 'UTF-8'); ?>"
-                                     alt="<?php echo htmlspecialchars($lang_data['name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                     class="w-5 h-3.5 rounded-sm object-cover">
-                                <span><?php echo htmlspecialchars($lang_data['name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
             </div>
         </div>
     </header>

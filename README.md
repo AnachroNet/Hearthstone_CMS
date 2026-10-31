@@ -540,7 +540,6 @@ Development is focused on:
 * 🔐 Security improvements
 * ⚙️ Installer improvements
 * 🛡️ Administration improvements
-* 🌐 Multilingual support
 * 🚀 Performance optimization
 * 🧹 Code cleanup
 * 📱 Responsive design
