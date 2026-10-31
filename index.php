@@ -533,13 +533,14 @@ $result = $site_db->query($query);
                                 <?php echo translate('home_discord_title', 'Join Our Discord'); ?>
                             </h3>
                             <div class="discord-widget-container bg-black/30 p-1 sm:p-2 border border-[#c9a227]/20 rounded-sm">
-                                <iframe src="https://discord.com/widget?id=1405755152085815337&theme=dark"
-                                        width="100%"
-                                        height="340"
-                                        allowtransparency="true"
-                                        frameborder="0"
-                                        sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
-                                        class="rounded-sm"></iframe>
+				<iframe src="https://discord.com/widget?id=1565397868179624108&theme=dark"
+				  width="100%"
+				  height="340"
+				  allowtransparency="true"
+				  frameborder="0"
+				  sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
+				  class="rounded-sm">
+				</iframe>
                             </div>
                         </div>
 
