@@ -6,6 +6,73 @@
 
 const SAHTOUT_CRITERIA_KILL_CREATURE = 0;
 
+/** Map.dbc instance type for dungeons/raids. */
+const SAHTOUT_MAP_TYPE_INSTANCE = 1;
+
+/** Treat 5-man and unset maxPlayers (0) as dungeons; exclude typical raid sizes. */
+function sahtout_is_dungeon_instance_map(int $mapType, int $maxPlayers): bool
+{
+    if ($mapType !== SAHTOUT_MAP_TYPE_INSTANCE) {
+        return false;
+    }
+    if ($maxPlayers >= 1 && $maxPlayers <= 5) {
+        return true;
+    }
+    if ($maxPlayers === 0) {
+        return true;
+    }
+
+    return false;
+}
+
+function sahtout_normalize_dungeon_label(string $label): string
+{
+    $label = strtolower(trim($label));
+    $label = preg_replace('/^the\s+/', '', $label) ?? $label;
+    $label = preg_replace('/[^a-z0-9]+/', '', $label) ?? $label;
+
+    return $label;
+}
+
+/**
+ * Match achievement title to Map.dbc name (e.g. "Deadmines" ↔ "The Deadmines").
+ *
+ * @param array<int, string> $mapNames
+ * @param array<int, bool> $dungeonMapIds empty = any map id in $mapNames
+ */
+function sahtout_guess_instance_map_from_title(string $title, array $mapNames, array $dungeonMapIds): ?int
+{
+    $titleNorm = sahtout_normalize_dungeon_label($title);
+    if ($titleNorm === '' || strlen($titleNorm) < 4) {
+        return null;
+    }
+
+    $bestId = null;
+    $bestLen = 0;
+    foreach ($mapNames as $mapId => $name) {
+        if ($dungeonMapIds !== [] && !isset($dungeonMapIds[$mapId])) {
+            continue;
+        }
+        $nameNorm = sahtout_normalize_dungeon_label($name);
+        if ($nameNorm === '' || strlen($nameNorm) < 4) {
+            continue;
+        }
+        $matches = $titleNorm === $nameNorm
+            || str_contains($titleNorm, $nameNorm)
+            || str_contains($nameNorm, $titleNorm);
+        if (!$matches) {
+            continue;
+        }
+        $len = strlen($nameNorm);
+        if ($len > $bestLen) {
+            $bestLen = $len;
+            $bestId = $mapId;
+        }
+    }
+
+    return $bestId;
+}
+
 /** CLI / import: connect to world DB when config.local.php exists. */
 function sahtout_import_connect_world_db(string $projectRoot): ?mysqli
 {

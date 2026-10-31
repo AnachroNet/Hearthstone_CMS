@@ -161,13 +161,14 @@ function sahtout_admin_search_achievement_catalog(mysqli $siteDb, string $query,
                 boss_creature_id, instance_map_id
          FROM achievement_catalog
          WHERE title_enus LIKE ?
+            OR description_enus LIKE ?
          ORDER BY title_enus ASC
          LIMIT ?'
     );
     if (!$stmt) {
         return ['ok' => false, 'message' => 'search_failed', 'achievements' => []];
     }
-    $stmt->bind_param('si', $like, $limit);
+    $stmt->bind_param('ssi', $like, $like, $limit);
     $stmt->execute();
     $res = $stmt->get_result();
     $items = [];

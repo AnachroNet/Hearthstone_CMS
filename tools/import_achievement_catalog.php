@@ -34,8 +34,6 @@ const MAP_TYPE_INSTANCE = 1;
 const LEVEL_STEP = 10;
 const QUEST_STEP = 50;
 const MAX_PRESET_LEVEL = 80;
-const DUNGEON_MAX_PLAYERS = 5;
-
 /** AchievementEntry field indices (3.3.5, matches AchievementEntry in DBCStructure.h). */
 const ACH_FIELD_ID = 0;
 const ACH_FIELD_FACTION = 1;
@@ -136,7 +134,7 @@ if ($mapPath !== null) {
             if ($name !== '') {
                 $mapNames[$mapId] = $name;
             }
-            if ($mapType === MAP_TYPE_INSTANCE && $maxPlayers > 0 && $maxPlayers <= DUNGEON_MAX_PLAYERS) {
+            if (sahtout_is_dungeon_instance_map($mapType, $maxPlayers)) {
                 $dungeonMapIds[$mapId] = true;
             }
         }
@@ -378,16 +376,25 @@ if ($worldDb !== null) {
     $worldDb->close();
 }
 
+$requireDungeonMap = $mapPath !== null && $dungeonMapIds !== [];
 $instanceMapByAchievement = [];
 foreach ($achievementMeta as $achId => $m) {
     $bossId = sahtout_pick_boss_creature_id($criteriaByAchievement[$achId] ?? []);
-    $instanceMapByAchievement[$achId] = sahtout_resolve_instance_map_id(
+    $resolved = sahtout_resolve_instance_map_id(
         (int) $m['map_id'],
         $bossId,
         $creatureToMaps,
         $dungeonMapIds,
-        $mapPath !== null && $dungeonMapIds !== []
+        $requireDungeonMap
     );
+    if ($resolved === null && $mapNames !== []) {
+        $resolved = sahtout_guess_instance_map_from_title(
+            (string) ($m['title'] ?? ''),
+            $mapNames,
+            $dungeonMapIds
+        );
+    }
+    $instanceMapByAchievement[$achId] = $resolved;
 }
 
 $presets = sahtout_build_preset_rewards(
