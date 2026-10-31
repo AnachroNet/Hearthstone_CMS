@@ -123,3 +123,161 @@ function sahtout_format_ticket_time(int $unix): string
     }
     return gmdate('Y-m-d H:i:s', $unix) . ' UTC';
 }
+
+function sahtout_gm_tickets_open_count(mysqli $charDb): int
+{
+    if (!sahtout_gm_ticket_table_exists($charDb)) {
+        return 0;
+    }
+    $res = $charDb->query(
+        'SELECT COUNT(*) AS c FROM gm_ticket WHERE type = 0 AND completed = 0'
+    );
+    if (!$res) {
+        return 0;
+    }
+    $row = $res->fetch_assoc();
+    $res->free();
+    return (int) ($row['c'] ?? 0);
+}
+
+/**
+ * @return array{available: bool, tickets: list<array<string, mixed>>, total: int}
+ */
+function sahtout_admin_gm_tickets(
+    mysqli $charDb,
+    string $statusFilter = 'open',
+    string $search = '',
+    int $page = 1,
+    int $perPage = 15
+): array {
+    $out = ['available' => false, 'tickets' => [], 'total' => 0];
+    if (!sahtout_gm_ticket_table_exists($charDb)) {
+        return $out;
+    }
+
+    $page = max(1, $page);
+    $perPage = max(5, min(50, $perPage));
+    $offset = ($page - 1) * $perPage;
+
+    $where = ['t.type <> 2'];
+    $types = '';
+    $params = [];
+
+    if ($statusFilter === 'open') {
+        $where[] = 't.type = 0 AND t.completed = 0';
+    } elseif ($statusFilter === 'closed') {
+        $where[] = '(t.type = 1 OR t.completed = 1)';
+    }
+
+    $search = trim($search);
+    if ($search !== '') {
+        if (ctype_digit($search)) {
+            $where[] = 't.id = ?';
+            $types .= 'i';
+            $params[] = (int) $search;
+        } else {
+            $like = '%' . $search . '%';
+            $where[] = '(t.name LIKE ? OR t.description LIKE ?)';
+            $types .= 'ss';
+            $params[] = $like;
+            $params[] = $like;
+        }
+    }
+
+    $whereSql = implode(' AND ', $where);
+
+    $countSql = "SELECT COUNT(*) AS c FROM gm_ticket t WHERE {$whereSql}";
+    $stmt = $charDb->prepare($countSql);
+    if (!$stmt) {
+        error_log('[account_gm_tickets] admin count prepare failed: ' . $charDb->error);
+        return $out;
+    }
+    if ($types !== '') {
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $countRes = $stmt->get_result();
+    $out['total'] = (int) (($countRes->fetch_assoc()['c'] ?? 0));
+    if ($countRes) {
+        $countRes->free();
+    }
+    $stmt->close();
+
+    $listSql = "SELECT t.id, t.type, t.playerGuid, t.name, t.description, t.comment, t.response,
+                       t.createTime, t.lastModifiedTime, t.completed, t.needMoreHelp, t.viewed,
+                       c.account AS account_id, c.online AS character_online
+                FROM gm_ticket t
+                LEFT JOIN characters c ON c.guid = t.playerGuid
+                WHERE {$whereSql}
+                ORDER BY t.lastModifiedTime DESC, t.id DESC
+                LIMIT ? OFFSET ?";
+
+    $stmt = $charDb->prepare($listSql);
+    if (!$stmt) {
+        error_log('[account_gm_tickets] admin list prepare failed: ' . $charDb->error);
+        return $out;
+    }
+
+    $listTypes = $types . 'ii';
+    $listParams = array_merge($params, [$perPage, $offset]);
+    $stmt->bind_param($listTypes, ...$listParams);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $type = (int) ($row['type'] ?? 0);
+        $completed = (int) ($row['completed'] ?? 0);
+        $out['tickets'][] = [
+            'id' => (int) $row['id'],
+            'type' => $type,
+            'status' => sahtout_gm_ticket_status_key($type, $completed),
+            'player_guid' => (int) ($row['playerGuid'] ?? 0),
+            'character_name' => (string) ($row['name'] ?? ''),
+            'description' => (string) ($row['description'] ?? ''),
+            'comment' => (string) ($row['comment'] ?? ''),
+            'response' => (string) ($row['response'] ?? ''),
+            'create_time' => (int) ($row['createTime'] ?? 0),
+            'last_modified_time' => (int) ($row['lastModifiedTime'] ?? 0),
+            'completed' => $completed === 1,
+            'need_more_help' => (int) ($row['needMoreHelp'] ?? 0) === 1,
+            'viewed' => (int) ($row['viewed'] ?? 0) === 1,
+            'account_id' => isset($row['account_id']) ? (int) $row['account_id'] : 0,
+            'character_online' => (int) ($row['character_online'] ?? 0) === 1,
+        ];
+    }
+    if ($res) {
+        $res->free();
+    }
+    $stmt->close();
+
+    $out['available'] = true;
+    return $out;
+}
+
+/**
+ * @param list<int> $accountIds
+ * @return array<int, string>
+ */
+function sahtout_gm_ticket_account_names(mysqli $authDb, array $accountIds): array
+{
+    $accountIds = array_values(array_unique(array_filter(array_map('intval', $accountIds))));
+    if ($accountIds === []) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($accountIds), '?'));
+    $stmt = $authDb->prepare("SELECT id, username FROM account WHERE id IN ($placeholders)");
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param(str_repeat('i', count($accountIds)), ...$accountIds);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $map = [];
+    while ($row = $res->fetch_assoc()) {
+        $map[(int) $row['id']] = (string) $row['username'];
+    }
+    if ($res) {
+        $res->free();
+    }
+    $stmt->close();
+    return $map;
+}

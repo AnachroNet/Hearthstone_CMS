@@ -26,6 +26,7 @@ return [
     // Admin menu
     'admin_menu' => 'Admin Menu',
     'admin_dashboard' => 'Dashboard',
+    'admin_tickets' => 'Support Tickets',
     'admin_users' => 'User Management',
     'admin_news' => 'News Management',
     'admin_downloads' => 'Download Management',

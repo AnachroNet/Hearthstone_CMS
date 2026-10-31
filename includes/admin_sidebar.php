@@ -17,6 +17,8 @@ $active_page = '';
 // Extract the page identifier from the URL
 if (strpos($current_path, 'admin/dashboard') !== false) {
     $active_page = 'dashboard';
+} elseif (strpos($current_path, 'admin/tickets') !== false) {
+    $active_page = 'tickets';
 } elseif (strpos($current_path, 'admin/users') !== false) {
     $active_page = 'users';
 } elseif (strpos($current_path, 'admin/anews') !== false) {
@@ -186,6 +188,14 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
                 </a>
             </li>
             
+            <li>
+                <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'tickets' || $active_page === 'tickets') ? 'active-link' : ''; ?>" 
+                   href="<?php echo $base_path; ?>admin/tickets">
+                    <i class="fas fa-life-ring w-5 text-center text-[0.9rem] group-hover:scale-110 group-hover:text-[#f2cf5b] transition-all duration-300"></i> 
+                    <?php echo translate('admin_tickets', 'Support Tickets'); ?>
+                </a>
+            </li>
+
             <li>
                 <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'users' || $active_page === 'users') ? 'active-link' : ''; ?>" 
                    href="<?php echo $base_path; ?>admin/users">

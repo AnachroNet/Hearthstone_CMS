@@ -6,6 +6,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/playerbot_accounts.php';
+require_once $project_root . 'includes/account_gm_tickets.php';
 
 $page_class = 'dashboard';
 define('DB_AUTH', $db_auth_name);
@@ -68,6 +69,11 @@ $total_bans_query = "SELECT COUNT(*) AS count FROM " . DB_AUTH . ".account_banne
 $total_bans_result = $auth_db->query($total_bans_query);
 $total_bans = $total_bans_result->fetch_assoc()['count'];
 $total_bans_result->free();
+
+$open_tickets = 0;
+if (isset($char_db) && $char_db instanceof mysqli && !$char_db->connect_error) {
+    $open_tickets = sahtout_gm_tickets_open_count($char_db);
+}
 
 // Handle search and filter
 $search_username = isset($_GET['search_username']) ? trim($_GET['search_username']) : '';
@@ -485,7 +491,7 @@ ob_start();
                     </div>
 
                     <!-- Quick Stats -->
-                    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
                         <div class="panel p-4 md:p-6 text-center">
                             <div class="stat-number text-xl md:text-2xl lg:text-3xl"><?php echo htmlspecialchars($total_users); ?></div>
                             <div class="text-[#b8c8ff] text-xs md:text-sm font-semibold uppercase tracking-wider mt-1 md:mt-2"><?php echo translate('admin_dashboard_total_website_users', 'Website Users'); ?></div>
@@ -506,6 +512,11 @@ ob_start();
                             <div class="text-[#b8c8ff] text-xs md:text-sm font-semibold uppercase tracking-wider mt-1 md:mt-2"><?php echo translate('admin_dashboard_active_bans', 'Active Bans'); ?></div>
                             <i class="fas fa-gavel text-red-400/30 text-lg md:text-2xl mt-1 md:mt-2"></i>
                         </div>
+                        <a href="<?php echo $base_path; ?>admin/tickets" class="panel p-4 md:p-6 text-center block hover:border-[rgba(201,162,39,.45)] transition-colors no-underline">
+                            <div class="stat-number text-xl md:text-2xl lg:text-3xl text-amber-300" style="-webkit-text-fill-color: #fcd34d;"><?php echo htmlspecialchars($open_tickets); ?></div>
+                            <div class="text-[#b8c8ff] text-xs md:text-sm font-semibold uppercase tracking-wider mt-1 md:mt-2"><?php echo translate('admin_dashboard_open_tickets', 'Open Tickets'); ?></div>
+                            <i class="fas fa-life-ring text-amber-300/30 text-lg md:text-2xl mt-1 md:mt-2"></i>
+                        </a>
                     </div>
 
                     <!-- Recent Admins & Moderators -->

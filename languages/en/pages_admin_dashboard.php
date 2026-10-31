@@ -9,6 +9,7 @@ return [
     'admin_dashboard_total_ingame_accounts' => 'Total In-Game Accounts',
     'admin_dashboard_total_characters' => 'Total Characters',
     'admin_dashboard_active_bans' => 'Active Bans',
+    'admin_dashboard_open_tickets' => 'Open Tickets',
     'admin_dashboard_recent_staff_header' => 'Recent Admins & Moderators',
     'admin_dashboard_search_username_placeholder' => 'Search by username',
     'admin_dashboard_search_email_placeholder' => 'Search by email',
