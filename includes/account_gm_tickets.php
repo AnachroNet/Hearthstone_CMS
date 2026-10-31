@@ -48,7 +48,7 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
     }
 
     $sql = 'SELECT t.id, t.type, t.playerGuid, t.name, t.description, t.createTime, t.lastModifiedTime,
-                   t.comment, t.response, t.completed, t.needMoreHelp, t.viewed, t.assignedTo
+                   t.response, t.completed, t.needMoreHelp, t.viewed, t.assignedTo, t.closedBy
             FROM gm_ticket t
             INNER JOIN characters c ON c.guid = t.playerGuid AND c.account = ?
             WHERE t.type <> 2
@@ -75,8 +75,12 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
         $type = (int) ($row['type'] ?? 0);
         $status = sahtout_gm_ticket_status_key($type, (int) ($row['completed'] ?? 0));
         $assignedTo = (int) ($row['assignedTo'] ?? 0);
+        $closedBy = (int) ($row['closedBy'] ?? 0);
         if ($assignedTo > 0) {
             $assignGuids[$assignedTo] = true;
+        }
+        if ($closedBy > 0) {
+            $assignGuids[$closedBy] = true;
         }
         $ticket = [
             'id' => (int) $row['id'],
@@ -85,7 +89,6 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
             'player_guid' => (int) $row['playerGuid'],
             'character_name' => (string) ($row['name'] ?? ''),
             'description' => (string) ($row['description'] ?? ''),
-            'comment' => (string) ($row['comment'] ?? ''),
             'response' => (string) ($row['response'] ?? ''),
             'create_time' => (int) ($row['createTime'] ?? 0),
             'last_modified_time' => (int) ($row['lastModifiedTime'] ?? 0),
@@ -94,6 +97,8 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
             'viewed' => (int) ($row['viewed'] ?? 0) === 1,
             'assigned_to' => $assignedTo,
             'assigned_to_name' => '',
+            'closed_by' => $closedBy,
+            'closed_by_name' => '',
         ];
         $out['tickets'][] = $ticket;
         if ($status === 'open') {
@@ -108,9 +113,13 @@ function sahtout_account_gm_tickets(mysqli $charDb, int $accountId): array
     if ($assignGuids !== []) {
         $gmNames = sahtout_gm_character_names($charDb, array_keys($assignGuids));
         foreach ($out['tickets'] as &$ticket) {
-            $gid = (int) ($ticket['assigned_to'] ?? 0);
-            if ($gid > 0 && isset($gmNames[$gid])) {
-                $ticket['assigned_to_name'] = $gmNames[$gid];
+            $assignedGuid = (int) ($ticket['assigned_to'] ?? 0);
+            if ($assignedGuid > 0 && isset($gmNames[$assignedGuid])) {
+                $ticket['assigned_to_name'] = $gmNames[$assignedGuid];
+            }
+            $closedGuid = (int) ($ticket['closed_by'] ?? 0);
+            if ($closedGuid > 0 && isset($gmNames[$closedGuid])) {
+                $ticket['closed_by_name'] = $gmNames[$closedGuid];
             }
         }
         unset($ticket);
@@ -189,6 +198,71 @@ function sahtout_gm_character_names(mysqli $charDb, array $guids): array
     }
     $stmt->close();
     return $map;
+}
+
+function sahtout_account_ticket_gm_display_name(array $ticket, string $field = 'assigned_to_name'): string
+{
+    $name = trim((string) ($ticket[$field] ?? ''));
+    if ($name === '') {
+        return translate('ticket_assigned_gm_generic', 'A game master');
+    }
+
+    return $name;
+}
+
+function sahtout_account_ticket_summary_badge_key(array $ticket): string
+{
+    $status = (string) ($ticket['status'] ?? '');
+    if ($status === 'closed' || $status === 'completed') {
+        return 'closed';
+    }
+    if ($status === 'open' && (int) ($ticket['assigned_to'] ?? 0) > 0) {
+        return 'assigned';
+    }
+
+    return 'open';
+}
+
+function sahtout_account_ticket_response_placeholder(array $ticket): string
+{
+    if (($ticket['status'] ?? '') !== 'open') {
+        return '';
+    }
+    $assigned = (int) ($ticket['assigned_to'] ?? 0);
+    if ($assigned <= 0) {
+        return translate('ticket_waiting_gm_short', 'Waiting for a GM.');
+    }
+
+    return sprintf(
+        translate('ticket_waiting_response_from', 'Waiting for response from <GM> %s.'),
+        sahtout_account_ticket_gm_display_name($ticket)
+    );
+}
+
+function sahtout_account_ticket_closed_notice(array $ticket): ?string
+{
+    $status = (string) ($ticket['status'] ?? '');
+    if ($status !== 'closed' && $status !== 'completed') {
+        return null;
+    }
+
+    $closedBy = (int) ($ticket['closed_by'] ?? 0);
+    if ($closedBy === -1) {
+        return translate('ticket_closed_by_console', 'Your ticket has been closed by staff.');
+    }
+
+    $gmName = '';
+    if ($closedBy > 0) {
+        $gmName = trim((string) ($ticket['closed_by_name'] ?? ''));
+    }
+    if ($gmName === '') {
+        $gmName = sahtout_account_ticket_gm_display_name($ticket);
+    }
+
+    return sprintf(
+        translate('ticket_closed_by_gm', 'Your ticket has been closed by <GM> %s.'),
+        $gmName
+    );
 }
 
 function sahtout_account_ticket_status_summary(array $ticket): string

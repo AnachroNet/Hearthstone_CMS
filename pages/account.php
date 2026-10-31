@@ -573,14 +573,25 @@ function renderTicketBodyHtml(string $text): string
     return '<div class="ticket-body-inner">' . nl2br(htmlspecialchars($text), false) . '</div>';
 }
 
-function renderGmTicketStatusBadge(string $status): string
+function renderTicketPlaceholderHtml(string $text): string
 {
+    $text = trim($text);
+    if ($text === '') {
+        return '';
+    }
+
+    return '<div class="ticket-body-inner text-gray-500 italic">' . htmlspecialchars($text) . '</div>';
+}
+
+function renderGmTicketSummaryBadge(array $ticket): string
+{
+    $badgeKey = sahtout_account_ticket_summary_badge_key($ticket);
     $map = [
         'open' => ['ticket_status_open', 'Open', 'ticket-status-open'],
+        'assigned' => ['ticket_status_assigned', 'Assigned', 'ticket-status-assigned'],
         'closed' => ['ticket_status_closed', 'Closed', 'ticket-status-closed'],
-        'completed' => ['ticket_status_completed', 'Completed', 'ticket-status-completed'],
     ];
-    $entry = $map[$status] ?? ['ticket_status_closed', 'Closed', 'ticket-status-closed'];
+    $entry = $map[$badgeKey] ?? ['ticket_status_closed', 'Closed', 'ticket-status-closed'];
     $label = translate($entry[0], $entry[1]);
     $cls = $entry[2];
     return sprintf(
@@ -1143,8 +1154,8 @@ ob_start();
         }
         .ticket-card summary::-webkit-details-marker { display: none; }
         .ticket-status-open { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08); }
+        .ticket-status-assigned { color: #60a5fa; border-color: rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.08); }
         .ticket-status-closed { color: #9ca3af; border-color: rgba(156, 163, 175, 0.35); background: rgba(156, 163, 175, 0.08); }
-        .ticket-status-completed { color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.08); }
         .ticket-body-block {
             box-sizing: border-box;
             display: flex;
@@ -1631,7 +1642,7 @@ include_once $project_root . 'includes/header.php';
                                 <details class="ticket-card glass-card rounded-lg overflow-hidden group">
                                     <summary class="p-4 sm:p-5 flex flex-row items-center gap-3 sm:gap-4">
                                         <div class="ticket-summary-line min-w-0 flex-1">
-                                            <?php echo renderGmTicketStatusBadge($ticket['status']); ?>
+                                            <?php echo renderGmTicketSummaryBadge($ticket); ?>
                                             <span class="ticket-summary-name"><?php echo htmlspecialchars($ticket['character_name']); ?></span>
                                             <span class="ticket-summary-sep"><?php echo htmlspecialchars(sprintf(translate('ticket_id', 'Ticket #%s'), $ticket['id'])); ?></span>
                                             <span class="ticket-summary-status"><?php echo htmlspecialchars(sahtout_account_ticket_status_summary($ticket)); ?></span>
@@ -1663,33 +1674,25 @@ include_once $project_root . 'includes/header.php';
                                             </div>
                                         </div>
                                         <?php
-                                        $ticketComment = trim($ticket['comment'] ?? '');
                                         $ticketResponse = trim($ticket['response'] ?? '');
+                                        $responsePlaceholder = sahtout_account_ticket_response_placeholder($ticket);
+                                        $closedNotice = sahtout_account_ticket_closed_notice($ticket);
                                         ?>
-                                        <?php if ($ticketComment !== ''): ?>
-                                        <div>
-                                            <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
-                                                <?php echo translate('ticket_staff_comment', 'Staff comment'); ?>
-                                            </h4>
-                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
-                                                <?php echo renderTicketBodyHtml($ticket['comment']); ?>
-                                            </div>
-                                        </div>
-                                        <?php endif; ?>
                                         <div>
                                             <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
                                                 <?php echo translate('ticket_gm_response', 'Staff response'); ?>
                                             </h4>
-                                            <?php if ($ticketResponse === ''): ?>
-                                                <?php if ($ticketComment === ''): ?>
-                                                <p class="text-sm text-gray-500 italic mb-0"><?php echo translate('ticket_no_response_yet', 'No staff reply or comment has been recorded yet.'); ?></p>
-                                                <?php else: ?>
-                                                <p class="text-sm text-gray-500 italic mb-0"><?php echo translate('ticket_no_formal_response', 'No formal response has been sent yet (see staff comment above).'); ?></p>
-                                                <?php endif; ?>
-                                            <?php else: ?>
-                                                <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
+                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
+                                                <?php if ($ticketResponse !== ''): ?>
                                                     <?php echo renderTicketBodyHtml($ticket['response']); ?>
-                                                </div>
+                                                <?php elseif ($responsePlaceholder !== ''): ?>
+                                                    <?php echo renderTicketPlaceholderHtml($responsePlaceholder); ?>
+                                                <?php else: ?>
+                                                    <?php echo renderTicketPlaceholderHtml(translate('ticket_no_response_recorded', 'No staff response was recorded.')); ?>
+                                                <?php endif; ?>
+                                            </div>
+                                            <?php if ($closedNotice !== null): ?>
+                                                <p class="text-sm text-[#f2cf5b] mt-2 mb-0"><?php echo htmlspecialchars($closedNotice); ?></p>
                                             <?php endif; ?>
                                         </div>
                                     </div>
