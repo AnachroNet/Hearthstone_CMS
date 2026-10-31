@@ -1143,25 +1143,48 @@ ob_start();
         .ticket-detail-panel {
             padding: 1rem 1.25rem 1.25rem;
         }
-        .ticket-summary-head {
-            font-family: 'Cinzel', serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            color: #f5f5f5;
+        .ticket-summary-line {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 0.45rem;
+            min-width: 0;
+            overflow: hidden;
             line-height: 1.35;
         }
-        .ticket-summary-sub {
+        .ticket-summary-line .ticket-summary-name,
+        .ticket-summary-line .ticket-summary-status {
             font-family: 'Cinzel', serif;
             font-size: 0.875rem;
             font-weight: 600;
-            color: #f2cf5b;
-            line-height: 1.4;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
         }
-        .ticket-summary-meta {
+        .ticket-summary-line .ticket-summary-name {
+            color: #f5f5f5;
+            flex-shrink: 0;
+        }
+        .ticket-summary-line .ticket-summary-status {
+            color: #f2cf5b;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ticket-summary-line .ticket-summary-sep,
+        .ticket-summary-line .ticket-summary-meta {
             font-family: 'Inter', sans-serif;
             font-size: 0.75rem;
+            font-weight: 500;
             color: #9ca3af;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        @media (min-width: 640px) {
+            .ticket-summary-line .ticket-summary-name,
+            .ticket-summary-line .ticket-summary-status {
+                font-size: 0.95rem;
+            }
         }
         @media (min-width: 640px) {
             .ticket-detail-panel {
@@ -1585,26 +1608,19 @@ include_once $project_root . 'includes/header.php';
                         <div class="space-y-4">
                             <?php foreach ($gm_tickets_view['tickets'] as $ticket): ?>
                                 <details class="ticket-card glass-card rounded-lg overflow-hidden group">
-                                    <summary class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                                        <div class="min-w-0 flex-1 space-y-1.5">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <?php echo renderGmTicketStatusBadge($ticket['status']); ?>
-                                                <span class="ticket-summary-head truncate">
-                                                    <?php echo htmlspecialchars($ticket['character_name']); ?>
-                                                    <span class="text-gray-500 font-normal text-[0.8em]">
-                                                        · <?php echo htmlspecialchars(sprintf(translate('ticket_id', 'Ticket #%s'), $ticket['id'])); ?>
-                                                    </span>
-                                                </span>
-                                            </div>
-                                            <p class="ticket-summary-sub m-0">
-                                                <?php echo htmlspecialchars(sahtout_account_ticket_status_summary($ticket)); ?>
-                                            </p>
-                                            <p class="ticket-summary-meta m-0">
+                                    <summary class="p-4 sm:p-5 flex flex-row items-center gap-3 sm:gap-4">
+                                        <div class="ticket-summary-line min-w-0 flex-1">
+                                            <?php echo renderGmTicketStatusBadge($ticket['status']); ?>
+                                            <span class="ticket-summary-name"><?php echo htmlspecialchars($ticket['character_name']); ?></span>
+                                            <span class="ticket-summary-sep"><?php echo htmlspecialchars(sprintf(translate('ticket_id', 'Ticket #%s'), $ticket['id'])); ?></span>
+                                            <span class="ticket-summary-status"><?php echo htmlspecialchars(sahtout_account_ticket_status_summary($ticket)); ?></span>
+                                            <span class="ticket-summary-sep">·</span>
+                                            <span class="ticket-summary-meta">
                                                 <?php echo translate('ticket_updated', 'Last updated'); ?>:
                                                 <?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?>
-                                            </p>
+                                            </span>
                                         </div>
-                                        <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform sm:ml-2 shrink-0 self-center"></i>
+                                        <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform shrink-0"></i>
                                     </summary>
                                     <div class="ticket-detail-panel border-t border-[rgba(201,162,39,0.08)] space-y-4">
                                         <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400">
