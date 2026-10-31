@@ -92,6 +92,11 @@ $armoryConfig = $sahtout_local['armory'] ?? [
     'arena_5v5_display' => 'all',
 ];
 
+$site_timezone = trim((string) ($sahtout_local['timezone'] ?? ''));
+if ($site_timezone === '') {
+    $site_timezone = date_default_timezone_get() ?: 'UTC';
+}
+
 sahtout_seed_site_settings_from_legacy($site_db);
 $sahtout_site_settings = sahtout_site_settings_load_all($site_db);
 sahtout_apply_site_settings_globals($sahtout_site_settings);

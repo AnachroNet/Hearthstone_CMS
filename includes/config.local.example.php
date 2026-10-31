@@ -72,4 +72,6 @@ return [
         'arena_3v3_display' => 'all',
         'arena_5v5_display' => 'all',
     ],
+    /** IANA timezone for ticket timestamps (e.g. America/New_York). Empty = PHP default timezone. */
+    'timezone' => '',
 ];

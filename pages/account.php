@@ -1143,6 +1143,26 @@ ob_start();
         .ticket-detail-panel {
             padding: 1rem 1.25rem 1.25rem;
         }
+        .ticket-summary-head {
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: #f5f5f5;
+            line-height: 1.35;
+        }
+        .ticket-summary-sub {
+            font-family: 'Cinzel', serif;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #f2cf5b;
+            line-height: 1.4;
+        }
+        .ticket-summary-meta {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
         @media (min-width: 640px) {
             .ticket-detail-panel {
                 padding: 1.25rem 1.25rem 1.5rem;
@@ -1566,20 +1586,25 @@ include_once $project_root . 'includes/header.php';
                             <?php foreach ($gm_tickets_view['tickets'] as $ticket): ?>
                                 <details class="ticket-card glass-card rounded-lg overflow-hidden group">
                                     <summary class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                                        <div class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
-                                            <?php echo renderGmTicketStatusBadge($ticket['status']); ?>
-                                            <span class="font-bold text-white truncate" style="font-family:'Cinzel',serif;">
-                                                <?php echo htmlspecialchars(sprintf(translate('ticket_id', 'Ticket #%s'), $ticket['id'])); ?>
-                                            </span>
-                                            <span class="text-gray-400 text-sm truncate">
-                                                <?php echo htmlspecialchars($ticket['character_name']); ?>
-                                            </span>
+                                        <div class="min-w-0 flex-1 space-y-1.5">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <?php echo renderGmTicketStatusBadge($ticket['status']); ?>
+                                                <span class="ticket-summary-head truncate">
+                                                    <?php echo htmlspecialchars($ticket['character_name']); ?>
+                                                    <span class="text-gray-500 font-normal text-[0.8em]">
+                                                        · <?php echo htmlspecialchars(sprintf(translate('ticket_id', 'Ticket #%s'), $ticket['id'])); ?>
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <p class="ticket-summary-sub m-0">
+                                                <?php echo htmlspecialchars(sahtout_account_ticket_status_summary($ticket)); ?>
+                                            </p>
+                                            <p class="ticket-summary-meta m-0">
+                                                <?php echo translate('ticket_updated', 'Last updated'); ?>:
+                                                <?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?>
+                                            </p>
                                         </div>
-                                        <div class="text-xs text-gray-500 sm:text-right shrink-0">
-                                            <?php echo translate('ticket_updated', 'Last updated'); ?>:
-                                            <?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?>
-                                        </div>
-                                        <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform sm:ml-2"></i>
+                                        <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform sm:ml-2 shrink-0 self-center"></i>
                                     </summary>
                                     <div class="ticket-detail-panel border-t border-[rgba(201,162,39,0.08)] space-y-4">
                                         <div class="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-400">

@@ -169,6 +169,11 @@ return [
     'ticket_status_closed' => 'Closed',
     'ticket_need_more_help' => 'Needs more help',
     'ticket_viewed_by_staff' => 'Viewed by staff',
+    'ticket_waiting_gm' => 'Waiting for a GM...',
+    'ticket_gm_reviewing' => 'GM %s is reviewing your ticket.',
+    'ticket_assigned_gm_generic' => 'A game master',
+    'ticket_summary_completed' => 'Marked complete by staff.',
+    'ticket_summary_closed' => 'This ticket is closed.',
     'label_open_tickets' => 'Open tickets',
     'overview_open_tickets_link' => 'View tickets',
 ];
