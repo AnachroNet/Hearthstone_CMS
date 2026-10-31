@@ -119,10 +119,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $itemCount = (int) ($_POST['item_count'] ?? 1);
         $tokenAmount = (int) ($_POST['token_amount'] ?? 0);
 
-        if ($compType === 'gold') {
-            $result = sahtout_admin_compensation_send_gold($char_db, $ticketId, $mailSubject, $mailBody, $goldAmount);
-        } elseif ($compType === 'item') {
-            $result = sahtout_admin_compensation_send_item($char_db, $ticketId, $mailSubject, $mailBody, $itemEntry, max(1, $itemCount));
+        if ($compType === 'ingame_mail') {
+            $result = sahtout_admin_compensation_send_ingame_mail(
+                $char_db,
+                $ticketId,
+                $mailSubject,
+                $mailBody,
+                $goldAmount,
+                $itemEntry,
+                $itemCount > 0 ? $itemCount : 1
+            );
         } elseif ($compType === 'tokens') {
             if (!isset($site_db) || $site_db->connect_error) {
                 $result = ['ok' => false, 'message' => 'comp_unavailable'];
@@ -158,12 +164,13 @@ if (isset($_GET['msg'])) {
         'already_closed' => translate('admin_tickets_already_closed', 'Ticket is already closed.'),
         'already_open' => translate('admin_tickets_already_open', 'Ticket is already open.'),
         'update_failed' => translate('admin_tickets_update_failed', 'Could not update ticket.'),
-        'gold_sent' => translate('admin_tickets_comp_gold_sent', 'In-game mail with gold was sent.'),
-        'item_sent' => translate('admin_tickets_comp_item_sent', 'In-game mail with the item was sent.'),
+        'mail_sent' => translate('admin_tickets_comp_mail_sent', 'In-game mail was sent to the character.'),
+        'mail_sent_dual' => translate('admin_tickets_comp_mail_sent_dual', 'In-game mail was sent (items and gold may arrive as two messages from the postmaster).'),
+        'mail_partial' => translate('admin_tickets_comp_mail_partial', 'Item mail was sent, but the gold mail failed. Check SOAP logs before retrying gold.'),
         'tokens_awarded' => translate('admin_tickets_comp_tokens_awarded', 'Website tokens were added to the account.'),
         'soap_not_configured' => translate('admin_tickets_comp_soap_missing', 'SOAP is not configured. Set it up under Admin → Settings → SOAP to send in-game mail.'),
         'soap_failed' => translate('admin_tickets_comp_soap_failed', 'The worldserver rejected the mail command. Check SOAP logs.'),
-        'invalid_gold' => translate('admin_tickets_comp_invalid_gold', 'Enter a gold amount between 1 and 50,000.'),
+        'invalid_gold' => translate('admin_tickets_comp_invalid_gold', 'Gold must be between 1 and 50,000 when provided.'),
         'invalid_item' => translate('admin_tickets_comp_invalid_item', 'Enter a valid item entry and quantity.'),
         'invalid_mail_text' => translate('admin_tickets_comp_invalid_mail', 'Mail subject and body are required.'),
         'invalid_character' => translate('admin_tickets_comp_invalid_character', 'This ticket character name cannot be used for mail commands.'),
@@ -198,7 +205,7 @@ if ($ticketData['available'] && !empty($ticketData['tickets']) && isset($site_db
     $tokenBalances = sahtout_account_token_balances($site_db, array_column($ticketData['tickets'], 'account_id'));
 }
 
-$defaultCompSubject = translate('admin_tickets_comp_default_subject', 'Support compensation');
+$defaultCompSubject = translate('admin_tickets_comp_default_subject', 'Your Support Request');
 $defaultCompBody = translate('admin_tickets_comp_default_body', 'Thank you for contacting support.');
 
 $totalPages = max(1, (int) ceil($ticketData['total'] / $perPage));
@@ -551,68 +558,71 @@ ob_start();
 
                     <form method="post" action="<?php echo htmlspecialchars($base_path . 'admin/tickets'); ?>" class="space-y-4">
                         <input type="hidden" name="action" value="ticket_compensation">
+                        <input type="hidden" name="comp_type" value="ingame_mail">
                         <input type="hidden" name="ticket_id" value="<?php echo $modalId; ?>">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="return_status" value="<?php echo htmlspecialchars($statusFilter); ?>">
                         <input type="hidden" name="return_search" value="<?php echo htmlspecialchars($search); ?>">
                         <input type="hidden" name="return_page" value="<?php echo (int) $page; ?>">
-                        <input type="hidden" name="comp_type" value="" class="ticket-comp-type-input">
 
-                        <div class="ticket-comp-grid two-col">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1" for="mail-subject-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_mail_subject', 'Mail subject'); ?></label>
-                                <input type="text" id="mail-subject-<?php echo $modalId; ?>" name="mail_subject" class="input-dark" maxlength="128" value="<?php echo htmlspecialchars($defaultCompSubject); ?>" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1" for="gold-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_gold', 'Gold amount'); ?></label>
-                                <input type="number" id="gold-<?php echo $modalId; ?>" name="gold_amount" class="input-dark" min="1" max="50000" placeholder="100" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                            </div>
+                        <p class="text-xs text-gray-500"><?php echo translate('admin_tickets_comp_mail_help', 'Leave gold and item fields empty to send text-only mail. You may include gold, an item, or both (gold and items may arrive as two separate in-game mails).'); ?></p>
+
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1" for="mail-subject-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_mail_subject', 'Mail subject'); ?></label>
+                            <input type="text" id="mail-subject-<?php echo $modalId; ?>" name="mail_subject" class="input-dark" maxlength="128" value="<?php echo htmlspecialchars($defaultCompSubject); ?>" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1" for="mail-body-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_mail_body', 'Mail message'); ?></label>
-                            <textarea id="mail-body-<?php echo $modalId; ?>" name="mail_body" class="input-dark textarea-dark" rows="2" maxlength="800" <?php echo $soapConfigured ? '' : 'disabled'; ?>><?php echo htmlspecialchars($defaultCompBody); ?></textarea>
+                            <textarea id="mail-body-<?php echo $modalId; ?>" name="mail_body" class="input-dark textarea-dark" rows="3" maxlength="800" <?php echo $soapConfigured ? '' : 'disabled'; ?>><?php echo htmlspecialchars($defaultCompBody); ?></textarea>
                         </div>
 
-                        <div class="flex flex-wrap gap-3 items-end">
-                            <button type="submit" class="btn-iron btn-iron-sm ticket-comp-btn" data-comp="gold" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                                <i class="fas fa-coins"></i> <?php echo translate('admin_tickets_comp_send_gold', 'Send gold mail'); ?>
-                            </button>
+                        <div class="ticket-comp-grid two-col">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1" for="gold-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_gold_optional', 'Gold (optional)'); ?></label>
+                                <input type="number" id="gold-<?php echo $modalId; ?>" name="gold_amount" class="input-dark" min="0" max="50000" placeholder="<?php echo translate('admin_tickets_comp_gold_placeholder', 'None'); ?>" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1" for="item-entry-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_item_entry_optional', 'Item entry ID (optional)'); ?></label>
+                                <input type="number" id="item-entry-<?php echo $modalId; ?>" name="item_entry" class="input-dark" min="0" placeholder="<?php echo translate('admin_tickets_comp_gold_placeholder', 'None'); ?>" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
+                            </div>
+                        </div>
+                        <div class="max-w-xs">
+                            <label class="block text-xs text-gray-400 mb-1" for="item-count-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_item_count', 'Quantity'); ?></label>
+                            <input type="number" id="item-count-<?php echo $modalId; ?>" name="item_count" class="input-dark" min="1" max="200" value="1" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
                         </div>
 
-                        <div class="ticket-comp-grid two-col pt-2 border-t border-[rgba(201,162,39,0.08)]">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1" for="item-entry-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_item_entry', 'Item entry ID'); ?></label>
-                                <input type="number" id="item-entry-<?php echo $modalId; ?>" name="item_entry" class="input-dark" min="1" placeholder="12345" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1" for="item-count-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_item_count', 'Quantity'); ?></label>
-                                <input type="number" id="item-count-<?php echo $modalId; ?>" name="item_count" class="input-dark" min="1" max="200" value="1" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn-iron btn-iron-sm ticket-comp-btn" data-comp="item" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                            <i class="fas fa-gift"></i> <?php echo translate('admin_tickets_comp_send_item', 'Send item mail'); ?>
+                        <button type="submit" class="btn-gold" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
+                            <i class="fas fa-envelope"></i> <?php echo translate('admin_tickets_comp_send_mail', 'Send in-game mail'); ?>
                         </button>
+                    </form>
 
-                        <div class="pt-2 border-t border-[rgba(201,162,39,0.08)]">
-                            <?php if ($ticketAccountId <= 0): ?>
-                                <p class="text-gray-500 text-xs"><?php echo translate('admin_tickets_comp_no_account', 'No website account is linked to this ticket.'); ?></p>
-                            <?php else: ?>
-                                <p class="text-gray-400 text-xs mb-2">
+                    <div class="pt-4 mt-4 border-t border-[rgba(201,162,39,0.08)]">
+                        <h5 class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3"><?php echo translate('admin_tickets_comp_tokens_heading', 'Website shop tokens'); ?></h5>
+                        <?php if ($ticketAccountId <= 0): ?>
+                            <p class="text-gray-500 text-xs"><?php echo translate('admin_tickets_comp_no_account', 'No website account is linked to this ticket.'); ?></p>
+                        <?php else: ?>
+                            <form method="post" action="<?php echo htmlspecialchars($base_path . 'admin/tickets'); ?>" class="flex flex-wrap gap-3 items-end">
+                                <input type="hidden" name="action" value="ticket_compensation">
+                                <input type="hidden" name="comp_type" value="tokens">
+                                <input type="hidden" name="ticket_id" value="<?php echo $modalId; ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="return_status" value="<?php echo htmlspecialchars($statusFilter); ?>">
+                                <input type="hidden" name="return_search" value="<?php echo htmlspecialchars($search); ?>">
+                                <input type="hidden" name="return_page" value="<?php echo (int) $page; ?>">
+                                <p class="w-full text-gray-400 text-xs mb-0">
                                     <?php echo translate('admin_tickets_comp_current_tokens', 'Current account tokens'); ?>:
                                     <span class="text-[#f2cf5b] font-semibold"><?php echo number_format($ticketTokenBalance ?? 0); ?></span>
                                 </p>
-                                <div class="flex flex-wrap gap-3 items-end">
-                                    <div class="flex-1 min-w-[8rem]">
-                                        <label class="block text-xs text-gray-400 mb-1" for="tokens-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_tokens_add', 'Tokens to add'); ?></label>
-                                        <input type="number" id="tokens-<?php echo $modalId; ?>" name="token_amount" class="input-dark" min="1" max="9999999" placeholder="10">
-                                    </div>
-                                    <button type="submit" class="btn-gold ticket-comp-btn" data-comp="tokens">
-                                        <i class="fas fa-gem"></i> <?php echo translate('admin_tickets_comp_award_tokens', 'Award tokens'); ?>
-                                    </button>
+                                <div class="flex-1 min-w-[8rem]">
+                                    <label class="block text-xs text-gray-400 mb-1" for="tokens-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_tokens_add', 'Tokens to add'); ?></label>
+                                    <input type="number" id="tokens-<?php echo $modalId; ?>" name="token_amount" class="input-dark" min="1" max="9999999" placeholder="10" required>
                                 </div>
-                            <?php endif; ?>
-                        </div>
-                    </form>
+                                <button type="submit" class="btn-gold">
+                                    <i class="fas fa-gem"></i> <?php echo translate('admin_tickets_comp_award_tokens', 'Award tokens'); ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -658,15 +668,6 @@ ob_start();
         if (!form) return;
         var input = form.querySelector('.ticket-state-action-input');
         if (input) input.value = stateBtn.getAttribute('data-state') || 'save';
-    });
-
-    document.addEventListener('click', function (e) {
-        var compBtn = e.target.closest('.ticket-comp-btn');
-        if (!compBtn || compBtn.disabled) return;
-        var form = compBtn.closest('form');
-        if (!form) return;
-        var input = form.querySelector('.ticket-comp-type-input');
-        if (input) input.value = compBtn.getAttribute('data-comp') || '';
     });
 
     document.addEventListener('keydown', function (e) {
