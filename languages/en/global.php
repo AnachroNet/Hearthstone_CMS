@@ -243,6 +243,7 @@ return [
     
     // General tooltip strings
     'item_level' => 'Item Level',
+    'item_id' => 'Item ID',
     'speed' => 'Speed',
     'damage' => 'Damage',
     'dps' => 'damage per second',

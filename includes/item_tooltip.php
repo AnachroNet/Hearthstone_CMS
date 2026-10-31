@@ -233,6 +233,7 @@ function generateTooltip($item) {
     $inventoryTypeId = (int)($item['InventoryType'] ?? 0);
     $allowableClass = (int)($item['AllowableClass'] ?? 0);
     $level = (int)($item['ItemLevel'] ?? 0);
+    $entry = (int)($item['entry'] ?? 0);
     $reqLevel = (int)($item['RequiredLevel'] ?? 0);
     $sell = (int)($item['SellPrice'] ?? 0);
     $dur = (int)($item['MaxDurability'] ?? 0);
@@ -409,8 +410,16 @@ function generateTooltip($item) {
                 <!-- ($itemColor is item-specific, so it cannot live in the shared
                      once-per-request <style> block without leaking to every tooltip). -->
                 <div class="item-name" style="color: <?= htmlspecialchars($itemColor, ENT_QUOTES) ?>;"><?= $name ?></div>
-                <?php if ($level): ?>
-                    <div class="item-level text-xs"><?= translate('item_level', 'Item Level') ?> <?= $level ?></div>
+                <?php if ($level || $entry): ?>
+                    <div class="item-level text-xs">
+                        <?php if ($level): ?>
+                            <?= translate('item_level', 'Item Level') ?> <?= $level ?>
+                        <?php endif; ?>
+                        <?php if ($level && $entry): ?> - <?php endif; ?>
+                        <?php if ($entry): ?>
+                            <?= translate('item_id', 'Item ID') ?> <?= $entry ?>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
             <div class="text-right text-xs">
