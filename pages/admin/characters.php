@@ -253,6 +253,19 @@ while ($char = $chars_result->fetch_assoc()) {
 }
 $stmt->close();
 
+$chars_list_return_query = http_build_query(array_filter([
+    'page' => $page > 1 ? $page : null,
+    'search_char_name' => $search_char_name !== '' ? $search_char_name : null,
+    'search_username' => $search_username !== '' ? $search_username : null,
+    'online_filter' => $online_filter !== '' ? $online_filter : null,
+    'min_level' => $min_level !== '' ? $min_level : null,
+    'max_level' => $max_level !== '' ? $max_level : null,
+    'sort_id' => $sort_id !== 'asc' ? $sort_id : null,
+], static function ($v) {
+    return $v !== null && $v !== '';
+}));
+$chars_list_return_url = $base_path . 'admin/characters' . ($chars_list_return_query !== '' ? '?' . $chars_list_return_query : '');
+
 $map_names = [
     0 => 'Eastern Kingdoms', 1 => 'Kalimdor', 530 => 'Outland', 571 => 'Northrend',
     33 => 'Shadowfang Keep', 34 => 'The Stockade', 36 => 'Deadmines', 43 => 'Wailing Caverns',
@@ -474,15 +487,6 @@ ob_start();
         .char-name-link:hover {
             color: #f2cf5b;
         }
-        .char-name-link i {
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            font-size: 0.7rem;
-            margin-left: 4px;
-        }
-        .char-name-link:hover i {
-            opacity: 1;
-        }
 
         /* Main content area - works with sidebar */
         .main-content-area {
@@ -641,9 +645,8 @@ ob_start();
                                             <tr>
                                                 <td class="text-sm md:text-base"><?php echo htmlspecialchars($char['guid']); ?></td>
                                                 <td>
-                                                    <a href="<?php echo $base_path; ?>character?guid=<?php echo $char['guid']; ?>" class="char-name-link text-sm md:text-base" target="_blank">
+                                                    <a href="<?php echo $base_path; ?>character?guid=<?php echo (int) $char['guid']; ?>&amp;return=<?php echo urlencode($chars_list_return_url); ?>" class="char-name-link text-sm md:text-base">
                                                         <?php echo htmlspecialchars($char['name']); ?>
-                                                        <i class="fas fa-external-link-alt"></i>
                                                     </a>
                                                 </td>
                                                 <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($char['username']); ?></td>

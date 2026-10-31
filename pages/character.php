@@ -234,6 +234,20 @@ ob_start();
     .pvp-member .m-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pvp-member .m-rating { flex: 0 0 auto; min-width: 44px; margin-left: 0; text-align: right; }
     .pvp-member > i { flex: 0 0 14px; width: 14px; text-align: center; }
+
+    .character-back-link {
+        display: inline-flex; align-items: center; gap: .5rem;
+        padding: .5rem 1rem; font-size: .85rem; font-weight: 600; font-family: 'Cinzel', serif; letter-spacing: .04em;
+        color: #9ca3af; text-decoration: none;
+        background: rgba(0,0,0,.35); border: 1px solid rgba(201,162,39,.2);
+        clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+        transition: color .2s, border-color .2s, transform .2s, box-shadow .2s;
+    }
+    .character-back-link:hover {
+        color: #f2cf5b; border-color: #f2cf5b;
+        transform: translateX(-4px);
+        box-shadow: 0 0 20px rgba(242,207,82,.15);
+    }
 </style>
 <script>
 /* Image fallbacks: missing icons swap to data-fallback, otherwise are hidden (no broken-image boxes). */
@@ -307,6 +321,14 @@ require_once $project_root . 'includes/header.php';
             $qualityColors = [0 => '#9d9d9d', 1 => '#ffffff', 2 => '#1eff00', 3 => '#0070dd', 4 => '#a335ee', 5 => '#ff8000', 6 => '#e5cc80', 7 => '#00ccff'];
 
             $guid = isset($_GET['guid']) ? (int)$_GET['guid'] : 0;
+            $admin_back_href = '';
+            if (!empty($_GET['return'])) {
+                $return_candidate = (string) $_GET['return'];
+                $allowed_prefix = $base_path . 'admin/characters';
+                if (strncmp($return_candidate, $allowed_prefix, strlen($allowed_prefix)) === 0 && strlen($return_candidate) <= 2048) {
+                    $admin_back_href = $return_candidate;
+                }
+            }
             $character = null; $items = []; $arena_by_type = []; $stats = null; $total_kills = 0; $error = ''; $warnings = [];
 
             // Prepared query -> all rows. Throws on any failure so each section can fail on its own.
@@ -446,6 +468,13 @@ if ($ilvl > 0) {
                 echo $has ? '</a>' : '</div>';
             };
             ?>
+
+            <?php if ($admin_back_href !== ''): ?>
+                <a href="<?= htmlspecialchars($admin_back_href, ENT_QUOTES, 'UTF-8') ?>" class="character-back-link mb-6">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    <?= htmlspecialchars(translate('back_to_character_management', 'Back to Character Management')) ?>
+                </a>
+            <?php endif; ?>
 
             <?php if ($error): ?>
                 <div class="text-center py-12 text-red-400">
