@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS `achievement_catalog` (
   `ref_achievement` int unsigned NOT NULL DEFAULT '0',
   `criteria_type` smallint unsigned DEFAULT NULL COMMENT 'Primary milestone criterion (e.g. 5=level, 9=quest count)',
   `criteria_value` int unsigned DEFAULT NULL,
+  `boss_creature_id` int unsigned DEFAULT NULL COMMENT 'Kill-creature criteria (type 0) when present',
+  `instance_map_id` int DEFAULT NULL COMMENT 'Resolved instance map for dungeons (DBC map or creature spawn)',
   `imported_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`achievement_id`),
   KEY `idx_category` (`category_id`),

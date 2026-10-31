@@ -9,6 +9,7 @@
  *   Achievement_Category.dbc
  *   Map.dbc (recommended — distinguishes 5-player dungeons from raids)
  *   LFGDungeons.dbc (recommended — dungeon level bands on reward presets)
+ * World DB (optional): acore_world.creature for boss-kill achievements without map_id (e.g. Deadmines)
  *
  * Usage (from Web/SahtoutCMS):
  *   php tools/import_achievement_catalog.php
@@ -24,6 +25,7 @@ if (PHP_SAPI !== 'cli') {
 $projectRoot = dirname(__DIR__);
 require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'dbc_reader.php';
 require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'lfg_dbc.php';
+require_once $projectRoot . DIRECTORY_SEPARATOR . 'includes' . DIRECTORY_SEPARATOR . 'achievement_creature_map.php';
 
 /** @see AzerothCore DBCEnums.h */
 const CRITERIA_REACH_LEVEL = 5;
@@ -254,6 +256,7 @@ function sahtout_build_achievement_meta(array $achRows, string $achStrings): arr
 function sahtout_build_preset_rewards(
     array $criteriaByAchievement,
     array $meta,
+    array $instanceMapByAchievement,
     array $dungeonMapIds,
     array $mapNames,
     bool $hasMapDbc
@@ -310,21 +313,21 @@ function sahtout_build_preset_rewards(
         if ($m['ref'] !== 0 || $m['points'] <= 0) {
             continue;
         }
-        $mapId = $m['map_id'];
-        if ($mapId <= 0) {
-            continue;
-        }
-        if ($hasMapDbc) {
-            if (!isset($dungeonMapIds[$mapId])) {
-                continue;
-            }
-        }
         if (isset($seen[$achId])) {
             continue;
         }
         if (!isset($criteriaByAchievement[$achId]) || $criteriaByAchievement[$achId] === []) {
             continue;
         }
+
+        $mapId = (int) ($instanceMapByAchievement[$achId] ?? 0);
+        if ($mapId <= 0) {
+            continue;
+        }
+        if ($hasMapDbc && $dungeonMapIds !== [] && !isset($dungeonMapIds[$mapId])) {
+            continue;
+        }
+
         $dungeonName = $mapNames[$mapId] ?? null;
         if ($dungeonName !== null && strlen($dungeonName) > 128) {
             $dungeonName = substr($dungeonName, 0, 128);
@@ -362,9 +365,35 @@ function sahtout_build_preset_rewards(
 }
 
 $achievementMeta = sahtout_build_achievement_meta($achRows, $achStrings);
+
+$worldDb = sahtout_import_connect_world_db($projectRoot);
+if ($worldDb !== null) {
+    fwrite(STDOUT, "Using world DB to resolve boss creature instance maps.\n");
+}
+$creatureToMaps = sahtout_load_creature_instance_maps(
+    $worldDb,
+    sahtout_collect_boss_creature_ids($criteriaByAchievement)
+);
+if ($worldDb !== null) {
+    $worldDb->close();
+}
+
+$instanceMapByAchievement = [];
+foreach ($achievementMeta as $achId => $m) {
+    $bossId = sahtout_pick_boss_creature_id($criteriaByAchievement[$achId] ?? []);
+    $instanceMapByAchievement[$achId] = sahtout_resolve_instance_map_id(
+        (int) $m['map_id'],
+        $bossId,
+        $creatureToMaps,
+        $dungeonMapIds,
+        $mapPath !== null && $dungeonMapIds !== []
+    );
+}
+
 $presets = sahtout_build_preset_rewards(
     $criteriaByAchievement,
     $achievementMeta,
+    $instanceMapByAchievement,
     $dungeonMapIds,
     $mapNames,
     $mapPath !== null
@@ -390,7 +419,7 @@ $lines[] = '';
 
 $insertPrefix = 'INSERT INTO `achievement_catalog` (`achievement_id`, `title_enus`, `description_enus`, '
     . '`category_id`, `category_name`, `points`, `required_faction`, `map_id`, `ref_achievement`, '
-    . '`criteria_type`, `criteria_value`) VALUES';
+    . '`criteria_type`, `criteria_value`, `boss_creature_id`, `instance_map_id`) VALUES';
 
 $valueRows = [];
 $milestoneCount = 0;
@@ -426,9 +455,13 @@ foreach ($achRows as $row) {
         : ("'" . sahtout_sql_escape($categoryName) . "'");
     $critTypeSql = $critType === null ? 'NULL' : (string) $critType;
     $critValSql = $critVal === null ? 'NULL' : (string) $critVal;
+    $bossId = sahtout_pick_boss_creature_id($criteriaByAchievement[$id] ?? []);
+    $bossSql = $bossId !== null && $bossId > 0 ? (string) $bossId : 'NULL';
+    $instanceMap = $instanceMapByAchievement[$id] ?? null;
+    $instanceMapSql = ($instanceMap !== null && (int) $instanceMap > 0) ? (string) (int) $instanceMap : 'NULL';
 
     $valueRows[] = sprintf(
-        '(%u, %s, %s, %u, %s, %u, %d, %d, %u, %s, %s)',
+        '(%u, %s, %s, %u, %s, %u, %d, %d, %u, %s, %s, %s, %s)',
         $id,
         $titleSql,
         $descSql,
@@ -439,7 +472,9 @@ foreach ($achRows as $row) {
         $mapId,
         $refAch,
         $critTypeSql,
-        $critValSql
+        $critValSql,
+        $bossSql,
+        $instanceMapSql
     );
 }
 

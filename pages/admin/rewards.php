@@ -76,9 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $rewardsReady) {
                         $milestoneValueSql = $milestoneValue;
                     }
                 } elseif ($milestoneType === 'dungeon') {
-                    $mapId = (int) ($catalog['map_id'] ?? 0);
-                    if ($mapId > 0) {
-                        $instanceMapId = $mapId;
+                    global $world_db;
+                    $resolved = sahtout_admin_resolve_catalog_instance_map(
+                        $site_db,
+                        (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null,
+                        $catalog
+                    );
+                    if ($resolved !== null && $resolved > 0) {
+                        $instanceMapId = $resolved;
                     }
                 }
 

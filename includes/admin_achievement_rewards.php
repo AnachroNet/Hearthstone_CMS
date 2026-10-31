@@ -4,6 +4,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'lfg_dbc.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'achievement_creature_map.php';
 
 function sahtout_admin_achievement_rewards_table_exists(mysqli $siteDb): bool
 {
@@ -59,7 +60,8 @@ function sahtout_admin_achievement_catalog_row(mysqli $siteDb, int $achievementI
         return null;
     }
     $stmt = $siteDb->prepare(
-        'SELECT achievement_id, title_enus, map_id, criteria_type, criteria_value
+        'SELECT achievement_id, title_enus, map_id, criteria_type, criteria_value,
+                boss_creature_id, instance_map_id
          FROM achievement_catalog WHERE achievement_id = ? LIMIT 1'
     );
     if (!$stmt) {
@@ -86,7 +88,9 @@ function sahtout_admin_fetch_achievement_rewards(mysqli $siteDb): array
     $joinCatalog = sahtout_admin_achievement_catalog_table_exists($siteDb);
     $sql = $joinCatalog
         ? 'SELECT r.achievement_id, r.tokens, r.milestone_type, r.milestone_value, r.instance_map_id,
-                  r.dungeon_name, r.is_enabled, c.title_enus, c.map_id AS catalog_map_id
+                  r.dungeon_name, r.dungeon_min_level, r.dungeon_max_level, r.dungeon_target_level,
+                  r.is_enabled, c.title_enus, c.map_id AS catalog_map_id, c.boss_creature_id,
+                  c.instance_map_id AS catalog_instance_map_id
            FROM achievement_token_rewards r
            LEFT JOIN achievement_catalog c ON c.achievement_id = r.achievement_id
            ORDER BY FIELD(r.milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
@@ -130,7 +134,8 @@ function sahtout_admin_search_achievement_catalog(mysqli $siteDb, string $query,
     if (ctype_digit($query)) {
         $id = (int) $query;
         $stmt = $siteDb->prepare(
-            'SELECT achievement_id, title_enus, criteria_type, criteria_value, map_id
+            'SELECT achievement_id, title_enus, criteria_type, criteria_value, map_id,
+                boss_creature_id, instance_map_id
              FROM achievement_catalog
              WHERE achievement_id = ?
              LIMIT 1'
@@ -152,7 +157,8 @@ function sahtout_admin_search_achievement_catalog(mysqli $siteDb, string $query,
 
     $like = '%' . $query . '%';
     $stmt = $siteDb->prepare(
-        'SELECT achievement_id, title_enus, criteria_type, criteria_value, map_id
+        'SELECT achievement_id, title_enus, criteria_type, criteria_value, map_id,
+                boss_creature_id, instance_map_id
          FROM achievement_catalog
          WHERE title_enus LIKE ?
          ORDER BY title_enus ASC
@@ -185,7 +191,31 @@ function sahtout_admin_format_catalog_search_row(array $row): array
         'criteria_type' => isset($row['criteria_type']) ? (int) $row['criteria_type'] : null,
         'criteria_value' => isset($row['criteria_value']) ? (int) $row['criteria_value'] : null,
         'map_id' => (int) ($row['map_id'] ?? 0),
+        'boss_creature_id' => isset($row['boss_creature_id']) ? (int) $row['boss_creature_id'] : null,
+        'instance_map_id' => isset($row['instance_map_id']) ? (int) $row['instance_map_id'] : null,
     ];
+}
+
+/**
+ * Resolve instance map when adding a dungeon reward (catalog + optional live world DB).
+ */
+function sahtout_admin_resolve_catalog_instance_map(mysqli $siteDb, ?mysqli $worldDb, array $catalogRow): ?int
+{
+    $instance = (int) ($catalogRow['instance_map_id'] ?? 0);
+    if ($instance > 0) {
+        return $instance;
+    }
+    $achMap = (int) ($catalogRow['map_id'] ?? 0);
+    if ($achMap > 0) {
+        return $achMap;
+    }
+    $bossId = isset($catalogRow['boss_creature_id']) ? (int) $catalogRow['boss_creature_id'] : 0;
+    if ($bossId <= 0 || $worldDb === null || $worldDb->connect_error) {
+        return null;
+    }
+    $maps = sahtout_load_creature_instance_maps($worldDb, [$bossId]);
+
+    return sahtout_resolve_instance_map_id($achMap, $bossId, $maps, [], false);
 }
 
 /** Subtitle under milestone type pill (dungeon level from DB or LFGDungeons.dbc). */
@@ -207,6 +237,9 @@ function sahtout_admin_milestone_type_subtitle(array $row): ?string
             }
         }
         $mapId = (int) ($row['instance_map_id'] ?? 0);
+        if ($mapId <= 0) {
+            $mapId = (int) ($row['catalog_instance_map_id'] ?? 0);
+        }
         if ($mapId <= 0) {
             $mapId = (int) ($row['catalog_map_id'] ?? 0);
         }
@@ -240,11 +273,26 @@ function sahtout_admin_reward_detail_label(array $row): string
     return match ($type) {
         'level' => $value !== null ? 'Level ' . $value : '—',
         'quest_count' => $value !== null ? number_format($value) . ' quests' : '—',
-        'dungeon' => (string) ($row['dungeon_name'] ?? '') !== ''
-            ? (string) $row['dungeon_name']
-            : (((int) ($row['instance_map_id'] ?? 0)) > 0
-                ? 'Map ' . (int) $row['instance_map_id']
-                : '—'),
+        'dungeon' => (static function () use ($row): string {
+            $parts = [];
+            $name = (string) ($row['dungeon_name'] ?? '');
+            if ($name !== '') {
+                $parts[] = $name;
+            }
+            $bossId = (int) ($row['boss_creature_id'] ?? 0);
+            if ($bossId > 0) {
+                $parts[] = 'Boss ' . $bossId;
+            }
+            if ($parts !== []) {
+                return implode(' · ', $parts);
+            }
+            $mapId = (int) ($row['instance_map_id'] ?? 0);
+            if ($mapId <= 0) {
+                $mapId = (int) ($row['catalog_instance_map_id'] ?? 0);
+            }
+
+            return $mapId > 0 ? 'Map ' . $mapId : '—';
+        })(),
         default => '—',
     };
 }
