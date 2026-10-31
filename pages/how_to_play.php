@@ -360,23 +360,15 @@ require_once $project_root . 'includes/header.php';
                     <div class="step-content">
                         <div class="flex-1">
                             <h2 class="step-title"><?php echo translate('step_2_title', 'Download the Game'); ?></h2>
-                            <p><?php echo translate('step_2_desc', 'You need World of Warcraft: Wrath of the Lich King (3.3.5a). Choose your preferred download method:'); ?></p>
+                            <p><?php echo translate('step_2_desc', 'You need World of Warcraft: Wrath of the Lich King (3.3.5a). Use the download page for client and launcher links.'); ?></p>
                         </div>
                         <div class="mt-4 pt-4 border-t border-white/5">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <a class="btn-game btn-iron !text-xs !py-2.5" href="<?php echo $base_path; ?>download">
-                                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                                    </svg>
-                                    <?php echo translate('direct_download', 'Direct Download'); ?>
-                                </a>
-                                <a class="btn-game btn-iron !text-xs !py-2.5" href="<?php echo $base_path; ?>download">
-                                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                    </svg>
-                                    <?php echo translate('torrent_download', 'Torrent Download'); ?>
-                                </a>
-                            </div>
+                            <a class="btn-game btn-iron !text-xs !py-2.5 inline-flex" href="<?php echo $base_path; ?>download">
+                                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                <?php echo translate('view_downloads', 'View downloads'); ?>
+                            </a>
                         </div>
                     </div>
                 </div>

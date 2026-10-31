@@ -28,6 +28,7 @@ return [
     'admin_dashboard' => 'Dashboard',
     'admin_users' => 'User Management',
     'admin_news' => 'News Management',
+    'admin_downloads' => 'Download links',
     'admin_characters' => 'Character Management',
     'admin_shop' => 'Shop Management',
     'admin_gm_commands' => 'GM Commands',
