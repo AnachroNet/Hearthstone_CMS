@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/item_tooltip.php';
+require_once $project_root . 'includes/character_talents.php';
 $page_class = 'character';
 require_once $project_root . 'includes/config.settings.php';
 $page_title = $site_title_name . ' ' . translate('page_title', 'Character Equipment');
@@ -229,6 +230,43 @@ ob_start();
         transform: translateX(-4px);
         box-shadow: 0 0 20px rgba(242,207,82,.15);
     }
+
+    .talent-spec-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+    .talent-spec-btn {
+        padding: .45rem 1rem; font-size: .8rem; font-weight: 600; font-family: 'Cinzel', serif;
+        color: var(--muted); background: var(--card); border: 1px solid var(--gold-line); cursor: pointer;
+        clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+        transition: color .2s, border-color .2s, background .2s;
+    }
+    .talent-spec-btn.active, .talent-spec-btn[aria-selected="true"] {
+        color: #1a1200; border-color: var(--gold-dim);
+        background: linear-gradient(180deg, #f6d478, #c9a227, #8a6a14);
+    }
+    .talent-summary {
+        margin-bottom: 1.25rem; padding: .75rem 1rem; font-size: .9rem;
+        background: rgba(0,0,0,.35); border: 1px solid var(--gold-line); color: #e5e7eb;
+    }
+    .talent-summary b { color: var(--gold); font-family: 'Cinzel', serif; }
+    .talent-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; }
+    .talent-tree {
+        background: var(--card); border: 1px solid rgba(201,162,39,.12); padding: .85rem 1rem;
+        min-width: 0;
+    }
+    .talent-tree h3 {
+        font-family: 'Cinzel', serif; font-size: .95rem; color: var(--gold); margin: 0 0 .65rem;
+        display: flex; justify-content: space-between; gap: .5rem; align-items: baseline;
+    }
+    .talent-tree h3 span { font-size: .75rem; color: var(--muted); font-family: 'Inter', sans-serif; font-weight: 600; }
+    .talent-row {
+        display: flex; align-items: center; gap: .55rem; padding: .35rem 0;
+        border-bottom: 1px solid rgba(201,162,39,.08); font-size: .85rem;
+    }
+    .talent-row:last-child { border-bottom: 0; }
+    .talent-row img { width: 28px; height: 28px; border-radius: 4px; border: 1px solid rgba(201,162,39,.2); flex-shrink: 0; }
+    .talent-row .t-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .talent-row .t-rank { color: var(--gold); font-weight: 700; font-size: .75rem; flex-shrink: 0; }
+    .talent-spec-panel[hidden] { display: none !important; }
+    .talent-dbc-hint { font-size: .75rem; color: var(--muted); margin-top: 1rem; }
 </style>
 <script>
 /* Image fallbacks: missing icons swap to data-fallback, otherwise are hidden (no broken-image boxes). */
@@ -311,6 +349,7 @@ require_once $project_root . 'includes/header.php';
                 }
             }
             $character = null; $items = []; $arena_by_type = []; $stats = null; $total_kills = 0; $error = ''; $warnings = [];
+            $talent_view = null;
 
             // Prepared query -> all rows. Throws on any failure so each section can fail on its own.
            $query = function ($db, $sql, $types = '', $params = []) {
@@ -413,6 +452,19 @@ require_once $project_root . 'includes/header.php';
                 } catch (Throwable $e) {
                     error_log('[character.php] equipment query: ' . $e->getMessage());
                     $warnings[] = translate('warn_equipment_unavailable', 'Equipment data is temporarily unavailable.');
+                }
+
+                try {
+                    $talent_view = sahtout_character_talent_view(
+                        $char_db,
+                        isset($world_db) ? $world_db : null,
+                        $guid,
+                        (int) $character['class'],
+                        (int) $character['level']
+                    );
+                } catch (Throwable $e) {
+                    error_log('[character.php] talents: ' . $e->getMessage());
+                    $warnings[] = translate('warn_talents_unavailable', 'Talent data is temporarily unavailable.');
                 }
             }
 
@@ -695,10 +747,103 @@ $map = [
 
             <!-- Talents Tab -->
             <div id="talents-tab" class="tab-content mt-6" role="tabpanel" aria-labelledby="tab-talents" tabindex="0">
-                <div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-star text-3xl block mb-3 text-[rgba(201,162,39,0.3)]"></i>
-                    <?= translate('talents_coming_soon', 'Talents (Coming Soon)') ?>
-                </div>
+                <?php
+                $render_talent_spec = static function (array $specData, bool $flatOnly) {
+                    $pages = $specData['points'] ?? [0, 0, 0];
+                    $primary = $specData['primary_tree'] ?? '';
+                    $pointsTotal = (int) ($specData['points_total'] ?? 0);
+                    if (!$flatOnly && array_sum($pages) > 0):
+                ?>
+                    <div class="talent-summary">
+                        <b><?= htmlspecialchars(implode(' / ', $pages)) ?></b>
+                        <?php if ($primary !== ''): ?>
+                            — <?= htmlspecialchars($primary) ?>
+                        <?php endif; ?>
+                    </div>
+                <?php elseif ($flatOnly && $pointsTotal > 0): ?>
+                    <div class="talent-summary">
+                        <b><?= (int) $pointsTotal ?></b> <?= htmlspecialchars(translate('talents_points_spent', 'talent points spent')) ?>
+                    </div>
+                <?php endif; ?>
+                    <div class="talent-trees">
+                        <?php foreach ($specData['trees'] as $tree):
+                            if (empty($tree['talents'])) {
+                                continue;
+                            }
+                        ?>
+                        <div class="talent-tree">
+                            <?php if (!$flatOnly && ($tree['name'] ?? '') !== ''): ?>
+                                <h3><?= htmlspecialchars($tree['name']) ?><span><?= (int) ($tree['points'] ?? 0) ?> pts</span></h3>
+                            <?php endif; ?>
+                            <?php foreach ($tree['talents'] as $talent):
+                                $iconUrl = !empty($talent['icon_id'])
+                                    ? 'https://wow.zamimg.com/images/wow/icons/medium/' . (int) $talent['icon_id'] . '.jpg'
+                                    : '';
+                            ?>
+                            <div class="talent-row">
+                                <?php if ($iconUrl !== ''): ?>
+                                    <img src="<?= htmlspecialchars($iconUrl) ?>" alt="" loading="lazy"
+                                         onerror="this.style.display='none'">
+                                <?php else: ?>
+                                    <i class="fas fa-star text-[#f2cf5b] w-7 text-center" aria-hidden="true"></i>
+                                <?php endif; ?>
+                                <span class="t-name"><?= htmlspecialchars($talent['name']) ?></span>
+                                <span class="t-rank"><?= (int) $talent['rank'] ?></span>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php
+                };
+                ?>
+                <?php if (!$talent_view || !$talent_view['available']): ?>
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fas fa-star text-3xl block mb-3 text-[rgba(201,162,39,0.3)]"></i>
+                        <?= translate('talents_unavailable', 'Talent data is not available on this server.') ?>
+                    </div>
+                <?php elseif (($talent_view['message'] ?? '') === 'no_talents'): ?>
+                    <div class="text-center py-12 text-gray-400">
+                        <i class="fas fa-star text-3xl block mb-3 text-[rgba(201,162,39,0.3)]"></i>
+                        <?= translate('talents_none', 'This character has not spent any talent points yet.') ?>
+                    </div>
+                <?php else:
+                    $flatOnly = !empty($talent_view['flat_only']);
+                    $activeSpec = (int) ($talent_view['active_spec'] ?? 0);
+                ?>
+                    <?php if (!empty($talent_view['has_dual_spec'])): ?>
+                        <div class="talent-spec-bar" role="tablist" aria-label="<?= htmlspecialchars(translate('talents_spec_label', 'Talent specialization')) ?>">
+                            <?php foreach ([0, 1] as $specIdx):
+                                if (!isset($talent_view['specs'][$specIdx])) {
+                                    continue;
+                                }
+                                $isActive = ($specIdx === $activeSpec);
+                            ?>
+                            <button type="button" class="talent-spec-btn<?= $isActive ? ' active' : '' ?>"
+                                    role="tab" aria-selected="<?= $isActive ? 'true' : 'false' ?>"
+                                    aria-controls="talent-spec-panel-<?= $specIdx ?>"
+                                    data-talent-spec="<?= $specIdx ?>">
+                                <?= $specIdx === 0
+                                    ? translate('talents_spec_primary', 'Primary spec')
+                                    : translate('talents_spec_secondary', 'Secondary spec') ?>
+                            </button>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php foreach ($talent_view['specs'] as $specIdx => $specData):
+                        $showPanel = !empty($talent_view['has_dual_spec']) ? ($specIdx === $activeSpec) : true;
+                    ?>
+                    <div id="talent-spec-panel-<?= (int) $specIdx ?>" class="talent-spec-panel" role="tabpanel"
+                         <?= $showPanel ? '' : 'hidden' ?>>
+                        <?php $render_talent_spec($specData, $flatOnly); ?>
+                    </div>
+                    <?php endforeach; ?>
+
+                    <?php if ($flatOnly): ?>
+                        <p class="talent-dbc-hint"><?= translate('talents_dbc_hint', 'Add Talent.dbc and TalentTab.dbc under data/dbc/ for tree names and 51/10/0-style point totals.') ?></p>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
 
             <!-- PVP Tab -->
@@ -856,6 +1001,20 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { label.textContent = original; }, 2200);
         });
     }
+
+    document.querySelectorAll('.talent-spec-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const spec = btn.dataset.talentSpec;
+            document.querySelectorAll('.talent-spec-btn').forEach(b => {
+                const on = b === btn;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            document.querySelectorAll('.talent-spec-panel').forEach(panel => {
+                panel.hidden = panel.id !== 'talent-spec-panel-' + spec;
+            });
+        });
+    });
 });
 </script>
 
