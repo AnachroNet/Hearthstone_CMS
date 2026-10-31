@@ -114,21 +114,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $compType = (string) ($_POST['comp_type'] ?? '');
         $mailSubject = (string) ($_POST['mail_subject'] ?? '');
         $mailBody = (string) ($_POST['mail_body'] ?? '');
-        $goldAmount = (int) ($_POST['gold_amount'] ?? 0);
-        $itemEntry = (int) ($_POST['item_entry'] ?? 0);
-        $itemCount = (int) ($_POST['item_count'] ?? 1);
+        $itemEntries = isset($_POST['comp_item_entry']) && is_array($_POST['comp_item_entry'])
+            ? $_POST['comp_item_entry']
+            : [];
+        $itemQuantities = isset($_POST['comp_item_qty']) && is_array($_POST['comp_item_qty'])
+            ? $_POST['comp_item_qty']
+            : [];
         $tokenAmount = (int) ($_POST['token_amount'] ?? 0);
 
         if ($compType === 'ingame_mail') {
-            $result = sahtout_admin_compensation_send_ingame_mail(
-                $char_db,
-                $ticketId,
-                $mailSubject,
-                $mailBody,
-                $goldAmount,
-                $itemEntry,
-                $itemCount > 0 ? $itemCount : 1
-            );
+            $normalized = sahtout_compensation_normalize_item_rows($itemEntries, $itemQuantities);
+            if (!$normalized['ok']) {
+                $result = ['ok' => false, 'message' => $normalized['message']];
+            } else {
+                $result = sahtout_admin_compensation_send_ingame_mail(
+                    $char_db,
+                    $ticketId,
+                    $mailSubject,
+                    $mailBody,
+                    $normalized['items']
+                );
+            }
         } elseif ($compType === 'tokens') {
             if (!isset($site_db) || $site_db->connect_error) {
                 $result = ['ok' => false, 'message' => 'comp_unavailable'];
@@ -165,13 +171,12 @@ if (isset($_GET['msg'])) {
         'already_open' => translate('admin_tickets_already_open', 'Ticket is already open.'),
         'update_failed' => translate('admin_tickets_update_failed', 'Could not update ticket.'),
         'mail_sent' => translate('admin_tickets_comp_mail_sent', 'In-game mail was sent to the character.'),
-        'mail_sent_dual' => translate('admin_tickets_comp_mail_sent_dual', 'In-game mail was sent (items and gold may arrive as two messages from the postmaster).'),
-        'mail_partial' => translate('admin_tickets_comp_mail_partial', 'Item mail was sent, but the gold mail failed. Check SOAP logs before retrying gold.'),
-        'tokens_awarded' => translate('admin_tickets_comp_tokens_awarded', 'Website tokens were added to the account.'),
+        'tokens_awarded' => translate('admin_tickets_comp_tokens_awarded', 'Tokens were added and an in-game notification mail was sent.'),
+        'tokens_awarded_no_mail' => translate('admin_tickets_comp_tokens_awarded_no_mail', 'Tokens were added. Configure SOAP to send the in-game notification mail automatically.'),
+        'tokens_awarded_mail_failed' => translate('admin_tickets_comp_tokens_awarded_mail_failed', 'Tokens were added, but the in-game notification mail could not be sent. Check SOAP logs.'),
         'soap_not_configured' => translate('admin_tickets_comp_soap_missing', 'SOAP is not configured. Set it up under Admin → Settings → SOAP to send in-game mail.'),
         'soap_failed' => translate('admin_tickets_comp_soap_failed', 'The worldserver rejected the mail command. Check SOAP logs.'),
-        'invalid_gold' => translate('admin_tickets_comp_invalid_gold', 'Gold must be between 1 and 50,000 when provided.'),
-        'invalid_item' => translate('admin_tickets_comp_invalid_item', 'Enter a valid item entry and quantity.'),
+        'invalid_item' => translate('admin_tickets_comp_invalid_item', 'Each item row needs an entry ID and a quantity (1–200), or leave both empty.'),
         'invalid_mail_text' => translate('admin_tickets_comp_invalid_mail', 'Mail subject and body are required.'),
         'invalid_character' => translate('admin_tickets_comp_invalid_character', 'This ticket character name cannot be used for mail commands.'),
         'invalid_tokens' => translate('admin_tickets_comp_invalid_tokens', 'Enter a token amount between 1 and 9,999,999.'),
@@ -333,13 +338,17 @@ ob_start();
             padding-top: 1.25rem;
             border-top: 1px solid rgba(201,162,39,0.15);
         }
-        .ticket-comp-grid {
+        .ticket-item-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: .75rem;
+            grid-template-columns: 1fr 5rem;
+            gap: .35rem .75rem;
+            align-items: center;
         }
-        @media (min-width: 640px) {
-            .ticket-comp-grid.two-col { grid-template-columns: 1fr 1fr; }
+        .ticket-item-grid .item-grid-head {
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: rgba(156, 163, 175, 0.9);
         }
         .main-content-area {
             transition: margin-left 0.3s ease;
@@ -565,7 +574,7 @@ ob_start();
                         <input type="hidden" name="return_search" value="<?php echo htmlspecialchars($search); ?>">
                         <input type="hidden" name="return_page" value="<?php echo (int) $page; ?>">
 
-                        <p class="text-xs text-gray-500"><?php echo translate('admin_tickets_comp_mail_help', 'Leave gold and item fields empty to send text-only mail. You may include gold, an item, or both (gold and items may arrive as two separate in-game mails).'); ?></p>
+                        <p class="text-xs text-gray-500"><?php echo translate('admin_tickets_comp_mail_help', 'Leave all item rows empty to send text-only mail, or attach up to five items in one message.'); ?></p>
 
                         <div>
                             <label class="block text-xs text-gray-400 mb-1" for="mail-subject-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_mail_subject', 'Mail subject'); ?></label>
@@ -576,19 +585,16 @@ ob_start();
                             <textarea id="mail-body-<?php echo $modalId; ?>" name="mail_body" class="input-dark textarea-dark" rows="3" maxlength="800" <?php echo $soapConfigured ? '' : 'disabled'; ?>><?php echo htmlspecialchars($defaultCompBody); ?></textarea>
                         </div>
 
-                        <div class="ticket-comp-grid two-col">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1" for="gold-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_gold_optional', 'Gold (optional)'); ?></label>
-                                <input type="number" id="gold-<?php echo $modalId; ?>" name="gold_amount" class="input-dark" min="0" max="50000" placeholder="<?php echo translate('admin_tickets_comp_gold_placeholder', 'None'); ?>" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
+                        <div>
+                            <span class="block text-xs text-gray-400 mb-2"><?php echo translate('admin_tickets_comp_items_heading', 'Item attachments (optional)'); ?></span>
+                            <div class="ticket-item-grid max-w-md">
+                                <span class="item-grid-head"><?php echo translate('admin_tickets_comp_item_entry', 'Item ID'); ?></span>
+                                <span class="item-grid-head"><?php echo translate('admin_tickets_comp_item_qty', 'Qty'); ?></span>
+                                <?php for ($itemRow = 0; $itemRow < SAHTOUT_TICKET_COMP_MAX_ITEMS; $itemRow++): ?>
+                                    <input type="number" name="comp_item_entry[]" class="input-dark" min="0" placeholder="—" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
+                                    <input type="number" name="comp_item_qty[]" class="input-dark" min="0" max="200" placeholder="—" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
+                                <?php endfor; ?>
                             </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1" for="item-entry-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_item_entry_optional', 'Item entry ID (optional)'); ?></label>
-                                <input type="number" id="item-entry-<?php echo $modalId; ?>" name="item_entry" class="input-dark" min="0" placeholder="<?php echo translate('admin_tickets_comp_gold_placeholder', 'None'); ?>" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
-                            </div>
-                        </div>
-                        <div class="max-w-xs">
-                            <label class="block text-xs text-gray-400 mb-1" for="item-count-<?php echo $modalId; ?>"><?php echo translate('admin_tickets_comp_item_count', 'Quantity'); ?></label>
-                            <input type="number" id="item-count-<?php echo $modalId; ?>" name="item_count" class="input-dark" min="1" max="200" value="1" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
                         </div>
 
                         <button type="submit" class="btn-gold" <?php echo $soapConfigured ? '' : 'disabled'; ?>>
@@ -597,7 +603,8 @@ ob_start();
                     </form>
 
                     <div class="pt-4 mt-4 border-t border-[rgba(201,162,39,0.08)]">
-                        <h5 class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3"><?php echo translate('admin_tickets_comp_tokens_heading', 'Website shop tokens'); ?></h5>
+                        <h5 class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1"><?php echo translate('admin_tickets_comp_tokens_heading', 'Website shop tokens'); ?></h5>
+                        <p class="text-xs text-gray-500 mb-3"><?php echo translate('admin_tickets_comp_tokens_help', 'Adds tokens to the account and sends an in-game mail titled "Your Account Tokens".'); ?></p>
                         <?php if ($ticketAccountId <= 0): ?>
                             <p class="text-gray-500 text-xs"><?php echo translate('admin_tickets_comp_no_account', 'No website account is linked to this ticket.'); ?></p>
                         <?php else: ?>

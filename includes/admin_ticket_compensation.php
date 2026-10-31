@@ -6,6 +6,8 @@ if (!defined('ALLOWED_ACCESS')) {
 require_once __DIR__ . '/account_gm_tickets.php';
 require_once __DIR__ . '/soap_client.php';
 
+const SAHTOUT_TICKET_COMP_MAX_ITEMS = 5;
+
 function sahtout_compensation_sanitize_mail_text(string $text, int $maxLen = 800): string
 {
     $text = trim(preg_replace("/[\r\n\t]+/", ' ', $text) ?? '');
@@ -50,6 +52,35 @@ function sahtout_compensation_soap_command(string $command): array
 }
 
 /**
+ * @param list<mixed> $entries
+ * @param list<mixed> $quantities
+ * @return array{ok: bool, message: string, items: list<array{entry: int, count: int}>}
+ */
+function sahtout_compensation_normalize_item_rows(array $entries, array $quantities): array
+{
+    $items = [];
+
+    for ($i = 0; $i < SAHTOUT_TICKET_COMP_MAX_ITEMS; $i++) {
+        $entry = isset($entries[$i]) ? (int) $entries[$i] : 0;
+        $count = isset($quantities[$i]) ? (int) $quantities[$i] : 0;
+
+        if ($entry <= 0 && $count <= 0) {
+            continue;
+        }
+        if ($entry <= 0 || $count <= 0 || $count > 200) {
+            return ['ok' => false, 'message' => 'invalid_item', 'items' => []];
+        }
+        $items[] = ['entry' => $entry, 'count' => $count];
+    }
+
+    if (count($items) > SAHTOUT_TICKET_COMP_MAX_ITEMS) {
+        return ['ok' => false, 'message' => 'invalid_item', 'items' => []];
+    }
+
+    return ['ok' => true, 'message' => 'ok', 'items' => $items];
+}
+
+/**
  * @return array{ok: bool, message: string, soap_output: string, character_name?: string, subject?: string, body?: string}
  */
 function sahtout_compensation_resolve_ticket_mail_context(mysqli $charDb, int $ticketId, string $subject, string $body): array
@@ -89,9 +120,7 @@ function sahtout_compensation_resolve_ticket_mail_context(mysqli $charDb, int $t
 }
 
 /**
- * Send one in-game mail: text only, gold, item(s), or gold + item(s).
- * AzerothCore SOAP has separate commands for money vs items, so gold + items may be two mails.
- *
+ * @param list<array{entry: int, count: int}> $items
  * @return array{ok: bool, message: string, soap_output: string}
  */
 function sahtout_admin_compensation_send_ingame_mail(
@@ -99,27 +128,11 @@ function sahtout_admin_compensation_send_ingame_mail(
     int $ticketId,
     string $subject,
     string $body,
-    int $goldAmount,
-    int $itemEntry,
-    int $itemCount
+    array $items
 ): array {
     $fail = static function (string $code, string $soapOutput = ''): array {
         return ['ok' => false, 'message' => $code, 'soap_output' => $soapOutput];
     };
-
-    $goldAmount = max(0, $goldAmount);
-    $itemEntry = max(0, $itemEntry);
-    $itemCount = max(0, $itemCount);
-
-    if ($goldAmount > 50000) {
-        return $fail('invalid_gold');
-    }
-    if ($itemEntry > 0 && ($itemCount <= 0 || $itemCount > 200)) {
-        return $fail('invalid_item');
-    }
-    if ($itemEntry <= 0) {
-        $itemCount = 0;
-    }
 
     $ctx = sahtout_compensation_resolve_ticket_mail_context($charDb, $ticketId, $subject, $body);
     if (!$ctx['ok']) {
@@ -127,15 +140,10 @@ function sahtout_admin_compensation_send_ingame_mail(
     }
 
     $charName = $ctx['character_name'];
-    $subject = $ctx['subject'];
-    $body = $ctx['body'];
-    $quotedSubject = sahtout_compensation_soap_quote($subject);
-    $quotedBody = sahtout_compensation_soap_quote($body);
+    $quotedSubject = sahtout_compensation_soap_quote($ctx['subject']);
+    $quotedBody = sahtout_compensation_soap_quote($ctx['body']);
 
-    $hasGold = $goldAmount > 0;
-    $hasItem = $itemEntry > 0 && $itemCount > 0;
-
-    if (!$hasGold && !$hasItem) {
+    if ($items === []) {
         $command = sprintf('.send mail %s %s %s', $charName, $quotedSubject, $quotedBody);
         $result = sahtout_compensation_soap_command($command);
         if (!$result['ok']) {
@@ -145,43 +153,26 @@ function sahtout_admin_compensation_send_ingame_mail(
         return ['ok' => true, 'message' => 'mail_sent', 'soap_output' => $result['soap_output']];
     }
 
-    if ($hasItem) {
-        $command = sprintf(
-            '.send items %s %s %s %d:%d',
-            $charName,
-            $quotedSubject,
-            $quotedBody,
-            $itemEntry,
-            $itemCount
-        );
-        $itemResult = sahtout_compensation_soap_command($command);
-        if (!$itemResult['ok']) {
-            return $fail($itemResult['message'], $itemResult['soap_output']);
-        }
+    $parts = [];
+    foreach ($items as $item) {
+        $parts[] = (int) $item['entry'] . ':' . (int) $item['count'];
+    }
+    $itemTail = implode(' ', $parts);
+
+    $command = sprintf(
+        '.send items %s %s %s %s',
+        $charName,
+        $quotedSubject,
+        $quotedBody,
+        $itemTail
+    );
+
+    $result = sahtout_compensation_soap_command($command);
+    if (!$result['ok']) {
+        return $fail($result['message'], $result['soap_output']);
     }
 
-    if ($hasGold) {
-        $command = sprintf(
-            '.send money %s %s %s %dg',
-            $charName,
-            $quotedSubject,
-            $quotedBody,
-            $goldAmount
-        );
-        $goldResult = sahtout_compensation_soap_command($command);
-        if (!$goldResult['ok']) {
-            if ($hasItem) {
-                return $fail('mail_partial', $goldResult['soap_output']);
-            }
-            return $fail($goldResult['message'], $goldResult['soap_output']);
-        }
-    }
-
-    if ($hasGold && $hasItem) {
-        return ['ok' => true, 'message' => 'mail_sent_dual', 'soap_output' => ''];
-    }
-
-    return ['ok' => true, 'message' => 'mail_sent', 'soap_output' => ''];
+    return ['ok' => true, 'message' => 'mail_sent', 'soap_output' => $result['soap_output']];
 }
 
 /**
@@ -219,8 +210,8 @@ function sahtout_account_token_balances(mysqli $siteDb, array $accountIds): arra
  */
 function sahtout_admin_compensation_award_tokens(mysqli $siteDb, int $ticketId, mysqli $charDb, int $amount): array
 {
-    $fail = static function (string $code): array {
-        return ['ok' => false, 'message' => $code, 'new_balance' => null];
+    $fail = static function (string $code, ?int $balance = null): array {
+        return ['ok' => false, 'message' => $code, 'new_balance' => $balance];
     };
 
     if ($amount <= 0 || $amount > 9999999) {
@@ -253,10 +244,37 @@ function sahtout_admin_compensation_award_tokens(mysqli $siteDb, int $ticketId, 
     }
 
     $balances = sahtout_account_token_balances($siteDb, [$accountId]);
+    $newBalance = $balances[$accountId] ?? null;
+
+    $tokenSubject = translate('admin_tickets_comp_token_mail_subject', 'Your Account Tokens');
+    $tokenBody = sprintf(
+        translate(
+            'admin_tickets_comp_token_mail_body',
+            'We have added %s tokens to your account. Please visit the web store to redeem them. Thank you!'
+        ),
+        number_format($amount)
+    );
+
+    $mailResult = sahtout_admin_compensation_send_ingame_mail($charDb, $ticketId, $tokenSubject, $tokenBody, []);
+    if (!$mailResult['ok']) {
+        if ($mailResult['message'] === 'soap_not_configured') {
+            return [
+                'ok' => true,
+                'message' => 'tokens_awarded_no_mail',
+                'new_balance' => $newBalance,
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'message' => 'tokens_awarded_mail_failed',
+            'new_balance' => $newBalance,
+        ];
+    }
 
     return [
         'ok' => true,
         'message' => 'tokens_awarded',
-        'new_balance' => $balances[$accountId] ?? null,
+        'new_balance' => $newBalance,
     ];
 }
