@@ -16,16 +16,6 @@ return [
     'placeholder_site_title' => 'e.g. My Awesome Site',
     'help_site_title' => 'This title appears in the browser tab, site header, and SEO.',
 
-    // YouTube
-    'label_youtube_embed' => 'Featured YouTube Embed Link',
-    'help_youtube_embed' => 'Paste a YouTube watch, short, or embed link. The system will normalize it to an embed URL.',
-    'label_youtube_title' => 'Video Title',
-    'placeholder_youtube_title' => 'Featured Video',
-    'help_youtube_title' => 'This title appears centered above the video.',
-    'label_youtube_description' => 'Video Description',
-    'placeholder_youtube_description' => 'Watch a featured video here...',
-    'help_youtube_description' => 'This text appears under the title in the video panel.',
-
     // Logo
     'label_website_logo' => 'Upload Logo',
     'help_logo' => 'Upload a new logo image. PNG, JPG or SVG formats supported (max 3MB).',

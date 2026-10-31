@@ -9,12 +9,8 @@ return [
     'home_create_account' => 'Create Account',
     'home_download' => 'Download',
     'home_no_news' => 'No news available at this time.',
-    'home_tab_bugtracker' => 'Bugtracker',
-    'home_tab_youtube' => 'YouTube',
-    'home_youtube_title' => 'Featured Video',
-    'home_youtube_content' => 'Watch a featured video here. Replace it with your own channel or highlight later.',
-    'home_bugtracker_title' => 'Bugtracker',
-    'home_bugtracker_content' => 'View and report issues with the server to help us improve your experience.',
+    'home_bugtracker_title' => 'Bugtracker Coming Soon',
+    'home_bugtracker_desc' => 'Report bugs and track issues here.',
     'home_realm_status_error' => 'Error: Realm status unavailable.'
 ];
 ?>

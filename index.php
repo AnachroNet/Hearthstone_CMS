@@ -152,37 +152,6 @@ ob_start();
         .social-btn.discord   { background: linear-gradient(180deg,#7289ff,#4752c4); filter: drop-shadow(0 0 6px rgba(88,101,242,.3)); }
         .social-btn.discord:hover   { filter: drop-shadow(0 0 14px rgba(88,101,242,.55)); }
 
-        .slider-frame { border: 1px solid rgba(201,162,39,.3); padding: 6px; background: rgba(0,0,0,.45); }
-        .slider-container { overflow: hidden; position: relative; }
-        .slider-track { display: flex; transition: transform .5s ease-in-out; }
-        .slide { min-width: 100%; }
-        .slide img { filter: saturate(1.05) contrast(1.05); }
-        .slider-nav {
-            position: absolute; top: 50%; transform: translateY(-50%); z-index: 10;
-            width: 44px; height: 44px;
-            display: flex; align-items: center; justify-content: center;
-            color: #f2cf5b; font-size: 18px;
-            background: linear-gradient(180deg, rgba(30,34,42,.9), rgba(10,12,16,.9));
-            border: 1px solid rgba(201,162,39,.45);
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-            transition: all .2s ease;
-        }
-        .slider-nav:hover { color: #fff; border-color: #f2cf5b; filter: drop-shadow(0 0 10px rgba(242,207,82,.6)); }
-        .slider-nav.prev { left: 10px; }
-        .slider-nav.next { right: 10px; }
-
-        .dot {
-            width: 9px; height: 9px; transform: rotate(45deg);
-            background: #4b5563; cursor: pointer; transition: all .3s ease;
-            box-shadow: 0 0 0 1px rgba(0,0,0,.6);
-        }
-        .dot:hover { background: #9ca3af; }
-        .dot.active {
-            background: #f2cf5b;
-            box-shadow: 0 0 10px rgba(242,207,82,.8), 0 0 0 1px rgba(0,0,0,.6);
-            transform: rotate(45deg) scale(1.25);
-        }
-
         .news-card {
             display: block; position: relative; overflow: hidden;
             background: linear-gradient(180deg, rgba(26,29,36,.9), rgba(10,12,16,.9));
@@ -199,37 +168,6 @@ ob_start();
             font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
             color: #c9a227;
         }
-
-        .tab-btn {
-            position: relative;
-            padding: .7rem 1.6rem;
-            font-family: 'Cinzel', serif; font-weight: 700; font-size: .85rem; letter-spacing: .06em;
-            color: #9ca3af; background: rgba(0,0,0,.35);
-            border: 1px solid rgba(255,255,255,.08);
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-            transition: all .25s ease;
-            cursor: pointer;
-        }
-        .tab-btn:hover { color: #e5e7eb; border-color: rgba(201,162,39,.4); }
-        .tab-btn.active {
-            color: #f2cf5b;
-            background: linear-gradient(180deg, rgba(201,162,39,.25), rgba(201,162,39,.08));
-            border-color: rgba(242,207,82,.65);
-            text-shadow: 0 0 10px rgba(242,207,82,.5);
-        }
-        .tab-panel { display: none; animation: fadeIn .4s ease; }
-        .tab-panel.active { display: block; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .video-frame {
-            border: 1px solid rgba(201,162,39,.35);
-            padding: 6px; background: rgba(0,0,0,.5);
-            filter: drop-shadow(0 10px 24px rgba(0,0,0,.6));
-        }
-        .video-frame iframe { width: 100%; aspect-ratio: 16/9; display: block; border: 0; }
 
         .status-online  { color: #4ade80; text-shadow: 0 0 8px rgba(74,222,128,.5); }
         .status-offline { color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,.5); }
@@ -292,13 +230,6 @@ ob_start();
             overflow: hidden;
         }
     </style>
-    <script>
-        window.homeYoutubeSettings = <?php echo json_encode([
-            'embedUrl' => $youtube_embed_url ?? 'https://www.youtube.com/embed/DjuN1dE50VI?rel=0&modestbranding=1',
-            'title' => $youtube_title ?? 'Sahtout Server Trailer',
-            'description' => $youtube_description ?? 'Lichking Trailer, Replace it with your own ....',
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
-    </script>
 <?php
 $page_head = ob_get_clean();
 
@@ -372,44 +303,6 @@ $result = $site_db->query($query);
                     </div>
                 </div>
 
-                <!-- GALLERY -->
-                <section class="wow-panel p-3 sm:p-4 md:p-6">
-                    <h2 class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <?php echo translate('home_gallery_title', 'Gallery'); ?>
-                    </h2>
-                    <div class="slider-frame">
-                        <div class="slider-container relative">
-                            <div class="slider-track" id="sliderTrack">
-                                <?php
-                                $slides = [
-                                    ['img' => 'slide1.jpg', 'alt' => translate('slider_alt_1', 'World of Warcraft Scene 1')],
-                                    ['img' => 'slide2.jpg', 'alt' => translate('slider_alt_2', 'World of Warcraft Scene 2')],
-                                    ['img' => 'slide3.jpg', 'alt' => translate('slider_alt_3', 'World of Warcraft Scene 3')],
-                                    ['img' => 'slide4.jpg', 'alt' => translate('slider_alt_4', 'World of Warcraft Scene 4')]
-                                ];
-                                foreach ($slides as $slide):
-                                ?>
-                                    <div class="slide">
-                                        <img src="<?php echo $base_path; ?>img/homeimg/<?php echo $slide['img']; ?>"
-                                             alt="<?php echo $slide['alt']; ?>"
-                                             class="w-full h-48 sm:h-56 md:h-96 object-cover">
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-
-                            <button class="slider-nav prev text-xs sm:text-base w-8 h-8 sm:w-11 sm:h-11" id="prevSlide" aria-label="<?php echo translate('slider_prev', 'Previous Slide'); ?>">❮</button>
-                            <button class="slider-nav next text-xs sm:text-base w-8 h-8 sm:w-11 sm:h-11" id="nextSlide" aria-label="<?php echo translate('slider_next', 'Next Slide'); ?>">❯</button>
-                        </div>
-                    </div>
-                    <div class="flex justify-center gap-2 sm:gap-3 mt-3 sm:mt-4" id="dotsContainer">
-                        <span class="dot active" data-slide="0"></span>
-                        <span class="dot" data-slide="1"></span>
-                        <span class="dot" data-slide="2"></span>
-                        <span class="dot" data-slide="3"></span>
-                    </div>
-                </section>
-
                 <!-- NEWS -->
                 <section class="wow-panel p-3 sm:p-4 md:p-6">
                     <div class="flex items-center justify-between mb-4 sm:mb-6 gap-4">
@@ -449,40 +342,14 @@ $result = $site_db->query($query);
                     </div>
                 </section>
 
-                <!-- TABS: YOUTUBE + BUGTRACKER -->
+                <!-- BUGTRACKER -->
                 <section class="wow-panel p-3 sm:p-4 md:p-6">
-                    <div class="flex flex-wrap gap-1 sm:gap-2 mb-4 sm:mb-6">
-                        <button class="tab-btn text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2" data-tab="youtube"><?php echo translate('home_tab_youtube', 'YouTube'); ?></button>
-                        <button class="tab-btn text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2" data-tab="bugtracker"><?php echo translate('home_tab_bugtracker', 'Bugtracker'); ?></button>
-                    </div>
-
-                    <div class="tab-content">
-                        <div class="tab-panel active" id="panel-youtube">
-                            <div class="text-center mb-4 sm:mb-5">
-                                <h2 class="section-title text-lg sm:text-xl md:text-2xl force-wrap" style="justify-content:center;">
-                                    <?php echo htmlspecialchars($youtube_title ?? 'Sahtout Server Trailer', ENT_QUOTES, 'UTF-8'); ?>
-                                </h2>
-                                <p class="text-gray-400 mt-2 max-w-xl mx-auto text-xs sm:text-sm md:text-base force-wrap">
-                                    <?php echo htmlspecialchars($youtube_description ?? 'Lichking Trailer, Replace it with your own ....', ENT_QUOTES, 'UTF-8'); ?>
-                                </p>
-                            </div>
-                            <div class="video-frame max-w-2xl mx-auto">
-                                <iframe
-                                    src="<?php echo htmlspecialchars($youtube_embed_url ?? 'https://www.youtube.com/embed/DjuN1dE50VI?rel=0&modestbranding=1', ENT_QUOTES, 'UTF-8'); ?>"
-                                    title="<?php echo htmlspecialchars($youtube_title ?? 'Sahtout Server Trailer', ENT_QUOTES, 'UTF-8'); ?>"
-                                    loading="lazy"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowfullscreen></iframe>
-                            </div>
-                        </div>
-
-                        <div class="tab-panel" id="panel-bugtracker">
-                            <div class="text-center py-8 sm:py-12">
-                                <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <h3 class="text-lg sm:text-xl font-bold text-white mb-2 force-wrap" style="font-family:'Cinzel',serif;"><?php echo translate('home_bugtracker_title', 'Bugtracker Coming Soon'); ?></h3>
-                                <p class="text-gray-400 text-sm sm:text-base force-wrap"><?php echo translate('home_bugtracker_desc', 'Report bugs and track issues here.'); ?></p>
-                            </div>
-                        </div>
+                    <h2 class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <?php echo translate('home_bugtracker_title', 'Bugtracker Coming Soon'); ?>
+                    </h2>
+                    <div class="text-center py-6 sm:py-8">
+                        <p class="text-gray-400 text-sm sm:text-base force-wrap max-w-xl mx-auto"><?php echo translate('home_bugtracker_desc', 'Report bugs and track issues here.'); ?></p>
                     </div>
                 </section>
             </div>
@@ -544,66 +411,6 @@ $result = $site_db->query($query);
             </div>
         </div>
     </main>
-
-    <script>
-        const track = document.getElementById('sliderTrack');
-        const slides = track.querySelectorAll('.slide');
-        const dots = document.querySelectorAll('.dot');
-        let currentSlide = 0;
-        let totalSlides = slides.length;
-        let autoSlideInterval;
-
-        function goToSlide(index) {
-            if (index < 0) index = totalSlides - 1;
-            if (index >= totalSlides) index = 0;
-            currentSlide = index;
-            track.style.transform = `translateX(-${currentSlide * 100}%)`;
-            dots.forEach((dot, i) => dot.classList.toggle('active', i === currentSlide));
-        }
-
-        function nextSlide() { goToSlide(currentSlide + 1); }
-        function prevSlide() { goToSlide(currentSlide - 1); }
-
-        document.getElementById('nextSlide').addEventListener('click', () => {
-            clearInterval(autoSlideInterval); nextSlide(); startAutoSlide();
-        });
-        document.getElementById('prevSlide').addEventListener('click', () => {
-            clearInterval(autoSlideInterval); prevSlide(); startAutoSlide();
-        });
-        dots.forEach(dot => {
-            dot.addEventListener('click', () => {
-                clearInterval(autoSlideInterval);
-                goToSlide(parseInt(dot.dataset.slide));
-                startAutoSlide();
-            });
-        });
-
-        function startAutoSlide() {
-            clearInterval(autoSlideInterval);
-            autoSlideInterval = setInterval(nextSlide, 5000);
-        }
-        startAutoSlide();
-
-        const tabs = document.querySelectorAll('.tab-btn');
-        const panels = {
-            youtube: document.getElementById('panel-youtube'),
-            bugtracker: document.getElementById('panel-bugtracker')
-        };
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                Object.keys(panels).forEach(key => panels[key].classList.remove('active'));
-                panels[tab.dataset.tab].classList.add('active');
-            });
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft')  { clearInterval(autoSlideInterval); prevSlide(); startAutoSlide(); }
-            if (e.key === 'ArrowRight') { clearInterval(autoSlideInterval); nextSlide(); startAutoSlide(); }
-        });
-    </script>
-    <script src="<?php echo $base_path; ?>assets/js/home.js"></script>
 
     <?php
     $footer_file = $project_root . 'includes/footer.php';

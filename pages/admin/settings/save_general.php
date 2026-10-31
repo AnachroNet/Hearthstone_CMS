@@ -19,32 +19,6 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST
 
 require_once $project_root . 'includes/site_settings.php';
 
-function normalizeYouTubeEmbedUrl(string $value): string
-{
-    $value = trim($value);
-    if ($value === '') {
-        return '';
-    }
-
-    if (preg_match('~^(?:https?:)?//(?:www\.)?youtube\.com/embed/([A-Za-z0-9_-]{11})(?:[?&].*)?$~', $value, $matches)) {
-        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
-    }
-
-    if (preg_match('~^(?:https?:)?//(?:www\.)?youtu\.be/([A-Za-z0-9_-]{11})(?:[?&].*)?$~', $value, $matches)) {
-        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
-    }
-
-    if (preg_match('~^(?:https?:)?//(?:www\.)?youtube\.com/watch\?v=([A-Za-z0-9_-]{11})(?:[&?].*)?$~', $value, $matches)) {
-        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
-    }
-
-    if (preg_match('~^(?:https?:)?//(?:www\.)?youtube\.com/shorts/([A-Za-z0-9_-]{11})(?:[?&].*)?$~', $value, $matches)) {
-        return 'https://www.youtube.com/embed/' . $matches[1] . '?rel=0&modestbranding=1';
-    }
-
-    return '';
-}
-
 // ==================== NEW: Handle Website Title ====================
 $site_title_name_new = trim($_POST['site_title_name'] ?? '');
 if (empty($site_title_name_new)) {
@@ -52,23 +26,6 @@ if (empty($site_title_name_new)) {
 }
 // Sanitize: prevent PHP injection when writing to config
 $site_title_name_new = trim($site_title_name_new);
-
-$youtube_embed_url_new = normalizeYouTubeEmbedUrl((string)($_POST['youtube_embed_url'] ?? ''));
-if ($youtube_embed_url_new === '') {
-    $youtube_embed_url_new = $youtube_embed_url;
-}
-
-$youtube_title_new = trim($_POST['youtube_title'] ?? '');
-if ($youtube_title_new === '') {
-    $youtube_title_new = 'Featured Video';
-}
-$youtube_title_new = trim($youtube_title_new);
-
-$youtube_description_new = trim($_POST['youtube_description'] ?? '');
-if ($youtube_description_new === '') {
-    $youtube_description_new = 'Watch a featured video here. Replace it with your own channel or highlight later.';
-}
-$youtube_description_new = trim($youtube_description_new);
 
 // Initialize variables
 $errors = [];
@@ -158,9 +115,6 @@ if (empty($errors)) {
         $ok = true;
         $ok = $ok && sahtout_site_setting_set($site_db, 'site.title', $site_title_name_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'site.logo_path', $logo_path, 'string', $editorId);
-        $ok = $ok && sahtout_site_setting_set($site_db, 'home.youtube_embed_url', $youtube_embed_url_new, 'string', $editorId);
-        $ok = $ok && sahtout_site_setting_set($site_db, 'home.youtube_title', $youtube_title_new, 'string', $editorId);
-        $ok = $ok && sahtout_site_setting_set($site_db, 'home.youtube_description', $youtube_description_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'social.links', $social_links_new, 'json', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.guild_id', $discord_guild_id_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.widget_enabled', $discord_widget_enabled_new, 'bool', $editorId);

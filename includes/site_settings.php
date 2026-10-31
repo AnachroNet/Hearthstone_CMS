@@ -20,9 +20,6 @@ function sahtout_site_setting_defaults(): array
     return [
         'site.title' => 'SahtoutCMS',
         'site.logo_path' => 'img/logo.png',
-        'home.youtube_embed_url' => '',
-        'home.youtube_title' => 'Featured Video',
-        'home.youtube_description' => '',
         'social.links' => [
             'facebook' => '',
             'twitter' => '',
@@ -136,14 +133,11 @@ function sahtout_discord_join_url(): string
 
 function sahtout_apply_site_settings_globals(array $settings): void
 {
-    global $site_title_name, $site_logo, $youtube_embed_url, $youtube_title, $youtube_description;
+    global $site_title_name, $site_logo;
     global $social_links, $discord_guild_id, $discord_widget_enabled, $discord_join_url;
 
     $site_title_name = (string) ($settings['site.title'] ?? 'SahtoutCMS');
     $site_logo = (string) ($settings['site.logo_path'] ?? 'img/logo.png');
-    $youtube_embed_url = (string) ($settings['home.youtube_embed_url'] ?? '');
-    $youtube_title = (string) ($settings['home.youtube_title'] ?? '');
-    $youtube_description = (string) ($settings['home.youtube_description'] ?? '');
 
     $defaultSocial = sahtout_site_setting_defaults()['social.links'];
     $social = $settings['social.links'] ?? $defaultSocial;
@@ -168,15 +162,6 @@ function sahtout_site_settings_from_legacy_file(): ?array
     }
     if (isset($site_logo)) {
         $settings['site.logo_path'] = $site_logo;
-    }
-    if (isset($youtube_embed_url)) {
-        $settings['home.youtube_embed_url'] = $youtube_embed_url;
-    }
-    if (isset($youtube_title)) {
-        $settings['home.youtube_title'] = $youtube_title;
-    }
-    if (isset($youtube_description)) {
-        $settings['home.youtube_description'] = $youtube_description;
     }
     if (isset($social_links) && is_array($social_links)) {
         $settings['social.links'] = array_replace($settings['social.links'], $social_links);
@@ -205,8 +190,5 @@ function sahtout_seed_site_settings_from_legacy(mysqli $site_db): void
 
     sahtout_site_setting_set($site_db, 'site.title', $legacy['site.title'], 'string');
     sahtout_site_setting_set($site_db, 'site.logo_path', $legacy['site.logo_path'], 'string');
-    sahtout_site_setting_set($site_db, 'home.youtube_embed_url', $legacy['home.youtube_embed_url'], 'string');
-    sahtout_site_setting_set($site_db, 'home.youtube_title', $legacy['home.youtube_title'], 'string');
-    sahtout_site_setting_set($site_db, 'home.youtube_description', $legacy['home.youtube_description'], 'string');
     sahtout_site_setting_set($site_db, 'social.links', $legacy['social.links'], 'json');
 }
