@@ -7,6 +7,27 @@ if (!defined('ALLOWED_ACCESS')) {
  * WotLK 3.3.5 character talents (character_talent + optional Talent/TalentTab DBC).
  */
 
+function sahtout_find_dbc_file(string $dir, string $fileName): ?string
+{
+    $path = $dir . DIRECTORY_SEPARATOR . $fileName;
+    if (is_readable($path)) {
+        return $path;
+    }
+    if (!is_dir($dir)) {
+        return null;
+    }
+    foreach (scandir($dir) ?: [] as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        if (strcasecmp($entry, $fileName) === 0) {
+            $match = $dir . DIRECTORY_SEPARATOR . $entry;
+            return is_readable($match) ? $match : null;
+        }
+    }
+    return null;
+}
+
 function sahtout_talent_dbc_dir(): ?string
 {
     $candidates = [];
@@ -16,8 +37,8 @@ function sahtout_talent_dbc_dir(): ?string
     $candidates[] = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'dbc';
 
     foreach ($candidates as $dir) {
-        if (is_readable($dir . DIRECTORY_SEPARATOR . 'Talent.dbc')
-            && is_readable($dir . DIRECTORY_SEPARATOR . 'TalentTab.dbc')) {
+        if (sahtout_find_dbc_file($dir, 'Talent.dbc') !== null
+            && sahtout_find_dbc_file($dir, 'TalentTab.dbc') !== null) {
             return $dir;
         }
     }
@@ -34,7 +55,7 @@ function sahtout_read_wdbc_records(string $path): array
     if ($magic !== 'WDBC') {
         throw new RuntimeException('Not WDBC: ' . basename($path));
     }
-    $header = unpack('V4s/Vrec/Vfield/VrecSize/VstrSize', substr($blob, 0, 20));
+    $header = unpack('Vrec/Vfield/VrecSize/VstrSize', substr($blob, 4, 16));
     $nRec = (int) $header['rec'];
     $nField = (int) $header['field'];
     $recSize = (int) $header['recSize'];
@@ -72,9 +93,14 @@ function sahtout_talent_spell_map(): array
 
     $cacheFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'wotlk_talent_map.php';
     if (is_readable($cacheFile)) {
-        $data = include $cacheFile;
-        if (is_array($data) && isset($data['spell_tab'], $data['tab_info'])) {
-            return $loaded = $data;
+        try {
+            $data = include $cacheFile;
+            if (is_array($data) && isset($data['spell_tab'], $data['tab_info'])) {
+                return $loaded = $data;
+            }
+        } catch (Throwable $e) {
+            error_log('[character_talents] talent map cache invalid: ' . $e->getMessage());
+            @unlink($cacheFile);
         }
     }
 
@@ -84,9 +110,15 @@ function sahtout_talent_spell_map(): array
         return $loaded = $empty;
     }
 
+    $talentDbc = sahtout_find_dbc_file($dbcDir, 'Talent.dbc');
+    $tabDbc = sahtout_find_dbc_file($dbcDir, 'TalentTab.dbc');
+    if ($talentDbc === null || $tabDbc === null) {
+        return $loaded = $empty;
+    }
+
     try {
-        [$tal, ] = sahtout_read_wdbc_records($dbcDir . DIRECTORY_SEPARATOR . 'Talent.dbc');
-        [$tabs, $tabStrings] = sahtout_read_wdbc_records($dbcDir . DIRECTORY_SEPARATOR . 'TalentTab.dbc');
+        [$tal, ] = sahtout_read_wdbc_records($talentDbc);
+        [$tabs, $tabStrings] = sahtout_read_wdbc_records($tabDbc);
     } catch (Throwable $e) {
         error_log('[character_talents] DBC read failed: ' . $e->getMessage());
         return $loaded = $empty;
@@ -210,26 +242,42 @@ function sahtout_character_talent_view(mysqli $charDb, ?mysqli $worldDb, int $gu
 
     if ($guid <= 0 || !sahtout_character_talents_table_exists($charDb)) {
         $view['message'] = 'missing_table';
+        error_log('[character_talents] character_talent table missing or invalid guid');
         return $view;
     }
 
-    $stmt = $charDb->prepare('SELECT activeTalentGroup, extraTalentGroups FROM characters WHERE guid = ? LIMIT 1');
-    if (!$stmt) {
-        $view['message'] = 'query_failed';
-        return $view;
+    $charRow = null;
+    $stmt = $charDb->prepare('SELECT activeTalentGroup, talentGroupsCount FROM characters WHERE guid = ? LIMIT 1');
+    if ($stmt) {
+        $stmt->bind_param('i', $guid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $charRow = $res ? $res->fetch_assoc() : null;
+        if ($res) {
+            $res->free();
+        }
+        $stmt->close();
+    } else {
+        error_log('[character_talents] characters spec query failed: ' . $charDb->error);
+        $stmt = $charDb->prepare('SELECT activeTalentGroup FROM characters WHERE guid = ? LIMIT 1');
+        if (!$stmt) {
+            $view['message'] = 'query_failed';
+            error_log('[character_talents] characters fallback query failed: ' . $charDb->error);
+            return $view;
+        }
+        $stmt->bind_param('i', $guid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $charRow = $res ? $res->fetch_assoc() : null;
+        if ($res) {
+            $res->free();
+        }
+        $stmt->close();
     }
-    $stmt->bind_param('i', $guid);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $charRow = $res ? $res->fetch_assoc() : null;
-    if ($res) {
-        $res->free();
-    }
-    $stmt->close();
 
     $activeSpec = (int) ($charRow['activeTalentGroup'] ?? 0);
-    $extraGroups = (int) ($charRow['extraTalentGroups'] ?? 0);
-    $hasDual = $extraGroups > 0;
+    $talentGroupsCount = max(1, (int) ($charRow['talentGroupsCount'] ?? 1));
+    $hasDual = $talentGroupsCount > 1;
     $view['active_spec'] = max(0, min(1, $activeSpec));
     $view['has_dual_spec'] = $hasDual;
 
@@ -256,9 +304,11 @@ function sahtout_character_talent_view(mysqli $charDb, ?mysqli $worldDb, int $gu
         while ($row = $res->fetch_assoc()) {
             $specMask = (int) $row['specMask'];
             $bit = 1 << $specIndex;
-            if ($specMask === 0 && $specIndex === 0) {
-                $rows[] = (int) $row['spell'];
-            } elseif (($specMask & $bit) !== 0) {
+            $inSpec = ($specMask & $bit) !== 0;
+            if (!$inSpec && $specMask === 0 && $specIndex === 0) {
+                $inSpec = true;
+            }
+            if ($inSpec) {
                 $rows[] = (int) $row['spell'];
             }
         }
