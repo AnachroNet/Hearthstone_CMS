@@ -29,6 +29,7 @@ return [
     'admin_tickets' => 'Support Tickets',
     'admin_users' => 'User Management',
     'admin_news' => 'News Management',
+    'admin_rewards' => 'Reward Management',
     'admin_downloads' => 'Download Management',
     'admin_sidebar_attribution' => 'Based on SahtoutCMS',
     'admin_characters' => 'Character Management',

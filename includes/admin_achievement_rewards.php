@@ -1,0 +1,204 @@
+<?php
+if (!defined('ALLOWED_ACCESS')) {
+    exit('Direct access not allowed.');
+}
+
+function sahtout_admin_achievement_rewards_table_exists(mysqli $siteDb): bool
+{
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    $res = $siteDb->query("SHOW TABLES LIKE 'achievement_token_rewards'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
+
+function sahtout_admin_achievement_catalog_table_exists(mysqli $siteDb): bool
+{
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    $res = $siteDb->query("SHOW TABLES LIKE 'achievement_catalog'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
+
+/** @return list<string> */
+function sahtout_admin_achievement_milestone_types(): array
+{
+    return ['level', 'quest_count', 'dungeon', 'manual'];
+}
+
+function sahtout_admin_normalize_milestone_type(string $type): ?string
+{
+    $type = strtolower(trim($type));
+    if ($type === 'other') {
+        return 'manual';
+    }
+    if (in_array($type, sahtout_admin_achievement_milestone_types(), true)) {
+        return $type;
+    }
+
+    return null;
+}
+
+/**
+ * @return array<string, mixed>|null
+ */
+function sahtout_admin_achievement_catalog_row(mysqli $siteDb, int $achievementId): ?array
+{
+    if ($achievementId <= 0 || !sahtout_admin_achievement_catalog_table_exists($siteDb)) {
+        return null;
+    }
+    $stmt = $siteDb->prepare(
+        'SELECT achievement_id, title_enus, map_id, criteria_type, criteria_value
+         FROM achievement_catalog WHERE achievement_id = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $achievementId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+/**
+ * @return list<array<string, mixed>>
+ */
+function sahtout_admin_fetch_achievement_rewards(mysqli $siteDb): array
+{
+    if (!sahtout_admin_achievement_rewards_table_exists($siteDb)) {
+        return [];
+    }
+
+    $joinCatalog = sahtout_admin_achievement_catalog_table_exists($siteDb);
+    $sql = $joinCatalog
+        ? 'SELECT r.achievement_id, r.tokens, r.milestone_type, r.milestone_value, r.instance_map_id,
+                  r.dungeon_name, r.is_enabled, c.title_enus, c.map_id AS catalog_map_id
+           FROM achievement_token_rewards r
+           LEFT JOIN achievement_catalog c ON c.achievement_id = r.achievement_id
+           ORDER BY FIELD(r.milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
+                    COALESCE(r.milestone_value, 999999), COALESCE(c.title_enus, \'\'), r.achievement_id'
+        : 'SELECT achievement_id, tokens, milestone_type, milestone_value, instance_map_id,
+                  dungeon_name, is_enabled
+           FROM achievement_token_rewards
+           ORDER BY FIELD(milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
+                    COALESCE(milestone_value, 999999), achievement_id';
+
+    $res = $siteDb->query($sql);
+    if (!$res) {
+        return [];
+    }
+
+    $rows = [];
+    while ($row = $res->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    $res->free();
+
+    return $rows;
+}
+
+/**
+ * @return array{ok:bool, message:string, achievements:list<array<string,mixed>>}
+ */
+function sahtout_admin_search_achievement_catalog(mysqli $siteDb, string $query, int $limit = 25): array
+{
+    if (!sahtout_admin_achievement_catalog_table_exists($siteDb)) {
+        return ['ok' => false, 'message' => 'catalog_missing', 'achievements' => []];
+    }
+
+    $query = trim($query);
+    if ($query === '') {
+        return ['ok' => true, 'message' => 'empty', 'achievements' => []];
+    }
+
+    $limit = max(1, min(50, $limit));
+
+    if (ctype_digit($query)) {
+        $id = (int) $query;
+        $stmt = $siteDb->prepare(
+            'SELECT achievement_id, title_enus, criteria_type, criteria_value, map_id
+             FROM achievement_catalog
+             WHERE achievement_id = ?
+             LIMIT 1'
+        );
+        if (!$stmt) {
+            return ['ok' => false, 'message' => 'search_failed', 'achievements' => []];
+        }
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $items = [];
+        while ($row = $res->fetch_assoc()) {
+            $items[] = sahtout_admin_format_catalog_search_row($row);
+        }
+        $stmt->close();
+
+        return ['ok' => true, 'message' => 'ok', 'achievements' => $items];
+    }
+
+    $like = '%' . $query . '%';
+    $stmt = $siteDb->prepare(
+        'SELECT achievement_id, title_enus, criteria_type, criteria_value, map_id
+         FROM achievement_catalog
+         WHERE title_enus LIKE ?
+         ORDER BY title_enus ASC
+         LIMIT ?'
+    );
+    if (!$stmt) {
+        return ['ok' => false, 'message' => 'search_failed', 'achievements' => []];
+    }
+    $stmt->bind_param('si', $like, $limit);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $items = [];
+    while ($row = $res->fetch_assoc()) {
+        $items[] = sahtout_admin_format_catalog_search_row($row);
+    }
+    $stmt->close();
+
+    return ['ok' => true, 'message' => 'ok', 'achievements' => $items];
+}
+
+/**
+ * @param array<string, mixed> $row
+ * @return array<string, mixed>
+ */
+function sahtout_admin_format_catalog_search_row(array $row): array
+{
+    return [
+        'id' => (int) ($row['achievement_id'] ?? 0),
+        'title' => (string) ($row['title_enus'] ?? ''),
+        'criteria_type' => isset($row['criteria_type']) ? (int) $row['criteria_type'] : null,
+        'criteria_value' => isset($row['criteria_value']) ? (int) $row['criteria_value'] : null,
+        'map_id' => (int) ($row['map_id'] ?? 0),
+    ];
+}
+
+function sahtout_admin_reward_detail_label(array $row): string
+{
+    $type = (string) ($row['milestone_type'] ?? '');
+    $value = isset($row['milestone_value']) ? (int) $row['milestone_value'] : null;
+
+    return match ($type) {
+        'level' => $value !== null ? 'Level ' . $value : '—',
+        'quest_count' => $value !== null ? number_format($value) . ' quests' : '—',
+        'dungeon' => (string) ($row['dungeon_name'] ?? '') !== ''
+            ? (string) $row['dungeon_name']
+            : (((int) ($row['instance_map_id'] ?? 0)) > 0
+                ? 'Map ' . (int) $row['instance_map_id']
+                : '—'),
+        default => '—',
+    };
+}

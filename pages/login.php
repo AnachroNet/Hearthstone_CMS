@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/config.cap.php';
 require_once $project_root . 'includes/srp6.php';
+require_once $project_root . 'includes/achievement_reward_sync.php';
 
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOCKOUT_DURATION', 900);
@@ -509,6 +510,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $ip_address,
                                     $username
                                 );
+
+                                global $char_db;
+                                if (isset($site_db, $char_db) && $char_db instanceof mysqli && !$char_db->connect_error) {
+                                    $rewardSync = sahtout_sync_achievement_rewards(
+                                        $site_db,
+                                        $char_db,
+                                        (int) $account['id']
+                                    );
+                                    if ($rewardSync['tokens_added'] > 0) {
+                                        $_SESSION['achievement_reward_notice'] = [
+                                            'tokens_added' => $rewardSync['tokens_added'],
+                                            'granted' => $rewardSync['granted'],
+                                        ];
+                                    }
+                                }
 
                                 header("Location: {$base_path}account");
                                 exit();

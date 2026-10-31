@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.mail.php';
 require_once $project_root . 'languages/language.php'; // Include language file for translations
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/account_gm_tickets.php';
+require_once $project_root . 'includes/achievement_reward_sync.php';
 
 // Early session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -42,6 +43,21 @@ if (isset($_SESSION['error'])) {
 if (isset($_SESSION['debug_errors'])) {
     $debug_errors = $_SESSION['debug_errors'];
     unset($_SESSION['debug_errors']);
+}
+
+global $site_db, $char_db;
+if (isset($site_db, $char_db) && $site_db instanceof mysqli && $char_db instanceof mysqli && !$char_db->connect_error) {
+    sahtout_maybe_sync_achievement_rewards($site_db, $char_db, (int) $_SESSION['user_id']);
+}
+
+if (isset($_SESSION['achievement_reward_notice']) && is_array($_SESSION['achievement_reward_notice'])) {
+    $rewardMsg = sahtout_format_achievement_reward_notice($_SESSION['achievement_reward_notice']);
+    unset($_SESSION['achievement_reward_notice']);
+    if ($rewardMsg !== '' && $message === '') {
+        $message = $rewardMsg;
+    } elseif ($rewardMsg !== '') {
+        $message .= ' ' . $rewardMsg;
+    }
 }
 
 function isSmtpEnabled(): bool {

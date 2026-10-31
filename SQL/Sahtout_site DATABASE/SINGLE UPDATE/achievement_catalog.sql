@@ -33,3 +33,5 @@ CREATE TABLE IF NOT EXISTS `achievement_token_rewards` (
   KEY `idx_milestone` (`milestone_type`, `milestone_value`),
   KEY `idx_enabled` (`is_enabled`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Grant ledger (run achievement_token_grants.sql): one payout per account per achievement.
