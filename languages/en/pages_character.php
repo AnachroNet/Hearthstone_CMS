@@ -3,6 +3,7 @@ return [
     'page_title' => '- Character',
     'meta_description' => 'View your World of Warcraft character equipment, stats, and PvP details.',
     'back_to_character_management' => 'Back to Character Management',
+    'back_to_support_tickets' => 'Back to Support Tickets',
     'label_head' => 'Head',
     'label_neck' => 'Neck',
     'label_shoulders' => 'Shoulders',

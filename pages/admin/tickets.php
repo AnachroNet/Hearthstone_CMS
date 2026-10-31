@@ -388,8 +388,13 @@ ob_start();
         <div id="ticketModal-<?php echo $modalId; ?>" class="modal-backdrop">
             <div class="panel p-6 md:p-8 relative">
                 <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl close-modal-btn" data-modal="ticketModal-<?php echo $modalId; ?>">&times;</button>
-                <h3 class="wow-title text-xl md:text-2xl mb-1"><?php echo translate('admin_tickets_modal_title', 'Ticket'); ?> #<?php echo $modalId; ?></h3>
-                <p class="text-gray-400 text-sm mb-6"><?php echo htmlspecialchars($ticket['character_name']); ?> · <?php echo sahtout_render_ticket_status_badge_html($ticket); ?></p>
+                <h3 class="wow-title text-xl md:text-2xl mb-3"><?php echo translate('admin_tickets_modal_title', 'Ticket'); ?> #<?php echo $modalId; ?></h3>
+                <div class="flex flex-wrap items-center gap-3 mb-6">
+                    <span class="text-2xl md:text-3xl font-bold text-white tracking-wide" style="font-family: 'Cinzel', serif;">
+                        <?php echo htmlspecialchars($ticket['character_name']); ?>
+                    </span>
+                    <?php echo sahtout_render_ticket_status_badge_html($ticket); ?>
+                </div>
 
                 <form method="post" action="<?php echo htmlspecialchars($base_path . 'admin/tickets'); ?>">
                     <input type="hidden" name="action" value="update_ticket">

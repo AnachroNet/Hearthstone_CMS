@@ -342,11 +342,19 @@ require_once $project_root . 'includes/header.php';
 
             $guid = isset($_GET['guid']) ? (int)$_GET['guid'] : 0;
             $admin_back_href = '';
+            $admin_back_label = translate('back_to_character_management', 'Back to Character Management');
             if (!empty($_GET['return'])) {
                 $return_candidate = (string) $_GET['return'];
-                $allowed_prefix = $base_path . 'admin/characters';
-                if (strncmp($return_candidate, $allowed_prefix, strlen($allowed_prefix)) === 0 && strlen($return_candidate) <= 2048) {
+                $allowed_prefix = $base_path . 'admin/';
+                if (
+                    strncmp($return_candidate, $allowed_prefix, strlen($allowed_prefix)) === 0
+                    && strpos($return_candidate, '://') === false
+                    && strlen($return_candidate) <= 2048
+                ) {
                     $admin_back_href = $return_candidate;
+                    if (strpos($return_candidate, 'admin/tickets') !== false) {
+                        $admin_back_label = translate('back_to_support_tickets', 'Back to Support Tickets');
+                    }
                 }
             }
             $character = null; $items = []; $arena_by_type = []; $stats = null; $total_kills = 0; $error = ''; $warnings = [];
@@ -506,7 +514,7 @@ if ($ilvl > 0) {
             <?php if ($admin_back_href !== ''): ?>
                 <a href="<?= htmlspecialchars($admin_back_href, ENT_QUOTES, 'UTF-8') ?>" class="character-back-link mb-6">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                    <?= htmlspecialchars(translate('back_to_character_management', 'Back to Character Management')) ?>
+                    <?= htmlspecialchars($admin_back_label) ?>
                 </a>
             <?php endif; ?>
 
