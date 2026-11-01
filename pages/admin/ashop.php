@@ -4,9 +4,6 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
-require_once $project_root . 'includes/shop_token_pricing.php';
-
-global $world_db;
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -27,7 +24,7 @@ $valid_categories = ['Mount', 'Pet', 'Gold', 'Service', 'Stuff', 'Set'];
 
 // Fetch all available site items for Mount, Pet, Stuff dropdown
 $site_items = [];
-$sql = 'SELECT entry, name, SellPrice FROM site_items ORDER BY name';
+$sql = "SELECT entry, name FROM site_items ORDER BY name";
 $stmt = $site_db->prepare($sql);
 if ($stmt->execute()) {
     $result = $stmt->get_result();
@@ -39,7 +36,7 @@ $stmt->close();
 
 // Preload item set composition for admin preview.
 $site_itemsets = [];
-$sql = 'SELECT itemset, entry, name, SellPrice FROM site_items WHERE itemset > 0 ORDER BY itemset, entry';
+$sql = "SELECT itemset, entry, name FROM site_items WHERE itemset > 0 ORDER BY itemset, entry";
 $stmt = $site_db->prepare($sql);
 if ($stmt->execute()) {
     $result = $stmt->get_result();
@@ -49,9 +46,8 @@ if ($stmt->execute()) {
             $site_itemsets[$itemset_id] = [];
         }
         $site_itemsets[$itemset_id][] = [
-            'entry' => (int) $row['entry'],
-            'name' => $row['name'],
-            'vendor_tokens' => sahtout_vendor_sell_copper_to_tokens((int) ($row['SellPrice'] ?? 0)),
+            'entry' => (int)$row['entry'],
+            'name' => $row['name']
         ];
     }
 }
@@ -439,25 +435,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } finally {
                 if (isset($stmt)) $stmt->close();
             }
-        } elseif ($action === 'sync_vendor_prices') {
-            $world = (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error) ? $world_db : null;
-            $stats = sahtout_sync_shop_item_token_prices($site_db, $world);
-            $message = sprintf(
-                translate(
-                    'admin_shop_sync_vendor_prices_done',
-                    'Vendor price sync: %1$d updated, %2$d unchanged, %3$d skipped.'
-                ),
-                $stats['updated'],
-                $stats['unchanged'],
-                $stats['skipped']
-            );
-            header(
-                'Location: ' . $base_path . 'admin/ashop?status=success&message='
-                . urlencode($message) . '&page=' . $page
-                . ($category_filter ? '&category=' . urlencode($category_filter) : '')
-                . ($search_query ? '&search=' . urlencode($search_query) : '')
-            );
-            exit;
         } elseif ($action === 'delete') {
             $item_id = (int)$_POST['item_id'];
             try {
@@ -985,7 +962,6 @@ ob_start();
                                 <div class="field-group active">
                                     <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_token_cost', 'Token Cost'); ?></label>
                                     <input type="number" name="token_cost" id="token_cost" class="wow-input" min="0" max="99999" maxlength="5" required placeholder="<?php echo translate('admin_shop_placeholder_token_cost', 'Enter token cost'); ?>">
-                                    <p class="text-xs text-gray-500 mt-1"><?php echo translate('admin_shop_token_vendor_hint', 'For items: 1 token = 1 gold (vendor sell price). Pick an entry to auto-fill.'); ?></p>
                                 </div>
 
                                 <!-- Stock -->
@@ -999,11 +975,8 @@ ob_start();
                                     <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_entry', 'Item Entry'); ?></label>
                                     <select name="entry" id="entry" class="wow-select">
                                         <option value=""><?php echo translate('admin_shop_select_entry', 'Select Entry'); ?></option>
-                                        <?php foreach ($site_items as $item):
-                                            $vendorTokens = sahtout_vendor_sell_copper_to_tokens((int) ($item['SellPrice'] ?? 0));
-                                            ?>
-                                            <option value="<?php echo (int) $item['entry']; ?>"
-                                                <?php echo $vendorTokens > 0 ? ' data-vendor-tokens="' . $vendorTokens . '"' : ''; ?>>
+                                        <?php foreach ($site_items as $item): ?>
+                                            <option value="<?php echo $item['entry']; ?>">
                                                 <?php echo htmlspecialchars($item['entry'] . ' - ' . $item['name']); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -1120,14 +1093,6 @@ ob_start();
                             <button type="submit" class="btn-game btn-gold w-full md:w-auto justify-center">
                                 <i class="fas fa-search"></i>
                                 <?php echo translate('admin_shop_apply_button', 'Apply'); ?>
-                            </button>
-                        </form>
-                        <form method="POST" class="mt-4">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                            <input type="hidden" name="action" value="sync_vendor_prices">
-                            <button type="submit" class="btn-game btn-gold w-full md:w-auto justify-center">
-                                <i class="fas fa-coins"></i>
-                                <?php echo translate('admin_shop_sync_vendor_prices', 'Sync token prices from vendor sell (items only)'); ?>
                             </button>
                         </form>
 
@@ -1279,7 +1244,6 @@ ob_start();
             const uploadArea = document.getElementById('uploadArea');
             const uploadPlaceholder = document.getElementById('uploadPlaceholder');
             const entrySelect = document.getElementById('entry');
-            const tokenCostInput = document.getElementById('token_cost');
             const isItemSelect = document.getElementById('is_item');
             const itemsetInput = document.getElementById('itemset_id');
             const itemsetPreviewEmpty = document.getElementById('itemset_preview_empty');
@@ -1297,38 +1261,6 @@ ob_start();
                 'description-group': ['Service', 'Gold'],
                 'itemset-preview-group': ['Set']
             };
-
-            function applyVendorTokensFromEntry() {
-                if (!entrySelect || !tokenCostInput) {
-                    return;
-                }
-                const opt = entrySelect.options[entrySelect.selectedIndex];
-                if (!opt) {
-                    return;
-                }
-                const raw = opt.getAttribute('data-vendor-tokens');
-                if (raw && parseInt(raw, 10) > 0) {
-                    tokenCostInput.value = raw;
-                }
-            }
-
-            function applyVendorTokensFromItemset() {
-                if (!tokenCostInput || !itemsetInput) {
-                    return;
-                }
-                const rawSetId = itemsetInput.value.trim();
-                if (!rawSetId) {
-                    return;
-                }
-                const setItems = itemsetPreviewData[rawSetId] || [];
-                let total = 0;
-                setItems.forEach(item => {
-                    total += parseInt(item.vendor_tokens, 10) || 0;
-                });
-                if (total > 0) {
-                    tokenCostInput.value = String(total);
-                }
-            }
 
             function renderItemsetPreview() {
                 const category = categorySelect.value;
@@ -1359,13 +1291,9 @@ ob_start();
                 itemsetPreviewEmpty.classList.add('hidden');
                 setItems.forEach(item => {
                     const listItem = document.createElement('li');
-                    const vt = parseInt(item.vendor_tokens, 10) || 0;
-                    listItem.textContent = vt > 0
-                        ? `${item.entry} - ${item.name} (${vt} tokens vendor)`
-                        : `${item.entry} - ${item.name}`;
+                    listItem.textContent = `${item.entry} - ${item.name}`;
                     itemsetPreviewList.appendChild(listItem);
                 });
-                applyVendorTokensFromItemset();
             }
 
             function updateFormFields() {
@@ -1434,9 +1362,6 @@ ob_start();
             // Handle category change
             categorySelect.addEventListener('change', updateFormFields);
             itemsetInput.addEventListener('input', renderItemsetPreview);
-            if (entrySelect) {
-                entrySelect.addEventListener('change', applyVendorTokensFromEntry);
-            }
 
             // Image upload area
             if (uploadArea && imageInput) {
