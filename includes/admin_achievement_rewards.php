@@ -283,6 +283,11 @@ function sahtout_admin_milestone_type_subtitle(array $row): ?string
     return null;
 }
 
+function sahtout_admin_reward_is_enabled(array $row): bool
+{
+    return (int) ($row['is_enabled'] ?? 0) === 1;
+}
+
 function sahtout_admin_reward_detail_label(array $row, array $creatureNames = []): string
 {
     $type = (string) ($row['milestone_type'] ?? '');

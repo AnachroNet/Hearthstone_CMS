@@ -361,6 +361,7 @@ $milestoneLabels = [
                                 $title = translate('admin_rewards_unknown_title', 'Achievement #%d', $achId);
                             }
                             $achDescription = trim((string) ($row['description_enus'] ?? ''));
+                            $rewardEnabled = sahtout_admin_reward_is_enabled($row);
                         ?>
                         <tr>
                             <td>
@@ -390,12 +391,13 @@ $milestoneLabels = [
                                         <input type="number" name="tokens" class="wow-input text-sm py-2" min="0" max="9999999"
                                                value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
                                     </div>
-                                    <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
+                                    <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer" title="<?php echo htmlspecialchars(translate('admin_rewards_enable_hint', 'When checked, this reward is active for account-wide sync.')); ?>">
                                         <input type="checkbox" name="is_enabled" value="1" class="rounded border-gray-600"
-                                            <?php echo !empty($row['is_enabled']) ? 'checked' : ''; ?>>
-                                        <?php echo !empty($row['is_enabled'])
-                                            ? translate('admin_rewards_enabled', 'Enabled')
-                                            : translate('admin_rewards_disabled', 'Disabled'); ?>
+                                            <?php echo $rewardEnabled ? 'checked' : ''; ?>>
+                                        <span><?php echo translate('admin_rewards_enable_label', 'Enabled'); ?></span>
+                                        <?php if (!$rewardEnabled): ?>
+                                            <span class="text-gray-500">(<?php echo translate('admin_rewards_off', 'off'); ?>)</span>
+                                        <?php endif; ?>
                                     </label>
                                     <button type="submit" class="btn-game btn-gold text-xs py-2 px-3">
                                         <?php echo translate('admin_rewards_save', 'Save'); ?>
