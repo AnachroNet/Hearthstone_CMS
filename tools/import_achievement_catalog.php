@@ -420,7 +420,7 @@ $presets = sahtout_build_preset_rewards(
 );
 
 foreach ($presets as $i => $preset) {
-    $presets[$i]['tokens'] = sahtout_suggest_tokens_for_preset($preset, $mapMetaById);
+    $presets[$i]['tokens'] = sahtout_suggest_tokens_for_preset($preset, $mapMetaById, $achievementMeta);
 }
 
 $outDir = $projectRoot . DIRECTORY_SEPARATOR . 'SQL' . DIRECTORY_SEPARATOR . 'Sahtout_site DATABASE'
