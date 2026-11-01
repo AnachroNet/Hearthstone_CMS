@@ -8,10 +8,12 @@ return [
     'home_create_account' => 'Create Account',
     'home_download' => 'Download',
     'home_no_news' => 'No news available at this time.',
-    'home_support_title' => 'Support Status',
+    'home_maintenance_title' => 'Maintenance Status',
+    'home_maintenance_none' => 'No maintenance is scheduled at this time.',
+    'home_support_title' => 'Maintenance Status',
     'home_support_desc' => 'Click the ? (Help) icon on the in-game action bar (with Quest Log, Talents, and the rest) to contact staff. Log in here to view status and replies.',
     'home_support_cta_login' => 'Log in to view tickets',
-    'home_support_cta_account' => 'View my tickets',
+    'home_support_cta_account' => 'View My Support Tickets',
     'home_realm_status_error' => 'Error: Realm status unavailable.'
 ];
 ?>

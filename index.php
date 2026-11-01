@@ -4,6 +4,8 @@ define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/maintenance_announcements.php';
 
 $page_class = "home";
 $page_title = $site_title_name . " " . translate('home_page_title', 'Home');
@@ -229,6 +231,15 @@ ob_start();
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+        .maintenance-status-line {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #f2cf5b;
+            text-shadow: 0 0 12px rgba(242, 207, 82, 0.15);
+        }
     </style>
 <?php
 $page_head = ob_get_clean();
@@ -245,6 +256,11 @@ $query = "SELECT id, title, slug, image_url, post_date
           ORDER BY is_important DESC, post_date DESC 
           LIMIT 4";
 $result = $site_db->query($query);
+
+$maintenance_visible = [];
+if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+    $maintenance_visible = sahtout_maintenance_fetch_visible($site_db);
+}
 ?>
 
     <main class="max-w-350 mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -340,16 +356,29 @@ $result = $site_db->query($query);
                     </div>
                 </section>
 
-                <!-- SUPPORT STATUS -->
+                <!-- MAINTENANCE STATUS -->
                 <section class="wow-panel p-3 sm:p-4 md:p-6">
                     <h2 class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                        <?php echo translate('home_support_title', 'Support Status'); ?>
+                        <?php echo translate('home_maintenance_title', 'Maintenance Status'); ?>
                     </h2>
-                    <div class="text-center py-6 sm:py-8">
+                    <div class="text-center py-4 sm:py-6 space-y-4">
+                        <?php if ($maintenance_visible !== []): ?>
+                            <ul class="space-y-2 max-w-2xl mx-auto text-left px-2">
+                                <?php foreach ($maintenance_visible as $ann): ?>
+                                    <li class="maintenance-status-line normal-case tracking-normal text-sm sm:text-base leading-snug">
+                                        <?php echo htmlspecialchars((string) ($ann['message'] ?? '')); ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php else: ?>
+                            <p class="maintenance-status-line normal-case tracking-normal text-sm sm:text-base">
+                                <?php echo translate('home_maintenance_none', 'No maintenance is scheduled at this time.'); ?>
+                            </p>
+                        <?php endif; ?>
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <a href="<?php echo $base_path; ?>account?tab=tickets" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#1a1200] bg-gradient-to-b from-[#f6d478] to-[#c9a227] border border-[#8a6a14] hover:brightness-110 transition-all">
-                                <?php echo translate('home_support_cta_account', 'View my tickets'); ?>
+                                <?php echo translate('home_support_cta_account', 'View My Support Tickets'); ?>
                             </a>
                         <?php else: ?>
                             <a href="<?php echo $base_path; ?>login" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#f2cf5b] border border-[rgba(201,162,39,0.35)] bg-[rgba(242,207,82,0.08)] hover:bg-[rgba(242,207,82,0.15)] transition-all">

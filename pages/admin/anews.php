@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/maintenance_announcements.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -200,8 +201,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt->close();
         }
+    } elseif ($_POST['action'] === 'announcement_add') {
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+            $update_message = $alert_danger(translate('admin_news_csrf_error', 'CSRF token validation failed.'));
+        } elseif (!sahtout_maintenance_announcements_table_exists($site_db)) {
+            $update_message = $alert_danger(translate('admin_maintenance_table_missing', 'Maintenance announcements table is missing. Run maintenance_announcements.sql on the site database.'));
+        } else {
+            $message = trim((string) ($_POST['announcement_message'] ?? ''));
+            $visibleFrom = sahtout_maintenance_parse_datetime_local((string) ($_POST['visible_from'] ?? ''));
+            $visibleUntil = sahtout_maintenance_parse_datetime_local((string) ($_POST['visible_until'] ?? ''));
+            if ($message === '' || strlen($message) > 500) {
+                $update_message = $alert_danger(translate('admin_maintenance_invalid_message', 'Enter an announcement message (max 500 characters).'));
+            } elseif ($visibleFrom === null || $visibleUntil === null) {
+                $update_message = $alert_danger(translate('admin_maintenance_invalid_dates', 'Enter valid visible from and until date/times.'));
+            } elseif ($visibleUntil <= $visibleFrom) {
+                $update_message = $alert_danger(translate('admin_maintenance_until_after_from', 'Visible until must be after visible from.'));
+            } else {
+                $stmt = $site_db->prepare(
+                    'INSERT INTO maintenance_announcements (message, visible_from, visible_until, posted_by)
+                     VALUES (?, ?, ?, ?)'
+                );
+                if ($stmt) {
+                    $stmt->bind_param('ssss', $message, $visibleFrom, $visibleUntil, $current_username);
+                    if ($stmt->execute()) {
+                        $update_message = $alert_success(translate('admin_maintenance_add_success', 'Maintenance announcement saved.'));
+                    } else {
+                        $update_message = $alert_danger(translate('admin_maintenance_add_failed', 'Could not save the announcement.'));
+                    }
+                    $stmt->close();
+                } else {
+                    $update_message = $alert_danger(translate('admin_maintenance_add_failed', 'Could not save the announcement.'));
+                }
+            }
+        }
+    } elseif ($_POST['action'] === 'announcement_delete') {
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+            $update_message = $alert_danger(translate('admin_news_csrf_error', 'CSRF token validation failed.'));
+        } else {
+            $announcementId = (int) ($_POST['announcement_id'] ?? 0);
+            if ($announcementId > 0 && sahtout_maintenance_announcements_table_exists($site_db)) {
+                $stmt = $site_db->prepare('DELETE FROM maintenance_announcements WHERE id = ?');
+                if ($stmt) {
+                    $stmt->bind_param('i', $announcementId);
+                    if ($stmt->execute()) {
+                        $update_message = $alert_success(translate('admin_maintenance_delete_success', 'Announcement deleted.'));
+                    } else {
+                        $update_message = $alert_danger(translate('admin_maintenance_delete_failed', 'Could not delete the announcement.'));
+                    }
+                    $stmt->close();
+                }
+            }
+        }
     }
 }
+
+$maintenance_announcements = sahtout_maintenance_fetch_all($site_db, 30);
 
 $items_per_page = 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -580,6 +634,85 @@ ob_start();
                     <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_news_title', 'News Management'); ?></h1>
                     
                     <?php echo $update_message; ?>
+
+                    <!-- Maintenance announcements (home page) -->
+                    <div class="wow-panel p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
+                        <h2 class="section-title text-lg md:text-xl mb-2 md:mb-3"><?php echo translate('admin_maintenance_header', 'Maintenance announcements'); ?></h2>
+                        <p class="text-sm text-gray-400 mb-4 md:mb-6"><?php echo translate('admin_maintenance_help', 'One-line notices on the home page Maintenance Status panel (not in-game). Times use your site timezone.'); ?></p>
+
+                        <?php if (!sahtout_maintenance_announcements_table_exists($site_db)): ?>
+                            <p class="text-amber-300 text-sm"><?php echo translate('admin_maintenance_table_missing', 'Maintenance announcements table is missing. Run maintenance_announcements.sql on the site database.'); ?></p>
+                        <?php else: ?>
+                        <form method="POST" class="space-y-4 mb-8">
+                            <input type="hidden" name="action" value="announcement_add">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <div>
+                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="announcement_message"><?php echo translate('admin_maintenance_label_message', 'Announcement'); ?></label>
+                                <input type="text" name="announcement_message" id="announcement_message" class="wow-input" maxlength="500" required placeholder="<?php echo translate('admin_maintenance_placeholder_message', 'The server will be offline for maintenance from … to …'); ?>">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="visible_from"><?php echo translate('admin_maintenance_label_visible_from', 'Visible from'); ?></label>
+                                    <input type="datetime-local" name="visible_from" id="visible_from" class="wow-input" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="visible_until"><?php echo translate('admin_maintenance_label_visible_until', 'Visible until'); ?></label>
+                                    <input type="datetime-local" name="visible_until" id="visible_until" class="wow-input" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-game btn-gold">
+                                <?php echo translate('admin_maintenance_add_button', 'Post announcement'); ?>
+                            </button>
+                        </form>
+
+                        <h3 class="text-[#f2cf5b] font-['Cinzel'] text-sm uppercase tracking-wider mb-3"><?php echo translate('admin_maintenance_list_header', 'Recent announcements'); ?></h3>
+                        <?php if ($maintenance_announcements === []): ?>
+                            <p class="text-gray-500 text-sm"><?php echo translate('admin_maintenance_list_empty', 'No announcements yet.'); ?></p>
+                        <?php else: ?>
+                            <div class="overflow-x-auto">
+                                <table class="wow-table text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th><?php echo translate('admin_maintenance_col_message', 'Message'); ?></th>
+                                            <th class="hidden md:table-cell"><?php echo translate('admin_maintenance_col_from', 'From'); ?></th>
+                                            <th class="hidden md:table-cell"><?php echo translate('admin_maintenance_col_until', 'Until'); ?></th>
+                                            <th><?php echo translate('admin_maintenance_col_status', 'Status'); ?></th>
+                                            <th class="hidden sm:table-cell"><?php echo translate('admin_maintenance_col_posted_by', 'Posted by'); ?></th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($maintenance_announcements as $ann):
+                                            $status = sahtout_maintenance_announcement_status($ann);
+                                            $statusLabel = match ($status) {
+                                                'active' => translate('admin_maintenance_status_active', 'Active'),
+                                                'scheduled' => translate('admin_maintenance_status_scheduled', 'Scheduled'),
+                                                'expired' => translate('admin_maintenance_status_expired', 'Expired'),
+                                                default => '—',
+                                            };
+                                            ?>
+                                            <tr>
+                                                <td class="max-w-xs"><?php echo htmlspecialchars((string) ($ann['message'] ?? '')); ?></td>
+                                                <td class="hidden md:table-cell whitespace-nowrap"><?php echo htmlspecialchars((string) ($ann['visible_from'] ?? '')); ?></td>
+                                                <td class="hidden md:table-cell whitespace-nowrap"><?php echo htmlspecialchars((string) ($ann['visible_until'] ?? '')); ?></td>
+                                                <td><?php echo htmlspecialchars($statusLabel); ?></td>
+                                                <td class="hidden sm:table-cell"><?php echo htmlspecialchars((string) ($ann['posted_by'] ?? '')); ?></td>
+                                                <td>
+                                                    <form method="POST" class="inline" onsubmit="return confirm(<?php echo json_encode(translate('admin_maintenance_delete_confirm', 'Delete this announcement?')); ?>);">
+                                                        <input type="hidden" name="action" value="announcement_delete">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                        <input type="hidden" name="announcement_id" value="<?php echo (int) ($ann['id'] ?? 0); ?>">
+                                                        <button type="submit" class="btn-game btn-danger text-xs py-1 px-2"><?php echo translate('admin_maintenance_delete_button', 'Delete'); ?></button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
 
                     <!-- Add News Form -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8">
