@@ -240,6 +240,23 @@ ob_start();
             color: #f2cf5b;
             text-shadow: 0 0 12px rgba(242, 207, 82, 0.15);
         }
+
+        .home-intro-welcome {
+            font-family: 'Cinzel', serif;
+            font-weight: 800;
+            font-size: 1.125rem;
+            line-height: 1.3;
+            text-shadow: 0 0 20px rgba(59, 130, 246, 0.35), 0 4px 8px rgba(0, 0, 0, 0.9);
+        }
+        @media (min-width: 640px) {
+            .home-intro-welcome { font-size: 1.25rem; }
+        }
+        @media (min-width: 768px) {
+            .home-intro-welcome { font-size: 1.875rem; }
+        }
+        @media (min-width: 1024px) {
+            .home-intro-welcome { font-size: 2.25rem; }
+        }
     </style>
 <?php
 $page_head = ob_get_clean();
@@ -272,23 +289,23 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
             <div class="min-w-0 space-y-8 md:space-y-12">
 
                 <!-- HERO -->
-                <div class="wow-panel p-6 sm:p-8 md:p-12 text-center relative overflow-hidden">
+                <div class="wow-panel p-4 sm:p-6 md:p-8 text-center relative overflow-hidden">
                     <div class="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-20" style="background:#1e5aa8;"></div>
                     <div class="absolute -bottom-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-20" style="background:#a32626;"></div>
 
                     <div class="relative z-10">
-                        <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-7xl leading-tight force-wrap">
-                            <span class="text-white font-extrabold" style="font-family:'Cinzel',serif; text-shadow:0 0 20px rgba(59,130,246,.35), 0 4px 8px rgba(0,0,0,.9);"><?php echo translate('home_intro_title', 'Welcome to '); ?></span><br class="hidden md:block">
-                            <span class="wow-title"><?php echo $site_title_name; ?></span>
+                        <h1 class="flex flex-col items-center gap-1 sm:gap-2 leading-tight force-wrap">
+                            <span class="home-intro-welcome text-white"><?php echo trim(translate('home_intro_title', 'Welcome to')); ?></span>
+                            <span class="wow-title text-3xl sm:text-4xl md:text-6xl lg:text-7xl"><?php echo $site_title_name; ?></span>
                         </h1>
 
-                        <div class="flex items-center justify-center gap-3 mt-6">
+                        <div class="flex items-center justify-center gap-3 mt-4 sm:mt-5">
                             <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,transparent,#c9a227);"></span>
                             <span class="text-[#f2cf5b] text-xs" style="text-shadow:0 0 10px rgba(242,207,82,.8);">◆</span>
                             <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,#c9a227,transparent);"></span>
                         </div>
 
-                        <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mt-6 sm:mt-8">
+                        <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mt-4 sm:mt-6">
                             <?php if (!isset($_SESSION['user_id'])): ?>
                                 <a href="<?php echo htmlspecialchars($base_path . 'register', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-sm sm:text-base px-4 sm:px-6">
                                     <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
@@ -307,7 +324,7 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                         </div>
 
                         <?php if (!empty($discord_join_url)): ?>
-                        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-6 sm:mt-8">
+                        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
                             <a href="<?php echo htmlspecialchars($discord_join_url, ENT_QUOTES, 'UTF-8'); ?>" class="social-btn discord text-xs sm:text-sm px-3 sm:px-4" target="_blank" rel="noopener noreferrer" aria-label="<?php echo translate('discord_alt', 'Discord'); ?>">
                                 <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.08.22.17.33.26c.04.03.04.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/></svg>
                                 Discord
@@ -364,9 +381,9 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                     </h2>
                     <div class="text-center py-4 sm:py-6 space-y-4">
                         <?php if ($maintenance_visible !== []): ?>
-                            <ul class="space-y-2 max-w-2xl mx-auto text-left px-2">
+                            <ul class="space-y-2 max-w-2xl mx-auto text-center px-2 list-none">
                                 <?php foreach ($maintenance_visible as $ann): ?>
-                                    <li class="maintenance-status-line normal-case tracking-normal text-sm sm:text-base leading-snug">
+                                    <li class="maintenance-status-line normal-case tracking-normal text-sm sm:text-base leading-snug text-center">
                                         <?php echo htmlspecialchars((string) ($ann['message'] ?? '')); ?>
                                     </li>
                                 <?php endforeach; ?>
