@@ -128,6 +128,30 @@ function sahtout_soap_quote_command_arg(string $text): string
     return '"' . $text . '"';
 }
 
+/**
+ * Auth account name for SOAP (e.g. .account delete). Must not be quoted — quoted names fail lookup.
+ */
+function sahtout_soap_account_name_literal(string $username): ?string
+{
+    $username = strtoupper(trim($username));
+    if ($username === '' || !preg_match('/^[A-Z0-9]{1,32}$/', $username)) {
+        return null;
+    }
+
+    return $username;
+}
+
+/** Character name for SOAP erase/kick — quote only when needed. */
+function sahtout_soap_character_name_for_command(string $name): string
+{
+    $name = trim($name);
+    if ($name !== '' && preg_match('/^[A-Za-z]{2,12}$/', $name)) {
+        return $name;
+    }
+
+    return sahtout_soap_quote_command_arg($name);
+}
+
 const SAHTOUT_MOTD_LOCALE = 'enUS';
 
 function sahtout_motd_build_set_command(string $motd): string

@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     if (!sahtout_admin_may_suspend_account($actor_role, $targetMeta)) {
                         $update_message = alert_danger(translate('admin_users_permission_denied', 'You do not have permission to perform this action.'));
                     } else {
-                        $result = sahtout_admin_suspend_account($auth_db, $account_id, DB_AUTH);
+                        $result = sahtout_admin_suspend_account($auth_db, $char_db, $account_id, DB_AUTH, DB_CHAR);
                         $update_message = $result['ok']
                             ? alert_success(translate('admin_users_suspend_success', 'Account suspended. The player cannot log in until unsuspended.'))
                             : alert_danger(translate('admin_users_suspend_failed', 'Failed to suspend account.'));
