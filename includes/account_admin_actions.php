@@ -89,6 +89,153 @@ function sahtout_admin_may_delete_account(string $actorRole, array $targetMeta):
     return true;
 }
 
+function sahtout_admin_auth_account_exists(mysqli $auth_db, string $authDbName, int $accountId): bool
+{
+    $stmt = $auth_db->prepare('SELECT id FROM `' . $authDbName . '`.account WHERE id = ? LIMIT 1');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $accountId);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+
+    return $exists;
+}
+
+function sahtout_admin_soap_plaintext_detail(string $soapOutput): string
+{
+    $text = sahtout_soap_extract_command_message($soapOutput, true);
+    $text = trim(preg_replace('/\s+/u', ' ', strip_tags($text)) ?? '');
+
+    if ($text === '') {
+        return '';
+    }
+    if (strlen($text) > 240) {
+        return substr($text, 0, 237) . '...';
+    }
+
+    return $text;
+}
+
+/** @return list<string> */
+function sahtout_admin_character_names_for_account(mysqli $char_db, string $charDbName, int $accountId): array
+{
+    $stmt = $char_db->prepare('SELECT name FROM `' . $charDbName . '`.characters WHERE account = ? ORDER BY name');
+    if (!$stmt) {
+        return [];
+    }
+    $stmt->bind_param('i', $accountId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return [];
+    }
+    $names = [];
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $name = trim((string) ($row['name'] ?? ''));
+        if ($name !== '') {
+            $names[] = $name;
+        }
+    }
+    $stmt->close();
+
+    return $names;
+}
+
+function sahtout_admin_kick_online_characters(mysqli $char_db, string $charDbName, int $accountId): void
+{
+    if (!sahtout_soap_is_configured()) {
+        return;
+    }
+
+    $stmt = $char_db->prepare(
+        'SELECT name FROM `' . $charDbName . '`.characters WHERE account = ? AND online = 1'
+    );
+    if (!$stmt) {
+        return;
+    }
+    $stmt->bind_param('i', $accountId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return;
+    }
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $name = trim((string) ($row['name'] ?? ''));
+        if ($name !== '') {
+            sahtout_soap_execute_command('.kick ' . sahtout_soap_quote_command_arg($name));
+        }
+    }
+    $stmt->close();
+}
+
+/**
+ * @return array{ok: bool, message: string, detail?: string}
+ */
+function sahtout_admin_erase_characters_via_soap(mysqli $char_db, string $charDbName, int $accountId): array
+{
+    $names = sahtout_admin_character_names_for_account($char_db, $charDbName, $accountId);
+    foreach ($names as $name) {
+        $soap = sahtout_soap_execute_command('.character erase ' . sahtout_soap_quote_command_arg($name));
+        if (!$soap['ok']) {
+            return [
+                'ok' => false,
+                'message' => 'character_erase_failed',
+                'detail' => sahtout_admin_soap_plaintext_detail($soap['output']) ?: ($soap['error'] ?? ''),
+            ];
+        }
+    }
+
+    $stmt = $char_db->prepare('SELECT COUNT(*) AS cnt FROM `' . $charDbName . '`.characters WHERE account = ?');
+    if ($stmt) {
+        $stmt->bind_param('i', $accountId);
+        $stmt->execute();
+        $cnt = (int) ($stmt->get_result()->fetch_assoc()['cnt'] ?? 0);
+        $stmt->close();
+        if ($cnt > 0) {
+            return ['ok' => false, 'message' => 'characters_remain', 'detail' => (string) $cnt];
+        }
+    }
+
+    return ['ok' => true, 'message' => 'characters_erased'];
+}
+
+function sahtout_admin_delete_auth_account_rows(
+    mysqli $auth_db,
+    mysqli $char_db,
+    int $accountId,
+    string $authDbName,
+    string $charDbName
+): bool {
+    $char_db->query('DELETE FROM `' . $charDbName . '`.account_tutorial WHERE accountId = ' . (int) $accountId);
+    $char_db->query('DELETE FROM `' . $charDbName . '`.account_data WHERE accountId = ' . (int) $accountId);
+    $char_db->query(
+        'DELETE cb FROM `' . $charDbName . '`.character_banned cb
+         INNER JOIN `' . $charDbName . '`.characters c ON c.guid = cb.guid
+         WHERE c.account = ' . (int) $accountId
+    );
+
+    $auth_db->begin_transaction();
+    $ok = true;
+    $id = (int) $accountId;
+    $ok = $ok && $auth_db->query('DELETE FROM `' . $authDbName . '`.account_access WHERE id = ' . $id);
+    $ok = $ok && $auth_db->query('DELETE FROM `' . $authDbName . '`.account_banned WHERE id = ' . $id);
+    $ok = $ok && $auth_db->query('DELETE FROM `' . $authDbName . '`.realmcharacters WHERE acctid = ' . $id);
+    $ok = $ok && $auth_db->query('DELETE FROM `' . $authDbName . '`.account_muted WHERE guid = ' . $id);
+    $ok = $ok && $auth_db->query('DELETE FROM `' . $authDbName . '`.account WHERE id = ' . $id);
+
+    if ($ok) {
+        $auth_db->commit();
+    } else {
+        $auth_db->rollback();
+    }
+
+    return $ok && !sahtout_admin_auth_account_exists($auth_db, $authDbName, $accountId);
+}
+
 /**
  * @return array{ok: bool, message: string}
  */
@@ -113,7 +260,7 @@ function sahtout_admin_suspend_account(mysqli $auth_db, int $accountId, string $
             if ($stmtUser->execute()) {
                 $userRow = $stmtUser->get_result()->fetch_assoc();
                 if (!empty($userRow['username'])) {
-                    sahtout_soap_execute_command('kick ' . sahtout_soap_quote_command_arg((string) $userRow['username']));
+                    sahtout_soap_execute_command('.kick ' . sahtout_soap_quote_command_arg((string) $userRow['username']));
                 }
             }
             $stmtUser->close();
@@ -159,15 +306,17 @@ function sahtout_admin_cleanup_site_for_deleted_account(mysqli $site_db, string 
 }
 
 /**
- * Deletes the auth account and all characters (via worldserver SOAP when configured).
+ * Deletes the auth account and all characters (worldserver SOAP + auth DB cleanup).
  *
- * @return array{ok: bool, message: string}
+ * @return array{ok: bool, message: string, detail?: string}
  */
 function sahtout_admin_delete_account(
     mysqli $auth_db,
+    mysqli $char_db,
     mysqli $site_db,
     int $accountId,
     string $authDbName,
+    string $charDbName,
     string $siteDbName
 ): array {
     if (!sahtout_soap_is_configured()) {
@@ -179,25 +328,43 @@ function sahtout_admin_delete_account(
         return ['ok' => false, 'message' => 'account_not_found'];
     }
 
-    $username = $meta['username'];
+    $username = strtoupper(trim($meta['username']));
     $email = $meta['email'];
+    $lastDetail = '';
 
-    $soap = sahtout_soap_execute_command('account delete ' . sahtout_soap_quote_command_arg($username));
+    sahtout_admin_kick_online_characters($char_db, $charDbName, $accountId);
+
+    $soap = sahtout_soap_execute_command('.account delete ' . sahtout_soap_quote_command_arg($username));
     if (!$soap['ok']) {
-        error_log('[account_admin] account delete SOAP failed for ' . $username . ': ' . ($soap['error'] ?? 'unknown'));
-
-        return ['ok' => false, 'message' => 'delete_soap_failed'];
+        $lastDetail = sahtout_admin_soap_plaintext_detail($soap['output']) ?: (string) ($soap['error'] ?? '');
+        error_log('[account_admin] .account delete SOAP failed for ' . $username . ': ' . $lastDetail);
     }
 
-    $check = $auth_db->prepare('SELECT id FROM `' . $authDbName . '`.account WHERE id = ? LIMIT 1');
-    if ($check) {
-        $check->bind_param('i', $accountId);
-        $check->execute();
-        $still = $check->get_result()->num_rows > 0;
-        $check->close();
-        if ($still) {
-            return ['ok' => false, 'message' => 'delete_incomplete'];
+    if (sahtout_admin_auth_account_exists($auth_db, $authDbName, $accountId)) {
+        $erase = sahtout_admin_erase_characters_via_soap($char_db, $charDbName, $accountId);
+        if (!$erase['ok']) {
+            return [
+                'ok' => false,
+                'message' => 'delete_soap_failed',
+                'detail' => $erase['detail'] ?? $lastDetail,
+            ];
         }
+
+        if (!sahtout_admin_delete_auth_account_rows($auth_db, $char_db, $accountId, $authDbName, $charDbName)) {
+            return [
+                'ok' => false,
+                'message' => 'delete_incomplete',
+                'detail' => $lastDetail,
+            ];
+        }
+    }
+
+    if (sahtout_admin_auth_account_exists($auth_db, $authDbName, $accountId)) {
+        return [
+            'ok' => false,
+            'message' => 'delete_incomplete',
+            'detail' => $lastDetail,
+        ];
     }
 
     sahtout_admin_cleanup_site_for_deleted_account($site_db, $siteDbName, $username, $email);

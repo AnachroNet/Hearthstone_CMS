@@ -192,12 +192,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     } elseif ($confirm_username !== strtoupper($targetMeta['username'])) {
                         $update_message = alert_danger(translate('admin_users_delete_confirm_mismatch', 'Confirmation username does not match.'));
                     } else {
-                        $result = sahtout_admin_delete_account($auth_db, $site_db, $account_id, DB_AUTH, DB_SITE);
+                        $result = sahtout_admin_delete_account($auth_db, $char_db, $site_db, $account_id, DB_AUTH, DB_CHAR, DB_SITE);
+                        $deleteDetail = trim((string) ($result['detail'] ?? ''));
+                        $deleteFailMsg = translate('admin_users_delete_failed', 'Account deletion failed. Check that the account is offline and SOAP credentials are correct.');
+                        if ($deleteDetail !== '') {
+                            $deleteFailMsg .= ' ' . htmlspecialchars($deleteDetail, ENT_QUOTES, 'UTF-8');
+                        }
                         $update_message = match ($result['message']) {
                             'deleted' => alert_success(translate('admin_users_delete_success', 'Account and all characters were deleted.')),
                             'soap_required' => alert_danger(translate('admin_users_delete_soap_required', 'Account deletion requires SOAP to be configured in Admin → Settings → SOAP.')),
-                            'delete_soap_failed', 'delete_incomplete' => alert_danger(translate('admin_users_delete_failed', 'Account deletion failed. Check that the account is offline and SOAP credentials are correct.')),
-                            default => alert_danger(translate('admin_users_delete_failed', 'Account deletion failed. Check that the account is offline and SOAP credentials are correct.')),
+                            'delete_soap_failed', 'delete_incomplete', 'characters_remain', 'character_erase_failed' => alert_danger($deleteFailMsg),
+                            default => alert_danger($deleteFailMsg),
                         };
                     }
                 } else {
@@ -631,6 +636,16 @@ ob_start();
             border-bottom: 1px solid rgba(201,162,39,.1);
             color: #d8d8d8;
             background: rgba(22, 25, 32, 0.6);
+            vertical-align: middle;
+        }
+        .table-dark td.actions-cell {
+            white-space: nowrap;
+        }
+        .table-dark .action-buttons {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
         }
         .table-dark tr:hover td {
             background: rgba(30, 35, 45, 0.8);
@@ -874,13 +889,15 @@ ob_start();
                                                     <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                     <td><span class="status-<?php echo htmlspecialchars($user['role']); ?> text-sm md:text-base"><?php echo ucfirst(translate('admin_users_role_' . $user['role'], ucfirst($user['role']))); ?></span></td>
                                                     <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $user['last_updated'] ? date('M j, Y', strtotime($user['last_updated'])) : translate('admin_users_never', 'Never'); ?></td>
-                                                    <td class="flex flex-wrap gap-2">
+                                                    <td class="actions-cell">
+                                                        <div class="action-buttons">
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="editModal-<?php echo $user['account_id']; ?>">
                                                             <i class="fas fa-edit"></i> <?php echo translate('admin_users_edit_button', 'Edit'); ?>
                                                         </button>
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="lifecycleModal-<?php echo $user['account_id']; ?>">
                                                             <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_account_button', 'Account'); ?>
                                                         </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             <?php endwhile; ?>
@@ -965,13 +982,15 @@ ob_start();
                                                             <span class="text-gray-500 text-sm">—</span>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td class="flex flex-wrap gap-2">
+                                                    <td class="actions-cell">
+                                                        <div class="action-buttons">
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="manageModal-<?php echo $account['id']; ?>">
                                                             <i class="fas fa-cog"></i> <?php echo translate('admin_users_manage_button', 'Manage'); ?>
                                                         </button>
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="lifecycleModal-<?php echo $account['id']; ?>">
                                                             <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_account_button', 'Account'); ?>
                                                         </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

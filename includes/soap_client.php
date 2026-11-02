@@ -20,11 +20,29 @@ function sahtout_soap_response_indicates_failure(string $response): bool
         return false;
     }
 
-    return stripos($response, 'SOAP-ENV:Fault') !== false
-        || stripos($response, ':Fault>') !== false
-        || stripos($response, 'There is no such command') !== false
-        || stripos($response, 'Unknown command') !== false
-        || stripos($response, 'Command can not be empty') !== false;
+    $needles = [
+        'SOAP-ENV:Fault',
+        ':Fault>',
+        'There is no such command',
+        'Unknown command',
+        'Command can not be empty',
+        'There is no such subcommand',
+        'Account name can not be empty',
+        'Account not exist',
+        'not deleted',
+        'can\'t be deleted',
+        'cannot be deleted',
+        'Insufficient permissions',
+        'Permission denied',
+        'gmlevel is too low',
+    ];
+    foreach ($needles as $needle) {
+        if (stripos($response, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -91,8 +109,12 @@ function sahtout_soap_execute_command(string $command): array
         return ['ok' => false, 'output' => $body, 'error' => 'http_0'];
     }
 
-    if ($httpCode >= 400 || sahtout_soap_response_indicates_failure($body)) {
+    if ($httpCode >= 400) {
         return ['ok' => false, 'output' => $body, 'error' => 'http_' . $httpCode];
+    }
+
+    if (sahtout_soap_response_indicates_failure($body)) {
+        return ['ok' => false, 'output' => $body, 'error' => 'soap_fault'];
     }
 
     return ['ok' => true, 'output' => $body, 'error' => null];
