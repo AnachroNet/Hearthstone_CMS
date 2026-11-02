@@ -4,6 +4,7 @@ return [
     'step_1_title' => 'Create an Account',
     'step_1_desc' => 'Register a free account using our website:',
     'create_account' => 'Create Account',
+    'account_already_active' => 'Your account is already active!',
     'create_account_alt' => 'Create Account',
     'step_2_title' => 'Download the Game',
     'step_2_desc' => 'You need World of Warcraft: Wrath of the Lich King (3.3.5a). Use the download page for client and launcher links.',

@@ -10,6 +10,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 $page_class = "how_to_play";
 $page_title = $site_title_name . translate('how_to_play_title', 'How to Play');
+$how_to_play_logged_in = isset($_SESSION['user_id']);
 
 $realmsFile = $project_root . 'includes/realm_config.php';
 $realmlistIP = '127.0.0.1'; // fallback if file missing
@@ -229,6 +230,18 @@ ob_start();
     }
     .btn-gold:hover { filter: drop-shadow(0 0 12px rgba(242,207,82,.5)); }
 
+    .btn-gold-active-notice {
+        background: linear-gradient(180deg, #f6d478 0%, #c9a227 48%, #8a6a14 100%);
+        color: #1a1200;
+        text-shadow: 0 1px 0 rgba(255,255,255,.35);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 -8px 14px rgba(0,0,0,.25);
+        cursor: default;
+        pointer-events: none;
+        text-transform: none;
+        letter-spacing: 0.02em;
+        font-size: 0.9rem;
+    }
+
     .btn-iron {
         background: linear-gradient(180deg, #3a404d 0%, #232833 55%, #141821 100%);
         color: #cfe1ff;
@@ -310,15 +323,21 @@ require_once $project_root . 'includes/header.php';
                             <p><?php echo translate('step_1_desc', 'Register a free account using our website:'); ?></p>
                         </div>
                         <div class="mt-4 pt-4 border-t border-white/5">
-                            <a class="btn-game btn-gold" href="<?php echo $base_path; ?>register">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                                </svg>
-                                <?php echo translate('create_account', 'Create Account'); ?>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                                </svg>
-                            </a>
+                            <?php if ($how_to_play_logged_in): ?>
+                                <div class="btn-game btn-gold-active-notice" role="status">
+                                    <?php echo translate('account_already_active', 'Your account is already active!'); ?>
+                                </div>
+                            <?php else: ?>
+                                <a class="btn-game btn-gold" href="<?php echo $base_path; ?>register">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                    </svg>
+                                    <?php echo translate('create_account', 'Create Account'); ?>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                    </svg>
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -423,12 +442,18 @@ require_once $project_root . 'includes/header.php';
                     <p class="text-gray-300 text-sm md:text-base mb-8 max-w-xl mx-auto">
                         <?php echo translate('cta_desc', 'Create an account now and start your adventure in the world of Azeroth!'); ?>
                     </p>
-                    <a class="btn-game btn-gold !w-auto !px-10 !py-4 text-base mx-auto" href="<?php echo $base_path; ?>register">
-                        <span><?php echo translate('cta_button', 'Get Started Now'); ?></span>
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
-                        </svg>
-                    </a>
+                    <?php if ($how_to_play_logged_in): ?>
+                        <div class="btn-game btn-gold-active-notice !w-auto !px-10 !py-4 text-base mx-auto" role="status">
+                            <?php echo translate('account_already_active', 'Your account is already active!'); ?>
+                        </div>
+                    <?php else: ?>
+                        <a class="btn-game btn-gold !w-auto !px-10 !py-4 text-base mx-auto" href="<?php echo $base_path; ?>register">
+                            <span><?php echo translate('cta_button', 'Get Started Now'); ?></span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                            </svg>
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
             
