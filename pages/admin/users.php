@@ -6,6 +6,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/playerbot_accounts.php';
+require_once $project_root . 'includes/account_admin_actions.php';
 
 $page_class = 'users';
 define('DB_AUTH', $db_auth_name);
@@ -147,6 +148,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             }
         }
+    } elseif ($_POST['action'] === 'account_lifecycle') {
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+            $update_message = alert_danger(translate('admin_users_csrf_error', 'CSRF token validation failed.'));
+        } else {
+            $account_id = (int) ($_POST['account_id'] ?? 0);
+            $lifecycle_action = (string) ($_POST['lifecycle_action'] ?? '');
+            $confirm_username = strtoupper(trim((string) ($_POST['confirm_username'] ?? '')));
+            $actor_role = (string) ($_SESSION['role'] ?? 'player');
+            $actor_id = (int) ($_SESSION['user_id'] ?? 0);
+
+            if ($account_id <= 0) {
+                $update_message = alert_danger(translate('admin_users_user_not_found', 'The requested user was not found.'));
+            } elseif ($account_id === $actor_id) {
+                $update_message = alert_danger(translate('admin_users_cannot_target_self', 'You cannot suspend or delete your own account.'));
+            } elseif (!sahtout_auth_account_is_manageable($auth_db, $account_id)) {
+                $update_message = alert_danger(translate('admin_users_playerbot_not_manageable', 'Playerbot accounts cannot be managed from this panel.'));
+            } else {
+                $targetMeta = sahtout_admin_fetch_account_meta($auth_db, $site_db, $account_id, DB_AUTH, DB_SITE);
+                if (!$targetMeta) {
+                    $update_message = alert_danger(translate('admin_users_user_not_found', 'The requested user was not found.'));
+                } elseif ($lifecycle_action === 'suspend') {
+                    if (!sahtout_admin_may_suspend_account($actor_role, $targetMeta)) {
+                        $update_message = alert_danger(translate('admin_users_permission_denied', 'You do not have permission to perform this action.'));
+                    } else {
+                        $result = sahtout_admin_suspend_account($auth_db, $account_id, DB_AUTH);
+                        $update_message = $result['ok']
+                            ? alert_success(translate('admin_users_suspend_success', 'Account suspended. The player cannot log in until unsuspended.'))
+                            : alert_danger(translate('admin_users_suspend_failed', 'Failed to suspend account.'));
+                    }
+                } elseif ($lifecycle_action === 'unsuspend') {
+                    if (!sahtout_admin_may_suspend_account($actor_role, $targetMeta)) {
+                        $update_message = alert_danger(translate('admin_users_permission_denied', 'You do not have permission to perform this action.'));
+                    } else {
+                        $result = sahtout_admin_unsuspend_account($auth_db, $account_id, DB_AUTH);
+                        $update_message = $result['ok']
+                            ? alert_success(translate('admin_users_unsuspend_success', 'Account unsuspended.'))
+                            : alert_danger(translate('admin_users_unsuspend_failed', 'Failed to unsuspend account.'));
+                    }
+                } elseif ($lifecycle_action === 'delete') {
+                    if (!sahtout_admin_may_delete_account($actor_role, $targetMeta)) {
+                        $update_message = alert_danger(translate('admin_users_permission_denied', 'You do not have permission to perform this action.'));
+                    } elseif ($confirm_username !== strtoupper($targetMeta['username'])) {
+                        $update_message = alert_danger(translate('admin_users_delete_confirm_mismatch', 'Confirmation username does not match.'));
+                    } else {
+                        $result = sahtout_admin_delete_account($auth_db, $site_db, $account_id, DB_AUTH, DB_SITE);
+                        $update_message = match ($result['message']) {
+                            'deleted' => alert_success(translate('admin_users_delete_success', 'Account and all characters were deleted.')),
+                            'soap_required' => alert_danger(translate('admin_users_delete_soap_required', 'Account deletion requires SOAP to be configured in Admin → Settings → SOAP.')),
+                            'delete_soap_failed', 'delete_incomplete' => alert_danger(translate('admin_users_delete_failed', 'Account deletion failed. Check that the account is offline and SOAP credentials are correct.')),
+                            default => alert_danger(translate('admin_users_delete_failed', 'Account deletion failed. Check that the account is offline and SOAP credentials are correct.')),
+                        };
+                    }
+                } else {
+                    $update_message = alert_danger(translate('admin_users_action_failed', 'Failed to complete action.'));
+                }
+            }
+        }
     }
 }
 
@@ -189,7 +247,7 @@ $stmt->close();
 $total_website_pages = ceil($total_website_users / $users_per_page);
 
 // Fetch website users
-$users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.tokens, uc.role, uc.last_updated, a.email
+$users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.tokens, uc.role, uc.last_updated, a.email, a.locked
                 FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1"
     . sahtout_sql_exclude_playerbots('a.username')
     . sahtout_sql_exclude_playerbots('uc.username');
@@ -259,7 +317,7 @@ $stmt->close();
 $total_ingame_pages = ceil($total_ingame_accounts / $users_per_page);
 
 // Fetch in-game accounts
-$accounts_query = "SELECT a.id, a.username, a.email, a.joindate, a.last_login, a.online, aa.gmlevel
+$accounts_query = "SELECT a.id, a.username, a.email, a.joindate, a.last_login, a.online, a.locked, aa.gmlevel
                   FROM " . DB_AUTH . ".account a
                   LEFT JOIN " . DB_AUTH . ".account_access aa ON a.id = aa.id
                   WHERE 1=1"
@@ -364,11 +422,61 @@ function getOnlineStatus($online) {
         : '<span class="text-red-400 font-semibold"><i class="fas fa-circle text-red-400 text-xs mr-1"></i> ' . translate('admin_users_status_offline', 'Offline') . '</span>';
 }
 
-function getAccountStatus($banInfo) {
+function getAccountStatus($banInfo, $locked = 0) {
     if (!empty($banInfo)) {
         return '<span class="text-red-400 font-semibold"><i class="fas fa-ban mr-1"></i> ' . translate('admin_users_status_banned', 'Banned') . '</span>';
     }
+    if ((int) $locked === 1) {
+        return '<span class="text-amber-400 font-semibold"><i class="fas fa-pause-circle mr-1"></i> ' . translate('admin_users_status_suspended', 'Suspended') . '</span>';
+    }
+
     return '<span class="text-green-400 font-semibold"><i class="fas fa-check-circle mr-1"></i> ' . translate('admin_users_status_active', 'Active') . '</span>';
+}
+
+function admin_users_render_lifecycle_modal(int $accountId, string $username, int $locked): void
+{
+    global $base_path;
+    $isAdmin = ($_SESSION['role'] ?? '') === 'admin';
+    ?>
+    <div id="lifecycleModal-<?php echo $accountId; ?>" class="modal-backdrop">
+        <div class="panel w-full max-w-lg p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+            <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl close-modal-btn" data-modal="lifecycleModal-<?php echo $accountId; ?>">&times;</button>
+            <h3 class="wow-title text-2xl mb-2"><?php echo translate('admin_users_lifecycle_modal_title', 'Suspend or delete account'); ?></h3>
+            <p class="text-gray-400 text-sm mb-6"><?php echo htmlspecialchars($username); ?></p>
+            <form method="POST" action="<?php echo $base_path; ?>admin/users" class="lifecycle-form">
+                <input type="hidden" name="action" value="account_lifecycle">
+                <input type="hidden" name="account_id" value="<?php echo $accountId; ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_users_label_lifecycle_action', 'Action'); ?></label>
+                    <select name="lifecycle_action" class="input-dark lifecycle-action-select" data-account-id="<?php echo $accountId; ?>" required>
+                        <?php if ((int) $locked === 1): ?>
+                            <option value="unsuspend"><?php echo translate('admin_users_action_unsuspend', 'Unsuspend account'); ?></option>
+                        <?php else: ?>
+                            <option value="suspend"><?php echo translate('admin_users_action_suspend', 'Suspend account'); ?></option>
+                        <?php endif; ?>
+                        <?php if ($isAdmin): ?>
+                            <option value="delete"><?php echo translate('admin_users_action_delete_account', 'Delete account permanently'); ?></option>
+                        <?php endif; ?>
+                    </select>
+                    <p class="text-[#6a7a8a] text-xs mt-2"><?php echo translate('admin_users_suspend_help', 'Suspended accounts cannot log in to the website or game. Ban records are unchanged.'); ?></p>
+                </div>
+
+                <div class="lifecycle-delete-fields-<?php echo $accountId; ?> hidden mb-4 p-3 border border-red-500/30 rounded-sm bg-red-950/20">
+                    <p class="text-red-300 text-sm mb-3"><?php echo translate('admin_users_delete_warning', 'This permanently deletes the auth account, all characters, and related game data. Site profile data is removed via database cascade. This cannot be undone.'); ?></p>
+                    <label class="block text-sm font-semibold text-red-300 mb-2"><?php echo translate('admin_users_label_confirm_username', 'Type the username to confirm'); ?></label>
+                    <input type="text" name="confirm_username" class="input-dark uppercase" autocomplete="off" placeholder="<?php echo htmlspecialchars($username); ?>">
+                </div>
+
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" class="btn-iron close-modal-btn" data-modal="lifecycleModal-<?php echo $accountId; ?>"><?php echo translate('admin_users_cancel_button', 'Cancel'); ?></button>
+                    <button type="submit" class="btn-gold lifecycle-submit-<?php echo $accountId; ?>"><?php echo translate('admin_users_apply_button', 'Apply'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php
 }
 
 function getGMLevel($gmlevel) {
@@ -766,9 +874,12 @@ ob_start();
                                                     <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                     <td><span class="status-<?php echo htmlspecialchars($user['role']); ?> text-sm md:text-base"><?php echo ucfirst(translate('admin_users_role_' . $user['role'], ucfirst($user['role']))); ?></span></td>
                                                     <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $user['last_updated'] ? date('M j, Y', strtotime($user['last_updated'])) : translate('admin_users_never', 'Never'); ?></td>
-                                                    <td>
+                                                    <td class="flex flex-wrap gap-2">
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="editModal-<?php echo $user['account_id']; ?>">
                                                             <i class="fas fa-edit"></i> <?php echo translate('admin_users_edit_button', 'Edit'); ?>
+                                                        </button>
+                                                        <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="lifecycleModal-<?php echo $user['account_id']; ?>">
+                                                            <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_account_button', 'Account'); ?>
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -843,7 +954,7 @@ ob_start();
                                                     <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $account['joindate'] ? date('M j, Y', strtotime($account['joindate'])) : translate('admin_users_na', 'N/A'); ?></td>
                                                     <td class="hidden xl:table-cell text-sm text-gray-400"><?php echo $account['last_login'] ? date('M j, Y', strtotime($account['last_login'])) : translate('admin_users_never', 'Never'); ?></td>
                                                     <td><?php echo getOnlineStatus($account['online']); ?></td>
-                                                    <td><?php echo getAccountStatus($account['banInfo'] ?? []); ?></td>
+                                                    <td><?php echo getAccountStatus($account['banInfo'] ?? [], $account['locked'] ?? 0); ?></td>
                                                     <td><?php echo getGMLevel($account['gmlevel'] ?? null); ?></td>
                                                     <td>
                                                         <?php if (!empty($account['characters'])): ?>
@@ -854,9 +965,12 @@ ob_start();
                                                             <span class="text-gray-500 text-sm">—</span>
                                                         <?php endif; ?>
                                                     </td>
-                                                    <td>
+                                                    <td class="flex flex-wrap gap-2">
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="manageModal-<?php echo $account['id']; ?>">
                                                             <i class="fas fa-cog"></i> <?php echo translate('admin_users_manage_button', 'Manage'); ?>
+                                                        </button>
+                                                        <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="lifecycleModal-<?php echo $account['id']; ?>">
+                                                            <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_account_button', 'Account'); ?>
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -944,6 +1058,7 @@ ob_start();
         </form>
     </div>
 </div>
+            <?php admin_users_render_lifecycle_modal((int) $user['account_id'], (string) $user['username'], (int) ($user['locked'] ?? 0)); ?>
         <?php endwhile; 
         $modal_users_result->free();
         $stmt->close();
@@ -1036,6 +1151,7 @@ ob_start();
                     </form>
                 </div>
             </div>
+            <?php admin_users_render_lifecycle_modal((int) $account['id'], (string) $account['username'], (int) ($account['locked'] ?? 0)); ?>
         <?php endforeach; ?>
     </div>
 
@@ -1093,6 +1209,30 @@ ob_start();
                     banFields.style.display = select.value === 'ban' ? 'block' : 'none';
                 }
             }
+
+            const lifecycleSelect = e.target.closest('.lifecycle-action-select');
+            if (lifecycleSelect) {
+                const accountId = lifecycleSelect.getAttribute('data-account-id');
+                const deleteFields = document.querySelector('.lifecycle-delete-fields-' + accountId);
+                if (deleteFields) {
+                    deleteFields.classList.toggle('hidden', lifecycleSelect.value !== 'delete');
+                }
+            }
+        });
+
+        document.addEventListener('submit', function(e) {
+            const form = e.target.closest('.lifecycle-form');
+            if (!form) {
+                return;
+            }
+            const select = form.querySelector('.lifecycle-action-select');
+            if (select && select.value === 'delete') {
+                const confirmInput = form.querySelector('input[name="confirm_username"]');
+                if (!confirmInput || confirmInput.value.trim() === '') {
+                    e.preventDefault();
+                    alert(<?php echo json_encode(translate('admin_users_delete_confirm_required', 'Please type the username to confirm deletion.')); ?>);
+                }
+            }
         });
 
         // Close modal with Escape key
@@ -1111,6 +1251,13 @@ ob_start();
                 const banFields = document.querySelector('.ban-fields-' + accountId);
                 if (banFields) {
                     banFields.style.display = select.value === 'ban' ? 'block' : 'none';
+                }
+            });
+            document.querySelectorAll('.lifecycle-action-select').forEach(function(select) {
+                const accountId = select.getAttribute('data-account-id');
+                const deleteFields = document.querySelector('.lifecycle-delete-fields-' + accountId);
+                if (deleteFields) {
+                    deleteFields.classList.toggle('hidden', select.value !== 'delete');
                 }
             });
         });

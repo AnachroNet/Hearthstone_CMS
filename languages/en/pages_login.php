@@ -16,6 +16,8 @@ return [
     'error_recaptcha_failed' => 'reCAPTCHA verification failed.',
     'error_account_not_activated' => 'Your account is not activated. Please check your email to activate your account.',
     'error_invalid_credentials' => 'Invalid username or password',
+    'error_account_suspended' => 'This account is suspended. Contact support if you believe this is an error.',
+    'error_account_banned' => 'This account is banned.',
     'error_too_many_attempts' => 'Too many login attempts (%d made). Please try again in %d minutes.',
     'error_database' => 'Database error occurred. Please try again.',
     'remaining_attempts' => 'You have %d login attempts remaining.',

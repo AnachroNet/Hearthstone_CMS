@@ -481,6 +481,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $account['verifier']
                                 )
                             ) {
+                                $stmtLock = $auth_db->prepare(
+                                    'SELECT locked FROM account WHERE id = ? LIMIT 1'
+                                );
+                                $accountLocked = 0;
+                                if ($stmtLock) {
+                                    $stmtLock->bind_param('i', $account['id']);
+                                    $stmtLock->execute();
+                                    $lockRow = $stmtLock->get_result()->fetch_assoc();
+                                    $accountLocked = (int) ($lockRow['locked'] ?? 0);
+                                    $stmtLock->close();
+                                }
+                                if ($accountLocked === 1) {
+                                    $errors[] = translate(
+                                        'error_account_suspended',
+                                        'This account is suspended. Contact support if you believe this is an error.'
+                                    );
+                                }
+
+                                $stmtBan = $auth_db->prepare(
+                                    'SELECT id FROM account_banned WHERE id = ? AND active = 1 LIMIT 1'
+                                );
+                                if ($stmtBan && empty($errors)) {
+                                    $stmtBan->bind_param('i', $account['id']);
+                                    $stmtBan->execute();
+                                    if ($stmtBan->get_result()->num_rows > 0) {
+                                        $errors[] = translate(
+                                            'error_account_banned',
+                                            'This account is banned.'
+                                        );
+                                    }
+                                    $stmtBan->close();
+                                }
+
+                                if (empty($errors)) {
                                 session_regenerate_id(true);
 
                                 $_SESSION['user_id'] = $account['id'];
@@ -528,6 +562,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 header("Location: {$base_path}account");
                                 exit();
+                                }
                             } else {
                                 $attempts = logFailedAttempt(
                                     $site_db,
