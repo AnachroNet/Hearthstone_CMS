@@ -15,6 +15,7 @@ return [
     'email_button' => 'Reset Password',
     'email_expiry' => 'This link will expire in 1 minute. If you didn\'t request this, please ignore this email.',
     'error_username_or_email_required' => 'Username or email is required',
+    'error_shared_email_use_username' => 'Several accounts use this email. Enter your username to reset the password.',
     'error_recaptcha_failed' => 'reCAPTCHA verification failed.',
     'error_reset_limit_exceeded' => 'You have reached the maximum number of password reset attempts. Please try again later.',
     'error_database' => 'Database error occurred. Please try again.',

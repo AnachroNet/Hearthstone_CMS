@@ -106,42 +106,61 @@ if (!isset($_SESSION['reset_nonce'])) {
 $nonce = $_SESSION['reset_nonce'];
 
 if ($token) {
+    sahtout_password_resets_ensure_username_column($site_db);
+
     // Delete expired or used tokens
     $stmt_delete = $site_db->prepare("DELETE FROM password_resets WHERE expires_at < NOW() OR used = 1");
     $stmt_delete->execute();
     $stmt_delete->close();
 
     // Validate token
-    $stmt = $site_db->prepare("SELECT email FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()");
+    $stmt = $site_db->prepare('SELECT email, username FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()');
     $stmt->bind_param('s', $token);
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $email = $row['email'];
+        $resetUsername = isset($row['username']) ? trim((string) $row['username']) : '';
 
-        // Check account table first
-        $stmt2 = $auth_db->prepare("SELECT username FROM account WHERE LOWER(email) = LOWER(?)");
-        $stmt2->bind_param('s', $email);
-        $stmt2->execute();
-        $result2 = $stmt2->get_result();
-        if ($result2->num_rows > 0) {
-            $username = $result2->fetch_assoc()['username'];
-            $valid_token = true;
-        } else {
-            // Check pending_accounts table
-            $stmt3 = $site_db->prepare("SELECT username FROM pending_accounts WHERE LOWER(email) = LOWER(?)");
-            $stmt3->bind_param('s', $email);
-            $stmt3->execute();
-            $result3 = $stmt3->get_result();
-            if ($result3->num_rows > 0) {
-                $errors[] = translate('error_account_not_active', 'Your account is not active yet. Please activate your account to reset your password.');
+        if ($resetUsername !== '') {
+            $stmt2 = $auth_db->prepare('SELECT username FROM account WHERE username = ?');
+            $stmt2->bind_param('s', $resetUsername);
+            $stmt2->execute();
+            $result2 = $stmt2->get_result();
+            if ($result2->num_rows > 0) {
+                $username = $result2->fetch_assoc()['username'];
+                $valid_token = true;
             } else {
                 $errors[] = translate('error_account_not_exist', 'Account does not exist.');
             }
-            $stmt3->close();
+            $stmt2->close();
+        } else {
+            $stmt2 = $auth_db->prepare('SELECT username FROM account WHERE LOWER(email) = LOWER(?)');
+            $stmt2->bind_param('s', $email);
+            $stmt2->execute();
+            $result2 = $stmt2->get_result();
+            if ($result2->num_rows > 0) {
+                if ($result2->num_rows > 1 && sahtout_registration_allow_shared_email()) {
+                    $errors[] = translate('error_shared_email_use_username', 'Several accounts use this email. Request a new reset link using your username.');
+                } else {
+                    $username = $result2->fetch_assoc()['username'];
+                    $valid_token = true;
+                }
+            } else {
+                $stmt3 = $site_db->prepare('SELECT username FROM pending_accounts WHERE LOWER(email) = LOWER(?)');
+                $stmt3->bind_param('s', $email);
+                $stmt3->execute();
+                $result3 = $stmt3->get_result();
+                if ($result3->num_rows > 0) {
+                    $errors[] = translate('error_account_not_active', 'Your account is not active yet. Please activate your account to reset your password.');
+                } else {
+                    $errors[] = translate('error_account_not_exist', 'Account does not exist.');
+                }
+                $stmt3->close();
+            }
+            $stmt2->close();
         }
-        $stmt2->close();
     } else {
         $errors[] = translate('error_token_invalid', 'The reset link is invalid or has expired.');
     }
@@ -185,8 +204,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
             $verifier = SRP6::calculateVerifier($username, $password, $salt);
 
             // Update account table
-            $stmt = $auth_db->prepare("UPDATE account SET salt = ?, verifier = ? WHERE email = ?");
-            $stmt->bind_param('sss', $salt, $verifier, $email);
+            $stmt = $auth_db->prepare('UPDATE account SET salt = ?, verifier = ? WHERE username = ?');
+            $stmt->bind_param('sss', $salt, $verifier, $username);
             if ($stmt->execute() && $stmt->affected_rows > 0) {
                 // Delete token from password_resets
                 $stmt2 = $site_db->prepare("DELETE FROM password_resets WHERE token = ?");

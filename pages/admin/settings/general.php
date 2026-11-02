@@ -291,6 +291,21 @@ include $project_root . 'includes/header.php';
                                 </div>
                             </div>
 
+                            <!-- Registration -->
+                            <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
+                                <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
+                                    <?php echo translate('label_registration', 'Account registration'); ?>
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mb-1">
+                                    <input type="checkbox" name="registration_allow_shared_email" value="1" class="rounded border-[#c9a227]/40"
+                                        <?php echo !empty($sahtout_site_settings['registration.allow_shared_email']) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_registration_allow_shared_email', 'Allow multiple accounts to use the same email address'); ?>
+                                </label>
+                                <div class="text-[#6a7a8a] text-xs mt-1">
+                                    <?php echo translate('help_registration_allow_shared_email', 'Usernames must still be unique. Useful for a GM test account or family sharing one inbox. Password reset and resend activation should use the account username when several accounts share an email.'); ?>
+                                </div>
+                            </div>
+
                             <!-- Discord widget (home page) -->
                             <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
                                 <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">

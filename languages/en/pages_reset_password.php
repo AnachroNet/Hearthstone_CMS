@@ -14,6 +14,7 @@ return [
     'email_contact_support' => 'If you did not perform this action, please contact support immediately.',
     'error_account_not_active' => 'Your account is not active yet. Please activate your account to reset your password.',
     'error_account_not_exist' => 'Account does not exist.',
+    'error_shared_email_use_username' => 'Several accounts use this email. Request a new reset link using your username.',
     'error_token_invalid' => 'The reset link is invalid or has expired.',
     'error_token_missing' => 'Invalid reset token.',
     'error_no_token' => 'No reset token provided.',

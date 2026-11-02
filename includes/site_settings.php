@@ -52,7 +52,54 @@ function sahtout_site_setting_defaults(): array
         ],
         'discord.guild_id' => '',
         'discord.widget_enabled' => '1',
+        'registration.allow_shared_email' => '0',
     ];
+}
+
+/** When true, multiple game accounts may share the same registration email (username stays unique). */
+function sahtout_registration_allow_shared_email(): bool
+{
+    global $sahtout_site_settings;
+
+    if (!isset($sahtout_site_settings) || !is_array($sahtout_site_settings)) {
+        return false;
+    }
+
+    return !empty($sahtout_site_settings['registration.allow_shared_email']);
+}
+
+/** Drops pending_accounts.unique_email so multiple pending signups can share an email. Safe if already removed. */
+function sahtout_pending_accounts_drop_unique_email(mysqli $site_db): bool
+{
+    $res = $site_db->query("SHOW INDEX FROM pending_accounts WHERE Key_name = 'unique_email'");
+    if (!$res) {
+        return false;
+    }
+    $exists = $res->num_rows > 0;
+    $res->free();
+    if (!$exists) {
+        return true;
+    }
+
+    return (bool) $site_db->query('ALTER TABLE pending_accounts DROP INDEX unique_email');
+}
+
+function sahtout_password_resets_ensure_username_column(mysqli $site_db): bool
+{
+    $res = $site_db->query("SHOW COLUMNS FROM password_resets LIKE 'username'");
+    if (!$res) {
+        return false;
+    }
+    if ($res->num_rows > 0) {
+        $res->free();
+
+        return true;
+    }
+    $res->free();
+
+    return (bool) $site_db->query(
+        'ALTER TABLE password_resets ADD COLUMN username varchar(32) DEFAULT NULL AFTER email'
+    );
 }
 
 function sahtout_site_settings_load_all(mysqli $site_db): array

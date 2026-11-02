@@ -225,14 +225,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $email = null;
                             $username = null;
 
-                            $stmt = $auth_db->prepare("SELECT username, email FROM account WHERE username = ? OR LOWER(email) = LOWER(?)");
-                            $stmt->bind_param('ss', $username_or_email, $username_or_email);
+                            $lookup = trim($username_or_email);
+                            $sharedEmailAllowed = sahtout_registration_allow_shared_email();
+                            $lookupIsEmail = str_contains($lookup, '@');
+
+                            if ($sharedEmailAllowed && $lookupIsEmail) {
+                                $stmt = $auth_db->prepare('SELECT username, email FROM account WHERE LOWER(email) = LOWER(?)');
+                                $stmt->bind_param('s', $lookup);
+                            } else {
+                                $stmt = $auth_db->prepare('SELECT username, email FROM account WHERE username = ? OR LOWER(email) = LOWER(?)');
+                                $stmt->bind_param('ss', $lookup, $lookup);
+                            }
                             if (!$stmt->execute()) {
                                 error_log("Account check failed for {$username_or_email}: " . $auth_db->error);
                                 $errors[] = translate('error_database', 'Database error occurred. Please try again.');
                             } else {
                                 $result = $stmt->get_result();
-                                if ($result->num_rows > 0) {
+                                if ($sharedEmailAllowed && $lookupIsEmail && $result->num_rows > 1) {
+                                    $errors[] = translate('error_shared_email_use_username', 'Several accounts use this email. Enter your username to reset the password.');
+                                } elseif ($result->num_rows > 0) {
                                     $row = $result->fetch_assoc();
                                     $username = $row['username'];
                                     $email = $row['email'];
@@ -240,17 +251,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $stmt->close();
 
                                 if ($email && $username) {
+                                    sahtout_password_resets_ensure_username_column($site_db);
                                     $token = bin2hex(random_bytes(32));
 
-                                    $stmt_delete = $site_db->prepare("DELETE FROM password_resets WHERE email = ?");
-                                    $stmt_delete->bind_param('s', $email);
+                                    $stmt_delete = $site_db->prepare('DELETE FROM password_resets WHERE username = ?');
+                                    $stmt_delete->bind_param('s', $username);
                                     if (!$stmt_delete->execute()) {
                                         error_log("Delete existing tokens failed for email {$email}: " . $site_db->error);
                                     }
                                     $stmt_delete->close();
 
-                                    $stmt_insert = $site_db->prepare("INSERT INTO password_resets (email, token, expires_at, used) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 MINUTE), 0)");
-                                    $stmt_insert->bind_param('ss', $email, $token);
+                                    $stmt_insert = $site_db->prepare(
+                                        'INSERT INTO password_resets (email, username, token, expires_at, used) VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 MINUTE), 0)'
+                                    );
+                                    $stmt_insert->bind_param('sss', $email, $username, $token);
                                     if ($stmt_insert->execute()) {
                                         // Check if SMTP is enabled from config.mail.php
                                         global $smtp_enabled;

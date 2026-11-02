@@ -132,15 +132,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = translate('error_password_mismatch', 'Passwords do not match.');
     }
 
-    // Check for existing username and email in pending_accounts
+    // Check for existing username (and email when unique emails are enforced) in pending_accounts
     if (empty($errors)) {
         $upper_username = strtoupper($username);
-        $stmt = $site_db->prepare("SELECT username, email FROM pending_accounts WHERE username = ? OR email = ?");
+        $allowSharedEmail = sahtout_registration_allow_shared_email();
+        if ($allowSharedEmail) {
+            $stmt = $site_db->prepare('SELECT username FROM pending_accounts WHERE username = ?');
+            $stmt?->bind_param('s', $upper_username);
+        } else {
+            $stmt = $site_db->prepare('SELECT username, email FROM pending_accounts WHERE username = ? OR email = ?');
+            $stmt?->bind_param('ss', $upper_username, $email);
+        }
         if (!$stmt) {
-            error_log("Register: Pending accounts prepare failed: " . $site_db->error);
+            error_log('Register: Pending accounts prepare failed: ' . $site_db->error);
             $errors[] = translate('error_database', 'Database error. Please try again later.');
         } else {
-            $stmt->bind_param('ss', $upper_username, $email);
             $stmt->execute();
             $result = $stmt->get_result();
             if ($result->num_rows > 0) {
@@ -171,19 +177,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // Check if email exists
-        $stmt = $auth_db->prepare("SELECT id FROM account WHERE email = ?");
-        if (!$stmt) {
-            error_log("Register: Account email prepare failed: " . $auth_db->error);
-            $errors[] = translate('error_database', 'Database error. Please try again later.');
-        } else {
-            $stmt->bind_param('s', $email);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($result->num_rows > 0) {
-                $errors[] = translate('error_email_exists', 'Email already in use. Please choose a different email.');
+        if (!sahtout_registration_allow_shared_email()) {
+            $stmt = $auth_db->prepare('SELECT id FROM account WHERE email = ?');
+            if (!$stmt) {
+                error_log('Register: Account email prepare failed: ' . $auth_db->error);
+                $errors[] = translate('error_database', 'Database error. Please try again later.');
+            } else {
+                $stmt->bind_param('s', $email);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($result->num_rows > 0) {
+                    $errors[] = translate('error_email_exists', 'Email already in use. Please choose a different email.');
+                }
+                $stmt->close();
             }
-            $stmt->close();
         }
     }
 

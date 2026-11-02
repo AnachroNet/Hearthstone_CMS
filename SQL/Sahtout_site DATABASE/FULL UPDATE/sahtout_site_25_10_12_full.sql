@@ -57,6 +57,7 @@ CREATE TABLE `failed_logins` (
 CREATE TABLE IF NOT EXISTS `password_resets` (
   `id` int NOT NULL AUTO_INCREMENT,
   `email` varchar(255) NOT NULL,
+  `username` varchar(32) DEFAULT NULL,
   `token` varchar(64) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expires_at` timestamp NOT NULL,
@@ -79,8 +80,7 @@ CREATE TABLE IF NOT EXISTS `pending_accounts` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `activated` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_username` (`username`),
-  UNIQUE KEY `unique_email` (`email`)
+  UNIQUE KEY `unique_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf16;
 
 -- Listage des données de la table sahtout_site.pending_accounts : ~0 rows (environ)

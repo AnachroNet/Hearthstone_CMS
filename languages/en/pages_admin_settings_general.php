@@ -54,6 +54,11 @@ return [
     'placeholder_linkedin' => 'LinkedIn URL',
     'help_social_links' => 'Enter full profile URLs. Leave blank to hide in the footer. The Discord invite link also powers the home page Discord button.',
 
+    'label_registration' => 'Account registration',
+    'label_registration_allow_shared_email' => 'Allow multiple accounts to use the same email address',
+    'help_registration_allow_shared_email' => 'Usernames must still be unique. Useful for a GM test account or family sharing one inbox. Password reset and resend activation should use the account username when several accounts share an email.',
+    'error_shared_email_index' => 'Could not update pending signups table for shared emails. Run SQL/SINGLE UPDATE/registration_allow_shared_email.sql on sahtout_site.',
+
     // Buttons
     'btn_save_settings' => 'Save All Settings',
 ];

@@ -176,15 +176,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception(translate('error_email_same_as_current', 'New email must be different from your current email'));
             }
 
-            // Check if email is used by another account
-            $stmt_check_email = $auth_db->prepare("SELECT id FROM account WHERE email = ? AND id != ?");
-            $stmt_check_email->bind_param('si', $new_email, $_SESSION['user_id']);
-            $stmt_check_email->execute();
-            $result = $stmt_check_email->get_result();
-            if ($result->num_rows > 0) {
-                throw new Exception(translate('error_email_in_use', 'Email already in use by another account'));
+            if (!sahtout_registration_allow_shared_email()) {
+                $stmt_check_email = $auth_db->prepare('SELECT id FROM account WHERE email = ? AND id != ?');
+                $stmt_check_email->bind_param('si', $new_email, $_SESSION['user_id']);
+                $stmt_check_email->execute();
+                $result = $stmt_check_email->get_result();
+                if ($result->num_rows > 0) {
+                    throw new Exception(translate('error_email_in_use', 'Email already in use by another account'));
+                }
+                $stmt_check_email->close();
             }
-            $stmt_check_email->close();
 
             // Verify current password
             $stmt_verify = $auth_db->prepare("SELECT salt, verifier FROM account WHERE id = ?");
