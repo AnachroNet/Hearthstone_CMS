@@ -125,11 +125,20 @@ function sahtout_load_local_config(bool $reload = false): array
 
     $path = sahtout_local_config_path();
     if (is_file($path)) {
+        if (!is_readable($path)) {
+            error_log('SahtoutCMS: config.local.php exists but is not readable by the web server user');
+            http_response_code(503);
+            exit(
+                'includes/config.local.php is not readable by the web server. '
+                . 'Fix ownership/permissions (e.g. chown www-data:www-data or chmod 640 with group read for the Apache/PHP user).'
+            );
+        }
         sahtout_invalidate_local_config_opcache($path);
         $data = include $path;
         if (is_array($data)) {
             return sahtout_store_local_config_cache($data);
         }
+        error_log('SahtoutCMS: config.local.php did not return a valid configuration array');
     }
 
     $migrated = sahtout_migrate_legacy_config_files();
