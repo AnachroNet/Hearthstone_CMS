@@ -103,6 +103,33 @@ function sahtout_admin_auth_account_exists(mysqli $auth_db, string $authDbName, 
     return $exists;
 }
 
+/** Character already removed (e.g. after .account delete) — safe to ignore on .character erase. */
+function sahtout_soap_response_is_missing_character(string $soapOutput): bool
+{
+    $text = sahtout_admin_soap_plaintext_detail($soapOutput);
+
+    return stripos($text, 'Character') !== false
+        && (stripos($text, 'does not exist') !== false || stripos($text, 'not exist') !== false);
+}
+
+function sahtout_admin_character_count_for_account(mysqli $char_db, string $charDbName, int $accountId): int
+{
+    $stmt = $char_db->prepare('SELECT COUNT(*) AS cnt FROM `' . $charDbName . '`.characters WHERE account = ?');
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param('i', $accountId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return 0;
+    }
+    $cnt = (int) ($stmt->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $stmt->close();
+
+    return $cnt;
+}
+
 function sahtout_admin_soap_plaintext_detail(string $soapOutput): string
 {
     $text = sahtout_soap_extract_command_message($soapOutput, true);
@@ -181,7 +208,7 @@ function sahtout_admin_erase_characters_via_soap(mysqli $char_db, string $charDb
     $names = sahtout_admin_character_names_for_account($char_db, $charDbName, $accountId);
     foreach ($names as $name) {
         $soap = sahtout_soap_execute_command('.character erase ' . sahtout_soap_character_name_for_command($name));
-        if (!$soap['ok']) {
+        if (!$soap['ok'] && !sahtout_soap_response_is_missing_character($soap['output'])) {
             return [
                 'ok' => false,
                 'message' => 'character_erase_failed',
@@ -190,15 +217,9 @@ function sahtout_admin_erase_characters_via_soap(mysqli $char_db, string $charDb
         }
     }
 
-    $stmt = $char_db->prepare('SELECT COUNT(*) AS cnt FROM `' . $charDbName . '`.characters WHERE account = ?');
-    if ($stmt) {
-        $stmt->bind_param('i', $accountId);
-        $stmt->execute();
-        $cnt = (int) ($stmt->get_result()->fetch_assoc()['cnt'] ?? 0);
-        $stmt->close();
-        if ($cnt > 0) {
-            return ['ok' => false, 'message' => 'characters_remain', 'detail' => (string) $cnt];
-        }
+    $cnt = sahtout_admin_character_count_for_account($char_db, $charDbName, $accountId);
+    if ($cnt > 0) {
+        return ['ok' => false, 'message' => 'characters_remain', 'detail' => (string) $cnt];
     }
 
     return ['ok' => true, 'message' => 'characters_erased'];
@@ -339,7 +360,25 @@ function sahtout_admin_delete_account(
         error_log('[account_admin] .account delete SOAP failed for ' . $accountLiteral . ': ' . $lastDetail);
     }
 
-    if (sahtout_admin_auth_account_exists($auth_db, $authDbName, $accountId)) {
+    if (!sahtout_admin_auth_account_exists($auth_db, $authDbName, $accountId)) {
+        sahtout_admin_cleanup_site_for_deleted_account($site_db, $siteDbName, $username, $email);
+
+        return ['ok' => true, 'message' => 'deleted'];
+    }
+
+    // .account delete did not remove the auth row — finish via erase (if chars remain) + SQL.
+    if ($soap['ok']) {
+        $charCount = sahtout_admin_character_count_for_account($char_db, $charDbName, $accountId);
+        if ($charCount === 0) {
+            if (sahtout_admin_delete_auth_account_rows($auth_db, $char_db, $accountId, $authDbName, $charDbName)) {
+                sahtout_admin_cleanup_site_for_deleted_account($site_db, $siteDbName, $username, $email);
+
+                return ['ok' => true, 'message' => 'deleted'];
+            }
+        }
+    }
+
+    if (sahtout_admin_character_count_for_account($char_db, $charDbName, $accountId) > 0) {
         $erase = sahtout_admin_erase_characters_via_soap($char_db, $charDbName, $accountId);
         if (!$erase['ok']) {
             return [
@@ -348,7 +387,9 @@ function sahtout_admin_delete_account(
                 'detail' => $erase['detail'] ?? $lastDetail,
             ];
         }
+    }
 
+    if (sahtout_admin_auth_account_exists($auth_db, $authDbName, $accountId)) {
         if (!sahtout_admin_delete_auth_account_rows($auth_db, $char_db, $accountId, $authDbName, $charDbName)) {
             return [
                 'ok' => false,
