@@ -196,8 +196,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
     <style>
         /* ============ CORE THEME VARIABLES & BASE ============ */
         :root {
-            --point-wow-gif: url('<?php echo $esc_base; ?>img/pointer_wow.gif');
-            --hover-wow-gif: url('<?php echo $esc_base; ?>img/hover_wow.gif');
             --gold-primary: #f2cf5b;
             --gold-dark: #c9a227;
             --gold-deep: #8a6a14;
@@ -205,7 +203,6 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
         }
 
         body {
-            cursor: var(--point-wow-gif) 16 16, auto;
             padding-top: 72px;
         }
 

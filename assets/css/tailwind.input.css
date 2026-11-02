@@ -25,12 +25,6 @@
     --border-width-3: 3px;
 }
 
-/* Custom styles that Tailwind CANNOT handle */
-:root {
-    --hover-wow-gif: url('../../img/hover_wow.gif');
-    --point-wow-gif: url('../../img/pointer_wow.gif');
-}
-
 /* Fix for footer on login/register pages */
 body.login-page footer,
 body.register-page footer {

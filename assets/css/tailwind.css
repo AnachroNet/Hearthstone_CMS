@@ -4274,10 +4274,6 @@
     background-color: transparent;
   }
 }
-:root {
-  --hover-wow-gif: url('../../img/hover_wow.gif');
-  --point-wow-gif: url('../../img/pointer_wow.gif');
-}
 body.login-page footer, body.register-page footer {
   background: rgba(0, 0, 0, 0.33) !important;
   backdrop-filter: blur(5px);
