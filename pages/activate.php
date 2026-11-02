@@ -123,7 +123,9 @@ if (!$token) {
             } else {
                 $stmt_insert->bind_param('sssss', $upper_username, $account['salt'], $account['verifier'], $account['email'], $account['email']);
                 if ($stmt_insert->execute()) {
+                    $newAccountId = (int) $auth_db->insert_id;
                     $stmt_insert->close();
+                    sahtout_apply_registration_signup_tokens($site_db, $newAccountId);
 
                     // Delete from pending_accounts
                     $stmt_delete = $site_db->prepare("DELETE FROM pending_accounts WHERE token = ?");

@@ -250,6 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $stmt_insert->bind_param('sssss', $upper_username, $account['salt'], $account['verifier'], $account['email'], $account['email']);
                 if ($stmt_insert->execute()) {
+                    sahtout_apply_registration_signup_tokens($site_db, (int) $auth_db->insert_id);
                     $success = translate('success_account_created_no_email', 'Account created successfully! You can now log in.');
                 } else {
                     $errors[] = translate('error_registration_failed', 'Failed to create account.');

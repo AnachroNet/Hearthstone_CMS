@@ -53,6 +53,8 @@ function sahtout_site_setting_defaults(): array
         'discord.guild_id' => '',
         'discord.widget_enabled' => '1',
         'registration.allow_shared_email' => '0',
+        'registration.signup_tokens_enabled' => '0',
+        'registration.signup_tokens_amount' => '0',
     ];
 }
 
@@ -66,6 +68,45 @@ function sahtout_registration_allow_shared_email(): bool
     }
 
     return !empty($sahtout_site_settings['registration.allow_shared_email']);
+}
+
+/** Tokens granted to new accounts when registration.signup_tokens_enabled is on (0 when disabled). */
+function sahtout_registration_signup_tokens_amount(): int
+{
+    global $sahtout_site_settings;
+
+    if (!isset($sahtout_site_settings) || !is_array($sahtout_site_settings)) {
+        return 0;
+    }
+    if (empty($sahtout_site_settings['registration.signup_tokens_enabled'])) {
+        return 0;
+    }
+
+    return max(0, min(9999999, (int) ($sahtout_site_settings['registration.signup_tokens_amount'] ?? 0)));
+}
+
+/** After account INSERT (trigger creates user_currencies with 0 tokens), apply admin signup token grant. */
+function sahtout_apply_registration_signup_tokens(mysqli $site_db, int $accountId): void
+{
+    if ($accountId <= 0) {
+        return;
+    }
+    $amount = sahtout_registration_signup_tokens_amount();
+    if ($amount <= 0) {
+        return;
+    }
+
+    $stmt = $site_db->prepare('UPDATE user_currencies SET tokens = ? WHERE account_id = ?');
+    if (!$stmt) {
+        error_log('Registration signup tokens: prepare failed: ' . $site_db->error);
+
+        return;
+    }
+    $stmt->bind_param('ii', $amount, $accountId);
+    if (!$stmt->execute()) {
+        error_log('Registration signup tokens: update failed for account ' . $accountId . ': ' . $stmt->error);
+    }
+    $stmt->close();
 }
 
 /** Drops pending_accounts.unique_email so multiple pending signups can share an email. Safe if already removed. */

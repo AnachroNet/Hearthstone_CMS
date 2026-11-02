@@ -304,6 +304,26 @@ include $project_root . 'includes/header.php';
                                 <div class="text-[#6a7a8a] text-xs mt-1">
                                     <?php echo translate('help_registration_allow_shared_email', 'Usernames must still be unique. Useful for a GM test account or family sharing one inbox. Password reset and resend activation should use the account username when several accounts share an email.'); ?>
                                 </div>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mt-3 mb-1">
+                                    <input type="checkbox" name="registration_signup_tokens_enabled" value="1" id="registration_signup_tokens_enabled" class="rounded border-[#c9a227]/40"
+                                        <?php echo !empty($sahtout_site_settings['registration.signup_tokens_enabled']) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_registration_signup_tokens_enabled', 'Grant shop tokens to new accounts at registration'); ?>
+                                </label>
+                                <div class="flex flex-wrap items-center gap-2 mt-2">
+                                    <label for="registration_signup_tokens_amount" class="text-sm text-gray-300">
+                                        <?php echo translate('label_registration_signup_tokens_amount', 'Token amount'); ?>
+                                    </label>
+                                    <input type="number"
+                                           name="registration_signup_tokens_amount"
+                                           id="registration_signup_tokens_amount"
+                                           class="w-32 px-3 py-2 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none"
+                                           min="0"
+                                           max="9999999"
+                                           value="<?php echo (int) ($sahtout_site_settings['registration.signup_tokens_amount'] ?? 0); ?>">
+                                </div>
+                                <div class="text-[#6a7a8a] text-xs mt-1">
+                                    <?php echo translate('help_registration_signup_tokens', 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.'); ?>
+                                </div>
                             </div>
 
                             <!-- Discord widget (home page) -->
@@ -405,6 +425,21 @@ include $project_root . 'includes/header.php';
                         uploadPlaceholder.style.display = 'block';
                     }
                 });
+            }
+
+            const signupTokensEnabled = document.getElementById('registration_signup_tokens_enabled');
+            const signupTokensAmount = document.getElementById('registration_signup_tokens_amount');
+            function syncSignupTokensAmountField() {
+                if (!signupTokensEnabled || !signupTokensAmount) {
+                    return;
+                }
+                const on = signupTokensEnabled.checked;
+                signupTokensAmount.readOnly = !on;
+                signupTokensAmount.classList.toggle('opacity-50', !on);
+            }
+            if (signupTokensEnabled) {
+                signupTokensEnabled.addEventListener('change', syncSignupTokensAmountField);
+                syncSignupTokensAmountField();
             }
         });
     </script>

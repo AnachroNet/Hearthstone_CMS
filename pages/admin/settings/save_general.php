@@ -105,6 +105,8 @@ foreach ($socialPlatforms as $platform) {
 $discord_guild_id_new = preg_replace('/\D/', '', trim($_POST['discord_guild_id'] ?? ''));
 $discord_widget_enabled_new = isset($_POST['discord_widget_enabled']);
 $registration_allow_shared_email_new = isset($_POST['registration_allow_shared_email']);
+$registration_signup_tokens_enabled_new = isset($_POST['registration_signup_tokens_enabled']);
+$registration_signup_tokens_amount_new = max(0, min(9999999, (int) ($_POST['registration_signup_tokens_amount'] ?? 0)));
 
 $site_timezone_new = trim((string) ($_POST['site_timezone'] ?? ''));
 if (!in_array($site_timezone_new, sahtout_site_timezone_ids(), true)) {
@@ -126,6 +128,8 @@ if (empty($errors)) {
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.widget_enabled', $discord_widget_enabled_new, 'bool', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'site.timezone', $site_timezone_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'registration.allow_shared_email', $registration_allow_shared_email_new, 'bool', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'registration.signup_tokens_enabled', $registration_signup_tokens_enabled_new, 'bool', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'registration.signup_tokens_amount', $registration_signup_tokens_amount_new, 'int', $editorId);
 
         if ($ok && $registration_allow_shared_email_new) {
             if (!sahtout_pending_accounts_drop_unique_email($site_db)

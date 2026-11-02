@@ -57,6 +57,9 @@ return [
     'label_registration' => 'Account registration',
     'label_registration_allow_shared_email' => 'Allow multiple accounts to use the same email address',
     'help_registration_allow_shared_email' => 'Usernames must still be unique. Useful for a GM test account or family sharing one inbox. Password reset and resend activation should use the account username when several accounts share an email.',
+    'label_registration_signup_tokens_enabled' => 'Grant shop tokens to new accounts at registration',
+    'label_registration_signup_tokens_amount' => 'Token amount',
+    'help_registration_signup_tokens' => 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.',
     'error_shared_email_index' => 'Could not update pending signups table for shared emails. Run SQL/SINGLE UPDATE/registration_allow_shared_email.sql on sahtout_site.',
 
     // Buttons
