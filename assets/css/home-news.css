@@ -1,22 +1,26 @@
-/* Redundant with index.php page_head; kept for cache-friendly overrides if linked from header */
-.home-news-thumb {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 9rem !important;
-    object-fit: cover !important;
-    object-position: center center !important;
-    background-color: rgba(0, 0, 0, 0.35);
+/* Home featured news section (Latest News on index.php) */
+.home-featured-news .home-featured-news-frame {
+    position: relative;
+    width: 100%;
+    height: 9rem;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.35);
+    border-bottom: 1px solid rgba(201, 162, 39, 0.12);
 }
 
 @media (min-width: 640px) {
-    .home-news-thumb {
-        height: 11rem !important;
+    .home-featured-news .home-featured-news-frame {
+        height: 11rem;
     }
 }
 
-.home .news-card {
-    display: block;
-    overflow: hidden;
-    max-width: 100%;
+.home-featured-news .home-news-thumb {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    object-position: center center !important;
 }

@@ -176,18 +176,27 @@ ob_start();
             text-transform: uppercase;
             color: #c9a227;
         }
-        /* !important beats Tailwind preflight img { height: auto } */
-        .home-news-thumb {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            height: 9rem !important;
-            object-fit: cover !important;
-            object-position: center center !important;
-            background-color: rgba(0, 0, 0, 0.35);
+        /* Featured news (home): fixed frame + contain so the whole image scales inside the card */
+        .home-featured-news .home-featured-news-frame {
+            position: relative;
+            width: 100%;
+            height: 9rem;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.35);
+            border-bottom: 1px solid rgba(201, 162, 39, 0.12);
         }
         @media (min-width: 640px) {
-            .home-news-thumb { height: 11rem !important; }
+            .home-featured-news .home-featured-news-frame { height: 11rem; }
+        }
+        .home-featured-news .home-news-thumb {
+            position: absolute !important;
+            inset: 0 !important;
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            object-fit: contain !important;
+            object-position: center center !important;
         }
 
         .status-online  { color: #4ade80; text-shadow: 0 0 8px rgba(74,222,128,.5); }
@@ -353,10 +362,10 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                     </div>
                 </div>
 
-                <!-- NEWS -->
-                <section class="wow-panel p-3 sm:p-4 md:p-6">
+                <!-- Featured / latest news -->
+                <section class="wow-panel home-featured-news p-3 sm:p-4 md:p-6" aria-labelledby="home-featured-news-heading">
                     <div class="flex items-center justify-between mb-4 sm:mb-6 gap-4">
-                        <h2 class="section-title text-lg sm:text-xl md:text-2xl">
+                        <h2 id="home-featured-news-heading" class="section-title text-lg sm:text-xl md:text-2xl">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
                             <?php echo translate('home_news_title', 'Latest News'); ?>
                         </h2>
@@ -378,13 +387,15 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                                 $home_news_default = sahtout_news_image_src('', $base_path);
                                 ?>
                                 <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="news-card group min-w-0">
-                                    <img src="<?php echo htmlspecialchars($home_news_src, ENT_QUOTES, 'UTF-8'); ?>"
-                                         alt="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                         class="home-news-thumb"
-                                         style="<?php echo sahtout_news_home_thumbnail_style(); ?>"
-                                         loading="lazy"
-                                         decoding="async"
-                                         onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
+                                    <div class="home-featured-news-frame">
+                                        <img src="<?php echo htmlspecialchars($home_news_src, ENT_QUOTES, 'UTF-8'); ?>"
+                                             alt="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                             class="home-news-thumb"
+                                             style="<?php echo sahtout_news_home_thumbnail_style(); ?>"
+                                             loading="lazy"
+                                             decoding="async"
+                                             onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
+                                    </div>
                                     <div class="p-2 sm:p-3 min-w-0">
                                         <h3 class="text-xs sm:text-sm font-bold text-white min-w-0 wrap-anywhere line-clamp-2 mb-1"><?php echo htmlspecialchars($news['title']); ?></h3>
                                         <p class="news-date text-[10px] sm:text-xs m-0"><?php echo date('M j, Y', strtotime($news['post_date'])); ?></p>

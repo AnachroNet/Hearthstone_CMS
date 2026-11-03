@@ -97,10 +97,10 @@ function sahtout_news_image_src(string $image_url, string $base_path, string $de
     return $base_path . ltrim($image_url, '/');
 }
 
-/** Inline style for home page news thumbnails (works even if stylesheets fail to load). */
+/** Inline style for home featured-news thumbnails (inside .home-featured-news-frame). */
 function sahtout_news_home_thumbnail_style(): string
 {
-    return 'display:block;width:100%;max-width:100%;height:10rem;object-fit:cover;object-position:center;background-color:rgba(0,0,0,0.35);';
+    return 'position:absolute;inset:0;width:100%;height:100%;max-width:100%;object-fit:contain;object-position:center;';
 }
 
 /** Inline style for a full news article hero image. */
