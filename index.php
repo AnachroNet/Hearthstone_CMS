@@ -476,7 +476,7 @@ if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error
 
                         <?php if ($home_breaking_news !== null): ?>
                         <div>
-                            <p class="home-breaking-news-caption"><?php echo translate('home_breaking_news_caption', 'Same as character select'); ?></p>
+                            <hr class="ornate-divider">
                             <aside class="home-breaking-news force-wrap" aria-label="<?php echo translate('home_breaking_news_aria', 'Breaking news'); ?>">
                                 <h4 class="home-breaking-news-title"><?php echo htmlspecialchars($home_breaking_news['title'], ENT_QUOTES, 'UTF-8'); ?></h4>
                                 <div class="home-breaking-news-body">

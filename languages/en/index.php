@@ -16,7 +16,6 @@ return [
     'home_support_cta_account' => 'View My Support Tickets',
     'home_realm_status_error' => 'Error: Realm status unavailable.',
     'home_server_status' => 'Server Status',
-    'home_breaking_news_caption' => 'Same as character select',
     'home_breaking_news_aria' => 'Breaking news',
 ];
 ?>

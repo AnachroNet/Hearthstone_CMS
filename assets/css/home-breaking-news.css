@@ -59,12 +59,3 @@
 .home-breaking-news-body p:first-child {
     margin-top: 0;
 }
-
-.home-breaking-news-caption {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgba(201, 162, 39, 0.75);
-    text-align: center;
-    margin-bottom: 0.5rem;
-}
