@@ -171,6 +171,28 @@ ob_start();
             font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
             color: #c9a227;
         }
+        .news-card .news-card-media {
+            position: relative;
+            width: 100%;
+            height: 9rem;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.35);
+        }
+        @media (min-width: 640px) {
+            .news-card .news-card-media { height: 11rem; }
+        }
+        .news-card .news-card-media img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            object-fit: cover;
+            object-position: center;
+            transition: transform 0.3s ease;
+        }
+        .news-card:hover .news-card-media img {
+            transform: scale(1.05);
+        }
 
         .status-online  { color: #4ade80; text-shadow: 0 0 8px rgba(74,222,128,.5); }
         .status-offline { color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,.5); }
@@ -355,11 +377,20 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                             </p>
                         <?php else: ?>
                             <?php while ($news = $result->fetch_assoc()): ?>
+                                <?php
+                                $home_news_img = trim((string) ($news['image_url'] ?? ''));
+                                if ($home_news_img === '') {
+                                    $home_news_img = 'img/newsimg/news.png';
+                                }
+                                $home_news_default = $base_path . 'img/newsimg/news.png';
+                                ?>
                                 <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="news-card group min-w-0">
-                                    <div class="relative h-36 sm:h-44 overflow-hidden">
-                                        <img src="<?php echo $base_path . htmlspecialchars($news['image_url']); ?>"
+                                    <div class="news-card-media">
+                                        <img src="<?php echo $base_path . htmlspecialchars($home_news_img); ?>"
                                              alt="<?php echo htmlspecialchars($news['title']); ?>"
-                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                             loading="lazy"
+                                             decoding="async"
+                                             onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
                                         <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(0,0,0,.9), transparent 60%);"></div>
                                         <div class="absolute bottom-0 left-0 right-0 p-2 sm:p-3 min-w-0">
                                             <h3 class="text-xs sm:text-sm font-bold text-white min-w-0 wrap-anywhere line-clamp-2"><?php echo htmlspecialchars($news['title']); ?></h3>
