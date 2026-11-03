@@ -11,10 +11,14 @@ if (!isset($armoryConfig) || !is_array($armoryConfig)) {
 }
 
 $soloPvPDisplay = $armoryConfig['solo_pvp_display'] ?? 'all';
+$soloPvPIncludeScoredBots = array_key_exists('solo_pvp_include_scored_bots', $armoryConfig)
+    ? !empty($armoryConfig['solo_pvp_include_scored_bots'])
+    : true;
 
-// Bot filter (humans_only): all non-bots + bots with PvP kills > 0.
-// Graceful fallback when Playerbots metadata is missing — no filter applied.
-$botWhereClause = isset($char_db) ? armory_solo_pvp_bot_filter_sql($char_db, $soloPvPDisplay) : '';
+// Bot filter when humans_only (optional scored bots). Graceful fallback if Playerbots metadata is missing.
+$botWhereClause = isset($char_db)
+    ? armory_solo_pvp_bot_filter_sql($char_db, $soloPvPDisplay, $soloPvPIncludeScoredBots)
+    : '';
 
 // Level Filter (all | 80 | under80)
 $bracket = $_GET['bracket'] ?? 'all';

@@ -28,7 +28,9 @@ return [
     'opt_show_all_desc' => 'Include playerbots on the Solo PvP leaderboard.',
     'opt_humans_only' => 'Human Players Only',
     'opt_humans_only_desc' => 'Filter out playerbots from the Solo PvP leaderboard.',
-    'opt_humans_only_solo_pvp_desc' => 'Show all human characters and playerbots with at least one PvP kill. Bots with zero kills are hidden.',
+    'opt_humans_only_solo_pvp_desc' => 'Show human characters on the Solo PvP leaderboard. Playerbots are excluded unless you enable the option below.',
+    'label_solo_pvp_include_scored_bots' => 'Add bots with PvP scores',
+    'help_solo_pvp_include_scored_bots' => 'When enabled, playerbots with at least one PvP kill are included. Applies only with Human Players Only.',
 
     // Options — Arena 2v2 / 3v3 / 5v5
     'opt_show_all_arena_2v2_desc' => 'Include teams with playerbots in 2v2 standings.',

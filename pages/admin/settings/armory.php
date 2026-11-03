@@ -29,6 +29,9 @@ $allowedModes = ['all', 'humans_only'];
 
 // Current values with fallbacks
 $armoryDisplaySoloPvP  = in_array($armoryConfig['solo_pvp_display'] ?? '', $allowedModes, true) ? $armoryConfig['solo_pvp_display'] : 'all';
+$armorySoloPvPIncludeScoredBots = array_key_exists('solo_pvp_include_scored_bots', $armoryConfig)
+    ? !empty($armoryConfig['solo_pvp_include_scored_bots'])
+    : true;
 $armoryDisplayArena2v2 = in_array($armoryConfig['arena_2v2_display'] ?? '', $allowedModes, true) ? $armoryConfig['arena_2v2_display'] : 'all';
 $armoryDisplayArena3v3 = in_array($armoryConfig['arena_3v3_display'] ?? '', $allowedModes, true) ? $armoryConfig['arena_3v3_display'] : 'all';
 $armoryDisplayArena5v5 = in_array($armoryConfig['arena_5v5_display'] ?? '', $allowedModes, true) ? $armoryConfig['arena_5v5_display'] : 'all';
@@ -67,6 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (empty($postErrors)) {
+            $newConfig['solo_pvp_include_scored_bots'] = isset($_POST['solo_pvp_include_scored_bots']);
+
             require_once $project_root . 'includes/config_local_io.php';
             if (!sahtout_update_local_config(['armory' => $newConfig])) {
                 $postErrors[] = translate('err_write_armory_config', 'Cannot write armory settings to config.local.php');
@@ -224,9 +229,15 @@ if (in_array('humans_only', [$armoryDisplaySoloPvP, $armoryDisplayArena2v2, $arm
                                     </label>
                                     <label class="flex items-start gap-3 p-3 bg-[#080a0e]/80 border border-[rgba(201,162,39,.1)] rounded-sm cursor-pointer hover:border-[#c9a227]/40 transition-all">
                                         <input type="radio" name="solo_pvp_display" value="humans_only" class="mt-1 accent-[#c9a227]" <?php echo ($armoryDisplaySoloPvP === 'humans_only') ? 'checked' : ''; ?>>
-                                        <div>
+                                        <div class="min-w-0 flex-1">
                                             <div class="text-[#e5e7eb] font-semibold text-xs"><?php echo translate('opt_humans_only', 'Human Players Only'); ?></div>
-                                            <div class="text-[#6a7a8a] text-[11px] mt-0.5"><?php echo translate('opt_humans_only_solo_pvp_desc', 'Show all human characters and playerbots with at least one PvP kill. Bots with zero kills are hidden.'); ?></div>
+                                            <div class="text-[#6a7a8a] text-[11px] mt-0.5"><?php echo translate('opt_humans_only_solo_pvp_desc', 'Show human characters on the Solo PvP leaderboard. Playerbots are excluded unless you enable the option below.'); ?></div>
+                                            <label class="inline-flex items-center gap-2 mt-3 text-sm text-gray-300 cursor-pointer" onclick="event.stopPropagation();">
+                                                <input type="checkbox" name="solo_pvp_include_scored_bots" value="1" id="solo_pvp_include_scored_bots" class="rounded border-[#c9a227]/40 accent-[#c9a227]"
+                                                    <?php echo $armorySoloPvPIncludeScoredBots ? 'checked' : ''; ?>>
+                                                <?php echo translate('label_solo_pvp_include_scored_bots', 'Add bots with PvP scores'); ?>
+                                            </label>
+                                            <div class="text-[#6a7a8a] text-[11px] mt-1"><?php echo translate('help_solo_pvp_include_scored_bots', 'When enabled, playerbots with at least one PvP kill are included. Applies only with Human Players Only.'); ?></div>
                                         </div>
                                     </label>
                                 </div>

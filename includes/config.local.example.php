@@ -68,6 +68,7 @@ return [
     ],
     'armory' => [
         'solo_pvp_display' => 'humans_only',
+        'solo_pvp_include_scored_bots' => true,
         'arena_2v2_display' => 'all',
         'arena_3v3_display' => 'all',
         'arena_5v5_display' => 'all',
