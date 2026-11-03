@@ -257,17 +257,28 @@ ob_start();
             -webkit-backdrop-filter: blur(4px);
         }
         .news-card:hover { transform: translateY(-6px); }
-        .news-single-image { max-height: 400px; object-fit: contain; width: 100%; }
+        .news-single-image {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 400px !important;
+            height: auto !important;
+            object-fit: contain !important;
+            object-position: center center !important;
+        }
         .text-shadow-lg { text-shadow: 0 0 30px rgba(0,0,0,0.8); }
         .text-shadow-md { text-shadow: 0 0 20px rgba(0,0,0,0.5); }
         .text-shadow-sm { text-shadow: 0 0 10px rgba(0,0,0,0.5); }
         
         /* News card image - full width, show complete image */
         .news-card-img {
-            width: 100%;
-            height: auto;
-            max-height: 200px;
-            object-fit: contain;
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: auto !important;
+            max-height: 200px !important;
+            object-fit: contain !important;
+            object-position: center center !important;
             background: rgba(0,0,0,0.3);
         }
         
@@ -317,16 +328,17 @@ if ($is_single && $is_404) {
             <?php if ($is_single): ?>
                 <!-- Single News Article -->
                 <article class="max-w-[900px] mx-auto">
-                    <?php if (!empty($news['image_url'])): ?>
-                        <img src="<?php echo $base_path . htmlspecialchars($news['image_url']); ?>" 
-                             alt="<?php echo htmlspecialchars($news['title']); ?>" 
+                    <?php
+                    $single_news_src = sahtout_news_image_src((string) ($news['image_url'] ?? ''), $base_path, $default_image_url);
+                    $single_news_default = sahtout_news_image_src('', $base_path, $default_image_url);
+                    ?>
+                        <img src="<?php echo htmlspecialchars($single_news_src, ENT_QUOTES, 'UTF-8'); ?>"
+                             alt="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
                              class="news-single-image rounded-none mb-6 border border-[rgba(201,162,39,0.2)]"
-                             onerror="this.src='<?php echo $base_path . htmlspecialchars($default_image_url); ?>'">
-                    <?php else: ?>
-                        <img src="<?php echo $base_path . htmlspecialchars($default_image_url); ?>" 
-                             alt="<?php echo htmlspecialchars($news['title']); ?>" 
-                             class="news-single-image rounded-none mb-6 border border-[rgba(201,162,39,0.2)]">
-                    <?php endif; ?>
+                             style="<?php echo sahtout_news_single_image_style(); ?>"
+                             loading="lazy"
+                             decoding="async"
+                             onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($single_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
                     
                     <h1 class="text-white text-3xl md:text-4xl font-extrabold leading-tight mb-4 font-['Cinzel'] text-shadow-lg force-wrap">
                         <?php echo htmlspecialchars($news['title']); ?>
@@ -408,6 +420,8 @@ if ($is_single && $is_404) {
                             } elseif (mb_strlen($excerpt, 'UTF-8') > 180) {
                                 $excerpt = mb_substr($excerpt, 0, 180, 'UTF-8') . '...';
                             }
+                            $list_news_src = sahtout_news_image_src((string) ($news['image_url'] ?? ''), $base_path, $default_image_url);
+                            $list_news_default = sahtout_news_image_src('', $base_path, $default_image_url);
                             ?>
                             <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" 
                                class="news-card min-w-0 bg-[rgba(10,14,22,0.75)] border border-[rgba(201,162,39,0.18)] rounded-none no-underline text-inherit overflow-hidden flex flex-col h-full border-t-4"
@@ -415,16 +429,13 @@ if ($is_single && $is_404) {
                                onmouseover="this.style.borderColor='<?php echo $card_color; ?>'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.6)'"
                                onmouseout="this.style.borderColor=''; this.style.boxShadow=''">
                                 
-                                <?php if (!empty($news['image_url'])): ?>
-                                    <img src="<?php echo $base_path . htmlspecialchars($news['image_url']); ?>" 
-                                         alt="<?php echo htmlspecialchars($news['title']); ?>" 
+                                    <img src="<?php echo htmlspecialchars($list_news_src, ENT_QUOTES, 'UTF-8'); ?>"
+                                         alt="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
                                          class="news-card-img border-b border-[rgba(201,162,39,0.1)]"
-                                         onerror="this.src='<?php echo $base_path . htmlspecialchars($default_image_url); ?>'">
-                                <?php else: ?>
-                                    <img src="<?php echo $base_path . htmlspecialchars($default_image_url); ?>" 
-                                         alt="<?php echo htmlspecialchars($news['title']); ?>" 
-                                         class="news-card-img border-b border-[rgba(201,162,39,0.1)]">
-                                <?php endif; ?>
+                                         style="display:block;width:100%;max-width:100%;max-height:200px;height:auto;object-fit:contain;object-position:center;"
+                                         loading="lazy"
+                                         decoding="async"
+                                         onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($list_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
                                 
                                 <div class="p-5 flex-1 flex flex-col min-h-[180px] min-w-0">
                                     <div class="flex flex-wrap gap-3 text-[0.75rem] text-gray-500 mb-3">

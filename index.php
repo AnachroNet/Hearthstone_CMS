@@ -155,7 +155,40 @@ ob_start();
         .social-btn.discord   { background: linear-gradient(180deg,#7289ff,#4752c4); filter: drop-shadow(0 0 6px rgba(88,101,242,.3)); }
         .social-btn.discord:hover   { filter: drop-shadow(0 0 14px rgba(88,101,242,.55)); }
 
-        /* Home news card layout: assets/css/home-news.css (linked from header when page_class is home) */
+        .news-card {
+            display: block;
+            position: relative;
+            overflow: hidden;
+            max-width: 100%;
+            background: linear-gradient(180deg, rgba(26,29,36,.9), rgba(10,12,16,.9));
+            border: 1px solid rgba(201,162,39,.18);
+            transition: transform .3s ease, border-color .3s ease, filter .3s ease;
+            text-decoration: none;
+        }
+        .news-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(242,207,82,.6);
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(242,207,82,.15));
+        }
+        .news-card .news-date {
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #c9a227;
+        }
+        /* !important beats Tailwind preflight img { height: auto } */
+        .home-news-thumb {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 9rem !important;
+            object-fit: cover !important;
+            object-position: center center !important;
+            background-color: rgba(0, 0, 0, 0.35);
+        }
+        @media (min-width: 640px) {
+            .home-news-thumb { height: 11rem !important; }
+        }
 
         .status-online  { color: #4ade80; text-shadow: 0 0 8px rgba(74,222,128,.5); }
         .status-offline { color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,.5); }
@@ -345,18 +378,16 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                                 $home_news_default = sahtout_news_image_src('', $base_path);
                                 ?>
                                 <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="news-card group min-w-0">
-                                    <div class="news-card-media"
-                                         role="img"
-                                         aria-label="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
-                                         style="background-image: url('<?php echo htmlspecialchars($home_news_src, ENT_QUOTES, 'UTF-8'); ?>');"
-                                         data-fallback-bg="<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <div class="news-card-media-shade" aria-hidden="true"></div>
-                                        <div class="news-card-media-caption p-2 sm:p-3 min-w-0">
-                                            <h3 class="text-xs sm:text-sm font-bold text-white min-w-0 wrap-anywhere line-clamp-2"><?php echo htmlspecialchars($news['title']); ?></h3>
-                                        </div>
-                                    </div>
-                                    <div class="p-2 sm:p-3">
-                                        <p class="news-date text-[10px] sm:text-xs"><?php echo date('M j, Y', strtotime($news['post_date'])); ?></p>
+                                    <img src="<?php echo htmlspecialchars($home_news_src, ENT_QUOTES, 'UTF-8'); ?>"
+                                         alt="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                         class="home-news-thumb"
+                                         style="<?php echo sahtout_news_home_thumbnail_style(); ?>"
+                                         loading="lazy"
+                                         decoding="async"
+                                         onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
+                                    <div class="p-2 sm:p-3 min-w-0">
+                                        <h3 class="text-xs sm:text-sm font-bold text-white min-w-0 wrap-anywhere line-clamp-2 mb-1"><?php echo htmlspecialchars($news['title']); ?></h3>
+                                        <p class="news-date text-[10px] sm:text-xs m-0"><?php echo date('M j, Y', strtotime($news['post_date'])); ?></p>
                                     </div>
                                 </a>
                             <?php endwhile; ?>

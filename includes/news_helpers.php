@@ -96,3 +96,15 @@ function sahtout_news_image_src(string $image_url, string $base_path, string $de
 
     return $base_path . ltrim($image_url, '/');
 }
+
+/** Inline style for home page news thumbnails (works even if stylesheets fail to load). */
+function sahtout_news_home_thumbnail_style(): string
+{
+    return 'display:block;width:100%;max-width:100%;height:10rem;object-fit:cover;object-position:center;background-color:rgba(0,0,0,0.35);';
+}
+
+/** Inline style for a full news article hero image. */
+function sahtout_news_single_image_style(): string
+{
+    return 'display:block;width:100%;max-width:100%;max-height:400px;height:auto;object-fit:contain;object-position:center;margin:0 auto;';
+}
