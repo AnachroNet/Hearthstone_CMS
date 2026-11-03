@@ -82,3 +82,17 @@ function sahtout_news_article_href(array $news, string $base_path): string
 
     return $base_path . 'news';
 }
+
+/** Resolve a server_news image_url for use in img src (handles absolute URLs). */
+function sahtout_news_image_src(string $image_url, string $base_path, string $default_relative = 'img/newsimg/news.png'): string
+{
+    $image_url = trim($image_url);
+    if ($image_url === '') {
+        return $base_path . ltrim($default_relative, '/');
+    }
+    if (preg_match('#^(https?:)?//#i', $image_url) || str_starts_with($image_url, 'data:')) {
+        return $image_url;
+    }
+
+    return $base_path . ltrim($image_url, '/');
+}
