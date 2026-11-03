@@ -4,13 +4,18 @@ require_once __DIR__ . '/../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php'; // $site_title_name is used in the page metadata below
+require_once $project_root . 'includes/news_helpers.php';
 $page_class = 'news';
 
 $default_image_url = 'img/newsimg/news.png';
 $items_per_page = 6;
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
+$article_id = 0;
+if (isset($_GET['id']) && filter_var($_GET['id'], FILTER_VALIDATE_INT) !== false) {
+    $article_id = max(1, (int) $_GET['id']);
+}
 $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
-$is_single = !empty($slug);
+$is_single = ($slug !== '') || ($article_id > 0);
 $is_404 = false;
 $page_head = '';
 
@@ -23,11 +28,19 @@ $category_colors = [
 ];
 
 if ($is_single) {
-    $query = "SELECT id, title, slug, content, posted_by, post_date, image_url, is_important, category 
-              FROM server_news 
-              WHERE slug = ?";
-    $article_stmt = $site_db->prepare($query);
-    $article_stmt->bind_param('s', $slug);
+    if ($slug !== '') {
+        $query = "SELECT id, title, slug, content, posted_by, post_date, image_url, is_important, category 
+                  FROM server_news 
+                  WHERE slug = ?";
+        $article_stmt = $site_db->prepare($query);
+        $article_stmt->bind_param('s', $slug);
+    } else {
+        $query = "SELECT id, title, slug, content, posted_by, post_date, image_url, is_important, category 
+                  FROM server_news 
+                  WHERE id = ?";
+        $article_stmt = $site_db->prepare($query);
+        $article_stmt->bind_param('i', $article_id);
+    }
     $article_stmt->execute();
     $article_result = $article_stmt->get_result();
     $news = $article_result->fetch_assoc();
@@ -142,7 +155,7 @@ if ($is_single) {
         }
 
         $page_meta_robots = 'index';
-        $page_head        = '<link rel="canonical" href="' . htmlspecialchars($base_path . 'news?slug=' . rawurlencode($news['slug']), ENT_QUOTES, 'UTF-8') . '">';
+        $page_head        = '<link rel="canonical" href="' . htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8') . '">';
     }
 } else {
     $page_title            = $site_title_name . ' ' . translate('page_title_list', 'News');
@@ -396,7 +409,7 @@ if ($is_single && $is_404) {
                                 $excerpt = mb_substr($excerpt, 0, 180, 'UTF-8') . '...';
                             }
                             ?>
-                            <a href="<?php echo $base_path; ?>news?slug=<?php echo htmlspecialchars($news['slug']); ?>" 
+                            <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" 
                                class="news-card min-w-0 bg-[rgba(10,14,22,0.75)] border border-[rgba(201,162,39,0.18)] rounded-none no-underline text-inherit overflow-hidden flex flex-col h-full border-t-4"
                                style="border-top-color: <?php echo $card_color; ?>;"
                                onmouseover="this.style.borderColor='<?php echo $card_color; ?>'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.6)'"

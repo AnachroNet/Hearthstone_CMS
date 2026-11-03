@@ -6,6 +6,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
+require_once $project_root . 'includes/news_helpers.php';
 
 $page_class = "home";
 $page_title = $site_title_name . " " . translate('home_page_title', 'Home');
@@ -354,7 +355,7 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                             </p>
                         <?php else: ?>
                             <?php while ($news = $result->fetch_assoc()): ?>
-                                <a href="<?php echo $base_path; ?>news?slug=<?php echo htmlspecialchars($news['slug']); ?>" class="news-card group min-w-0">
+                                <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="news-card group min-w-0">
                                     <div class="relative h-36 sm:h-44 overflow-hidden">
                                         <img src="<?php echo $base_path . htmlspecialchars($news['image_url']); ?>"
                                              alt="<?php echo htmlspecialchars($news['title']); ?>"

@@ -5,6 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
+require_once $project_root . 'includes/news_helpers.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -109,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             if (empty($update_message)) {
+                $slug = sahtout_news_resolve_slug($site_db, $title, $slug);
                 $stmt = $site_db->prepare("INSERT INTO server_news (title, slug, content, posted_by, category, is_important, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 $stmt->bind_param("sssssis", $title, $slug, $content, $current_username, $category, $is_important, $image_url);
                 if ($stmt->execute()) {
@@ -165,6 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             if (empty($update_message)) {
+                $slug = sahtout_news_resolve_slug($site_db, $title, $slug, $id);
                 $stmt = $site_db->prepare("UPDATE server_news SET title = ?, slug = ?, content = ?, category = ?, is_important = ?, image_url = ? WHERE id = ?");
                 $stmt->bind_param("ssssisi", $title, $slug, $content, $category, $is_important, $image_url, $id);
                 if ($stmt->execute()) {
@@ -820,7 +823,7 @@ ob_start();
                                                     <img src="<?php echo htmlspecialchars(adminNewsImageSrc($news['image_url'] ?? $default_image_url)); ?>" alt="<?php echo htmlspecialchars($news['title']); ?>" class="news-thumb">
                                                 </td>
                                                 <td class="font-semibold text-white text-sm md:text-base">
-                                                    <a href="<?php echo $base_path; ?>news?slug=<?php echo urlencode(htmlspecialchars($news['slug'])); ?>" class="hover:text-[#f2cf5b] transition-colors">
+                                                    <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="hover:text-[#f2cf5b] transition-colors">
                                                         <?php echo htmlspecialchars($news['title']); ?>
                                                     </a>
                                                 </td>
