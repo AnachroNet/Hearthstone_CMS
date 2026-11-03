@@ -6,7 +6,10 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
+require_once $project_root . 'includes/breaking_news.php';
 require_once $project_root . 'includes/news_helpers.php';
+
+global $world_db;
 
 $page_class = "home";
 $page_title = $site_title_name . " " . translate('home_page_title', 'Home');
@@ -286,6 +289,7 @@ ob_start();
             .home-intro-welcome { font-size: 2.25rem; }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($base_path . 'assets/css/home-breaking-news.css', ENT_QUOTES, 'UTF-8'); ?>">
 <?php
 $page_head = ob_get_clean();
 
@@ -305,6 +309,11 @@ $result = $site_db->query($query);
 $maintenance_visible = [];
 if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
     $maintenance_visible = sahtout_maintenance_fetch_visible($site_db);
+}
+
+$home_breaking_news = null;
+if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error) {
+    $home_breaking_news = sahtout_breaking_news_fetch_for_display($world_db);
 }
 ?>
 
@@ -464,6 +473,18 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                             }
                             ?>
                         </div>
+
+                        <?php if ($home_breaking_news !== null): ?>
+                        <div>
+                            <p class="home-breaking-news-caption"><?php echo translate('home_breaking_news_caption', 'Same as character select'); ?></p>
+                            <aside class="home-breaking-news force-wrap" aria-label="<?php echo translate('home_breaking_news_aria', 'Breaking news'); ?>">
+                                <h4 class="home-breaking-news-title"><?php echo htmlspecialchars($home_breaking_news['title'], ENT_QUOTES, 'UTF-8'); ?></h4>
+                                <div class="home-breaking-news-body">
+                                    <?php echo $home_breaking_news['body_html']; ?>
+                                </div>
+                            </aside>
+                        </div>
+                        <?php endif; ?>
 
                         <hr class="ornate-divider">
 

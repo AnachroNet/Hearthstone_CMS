@@ -5,6 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
+require_once $project_root . 'includes/breaking_news.php';
 require_once $project_root . 'includes/news_helpers.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
@@ -13,7 +14,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'mode
 }
 
 $page_class = 'anews';
-global $site_db;
+global $site_db, $world_db;
 
 $current_username = $_SESSION['username'] ?? translate('admin_news_unknown_user', 'Unknown');
 
@@ -255,10 +256,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
         }
+    } elseif ($_POST['action'] === 'breaking_news_save') {
+        if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+            $update_message = $alert_danger(translate('admin_news_csrf_error', 'CSRF token validation failed.'));
+        } elseif (!isset($world_db) || !($world_db instanceof mysqli) || $world_db->connect_error) {
+            $update_message = $alert_danger(translate('admin_breaking_news_world_db', 'World database connection is not available.'));
+        } elseif (!sahtout_breaking_news_table_exists($world_db)) {
+            $update_message = $alert_danger(translate('admin_breaking_news_table_missing', 'Run acore_world_mod_breaking_news.sql on acore_world.'));
+        } else {
+            $bnTitle = trim((string) ($_POST['breaking_news_title'] ?? ''));
+            $bnBody = (string) ($_POST['breaking_news_body'] ?? '');
+            $bnEnabled = isset($_POST['breaking_news_enabled']);
+            $result = sahtout_breaking_news_save($world_db, $bnTitle, $bnBody, $bnEnabled, $current_username);
+            if ($result['ok']) {
+                $update_message = $alert_success(translate('admin_breaking_news_save_success', 'In-game breaking news saved.'));
+            } else {
+                $errKey = 'admin_breaking_news_error_' . ($result['error'] ?? 'generic');
+                $update_message = $alert_danger(translate($errKey, translate('admin_breaking_news_save_failed', 'Could not save breaking news.')));
+            }
+        }
     }
 }
 
 $maintenance_announcements = sahtout_maintenance_fetch_all($site_db, 30);
+$breaking_news_row = sahtout_breaking_news_get(isset($world_db) && $world_db instanceof mysqli ? $world_db : null);
+$breaking_news_title = (string) ($breaking_news_row['title'] ?? 'Breaking News');
+$breaking_news_body = (string) ($breaking_news_row['body_source'] ?? '');
+$breaking_news_enabled = !empty($breaking_news_row['enabled']);
+$breaking_news_updated = (string) ($breaking_news_row['updated_at'] ?? '');
+$breaking_news_updated_by = (string) ($breaking_news_row['updated_by'] ?? '');
 
 $items_per_page = 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -619,6 +645,7 @@ ob_start();
             }
         }
     </style>
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($base_path . 'assets/css/breaking-news-editor.css', ENT_QUOTES, 'UTF-8'); ?>">
 <?php $page_head = ob_get_clean(); ?>
 
 <?php include $project_root . 'includes/header.php'; ?>
@@ -714,6 +741,73 @@ ob_start();
                                 </table>
                             </div>
                         <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- In-game breaking news (character select) -->
+                    <div class="wow-panel p-4 md:p-6 lg:p-8 mb-6 md:mb-8 breaking-news-editor" data-breaking-news-editor>
+                        <h2 class="section-title text-lg md:text-xl mb-2 md:mb-3"><?php echo translate('admin_breaking_news_header', 'In-game breaking news'); ?></h2>
+                        <p class="text-sm text-gray-400 mb-4 md:mb-6"><?php echo translate('admin_breaking_news_help', 'Shown on the character select screen when BreakingNews.Enable and BreakingNews.Source (db or auto) are set on worldserver. Use blank lines for new paragraphs. Color buttons wrap selected text with WoW |c…|r codes.'); ?></p>
+
+                        <?php if (!isset($world_db) || !($world_db instanceof mysqli) || $world_db->connect_error): ?>
+                            <p class="text-amber-300 text-sm"><?php echo translate('admin_breaking_news_world_db', 'World database connection is not available.'); ?></p>
+                        <?php elseif (!sahtout_breaking_news_table_exists($world_db)): ?>
+                            <p class="text-amber-300 text-sm"><?php echo translate('admin_breaking_news_table_missing', 'Run acore_world_mod_breaking_news.sql on acore_world.'); ?></p>
+                        <?php else: ?>
+                        <form method="POST" class="space-y-4">
+                            <input type="hidden" name="action" value="breaking_news_save">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+
+                            <div class="flex flex-wrap items-center gap-4">
+                                <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-gray-200">
+                                    <input type="checkbox" name="breaking_news_enabled" value="1" class="rounded border-gray-600" <?php echo $breaking_news_enabled ? 'checked' : ''; ?>>
+                                    <?php echo translate('admin_breaking_news_enabled', 'Enabled (published to game DB)'); ?>
+                                </label>
+                                <?php if ($breaking_news_updated !== ''): ?>
+                                    <span class="bn-meta"><?php echo translate('admin_breaking_news_last_updated', 'Last updated'); ?>:
+                                        <?php echo htmlspecialchars($breaking_news_updated); ?>
+                                        <?php if ($breaking_news_updated_by !== ''): ?>
+                                            <?php echo translate('admin_news_by', 'by'); ?> <?php echo htmlspecialchars($breaking_news_updated_by); ?>
+                                        <?php endif; ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="breaking_news_title"><?php echo translate('admin_breaking_news_label_title', 'Title (character select header)'); ?></label>
+                                <input type="text" name="breaking_news_title" id="breaking_news_title" data-bn-title class="wow-input" maxlength="128" required value="<?php echo htmlspecialchars($breaking_news_title); ?>">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="breaking_news_body"><?php echo translate('admin_breaking_news_label_body', 'Message body'); ?></label>
+                                <div class="bn-toolbar" role="toolbar" aria-label="<?php echo translate('admin_breaking_news_toolbar', 'Formatting'); ?>">
+                                    <button type="button" class="bn-toolbar-btn bn-swatch-gold" data-bn-color="gold"><?php echo translate('admin_breaking_news_color_gold', 'Gold'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn bn-swatch-red" data-bn-color="red"><?php echo translate('admin_breaking_news_color_red', 'Red'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn bn-swatch-green" data-bn-color="green"><?php echo translate('admin_breaking_news_color_green', 'Green'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn bn-swatch-blue" data-bn-color="blue"><?php echo translate('admin_breaking_news_color_blue', 'Blue'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-color="yellow"><?php echo translate('admin_breaking_news_color_yellow', 'Yellow'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-color="gray"><?php echo translate('admin_breaking_news_color_gray', 'Gray'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-color="orange"><?php echo translate('admin_breaking_news_color_orange', 'Orange'); ?></button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-reset-color><?php echo translate('admin_breaking_news_reset_color', 'End color'); ?></button>
+                                    <span class="text-gray-600 mx-1">|</span>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-heading="1">H1</button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-heading="2">H2</button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-heading="3">H3</button>
+                                    <button type="button" class="bn-toolbar-btn" data-bn-paragraph-break><?php echo translate('admin_breaking_news_new_paragraph', 'New paragraph'); ?></button>
+                                </div>
+                                <textarea name="breaking_news_body" id="breaking_news_body" data-bn-body class="wow-textarea font-mono text-sm" rows="8" maxlength="12000" placeholder="<?php echo translate('admin_breaking_news_body_placeholder', 'Welcome back! Blank line starts a new paragraph.'); ?>"><?php echo htmlspecialchars($breaking_news_body); ?></textarea>
+                                <p class="text-xs text-gray-500 mt-1"><?php echo translate('admin_breaking_news_body_hint', 'Headings: start a line with #, ##, or ###. After saving, set BreakingNews.Cache = 0 or reload worldserver config to refresh clients.'); ?></p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_breaking_news_preview', 'Preview'); ?></label>
+                                <div class="bn-preview-panel" data-bn-preview aria-live="polite"></div>
+                            </div>
+
+                            <button type="submit" class="btn-game btn-gold">
+                                <?php echo translate('admin_breaking_news_save_button', 'Save in-game breaking news'); ?>
+                            </button>
+                        </form>
                         <?php endif; ?>
                     </div>
 
@@ -972,6 +1066,7 @@ ob_start();
         </main>
     </div>
 
+    <script src="<?php echo htmlspecialchars($base_path . 'assets/js/breaking-news-editor.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script>
         function openModal(id) {
             const modal = document.getElementById(id);
