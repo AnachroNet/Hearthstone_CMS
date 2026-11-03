@@ -190,6 +190,13 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
     <link rel="icon" href="<?php echo $esc_base . $esc_logo; ?>" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo $esc_base; ?>assets/css/tailwind.css">
+    <?php
+    if ($page_class === 'home') {
+        $home_news_css = $project_root . 'assets/css/home-news.css';
+        $home_news_css_v = is_file($home_news_css) ? (string) filemtime($home_news_css) : '1';
+        echo '<link rel="stylesheet" href="' . $esc_base . 'assets/css/home-news.css?v=' . htmlspecialchars($home_news_css_v, ENT_QUOTES, 'UTF-8') . '">' . "\n    ";
+    }
+    ?>
     <script src="<?php echo $esc_base; ?>assets/js/includes/friendly.js"></script>
     <link rel="stylesheet" href="<?php echo $esc_base; ?>assets/fontawesome-free/css/all.min.css">
 

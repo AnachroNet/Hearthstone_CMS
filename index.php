@@ -155,64 +155,7 @@ ob_start();
         .social-btn.discord   { background: linear-gradient(180deg,#7289ff,#4752c4); filter: drop-shadow(0 0 6px rgba(88,101,242,.3)); }
         .social-btn.discord:hover   { filter: drop-shadow(0 0 14px rgba(88,101,242,.55)); }
 
-        .news-card {
-            display: block; position: relative; overflow: hidden;
-            background: linear-gradient(180deg, rgba(26,29,36,.9), rgba(10,12,16,.9));
-            border: 1px solid rgba(201,162,39,.18);
-            transition: transform .3s ease, border-color .3s ease, filter .3s ease;
-            text-decoration: none;
-        }
-        .news-card:hover {
-            transform: translateY(-6px);
-            border-color: rgba(242,207,82,.6);
-            filter: drop-shadow(0 10px 20px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(242,207,82,.15));
-        }
-        .news-card .news-date {
-            font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
-            color: #c9a227;
-        }
-        /* Fixed frame; img is absolute so Tailwind preflight (img { height: auto }) cannot blow out layout */
-        .news-card .news-card-media {
-            position: relative;
-            width: 100%;
-            height: 9rem;
-            overflow: hidden;
-            background: rgba(0, 0, 0, 0.35);
-            isolation: isolate;
-        }
-        @media (min-width: 640px) {
-            .news-card .news-card-media { height: 11rem; }
-        }
-        .news-card .news-card-media-img {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            display: block;
-            width: 100%;
-            height: 100%;
-            max-width: none;
-            object-fit: cover;
-            object-position: center;
-            transition: transform 0.3s ease;
-        }
-        .news-card .news-card-media-shade {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent 60%);
-        }
-        .news-card .news-card-media-caption {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 2;
-            pointer-events: none;
-        }
-        .news-card:hover .news-card-media-img {
-            transform: scale(1.05);
-        }
+        /* Home news card layout: assets/css/home-news.css (linked from header when page_class is home) */
 
         .status-online  { color: #4ade80; text-shadow: 0 0 8px rgba(74,222,128,.5); }
         .status-offline { color: #f87171; text-shadow: 0 0 8px rgba(248,113,113,.5); }
@@ -402,15 +345,11 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
                                 $home_news_default = sahtout_news_image_src('', $base_path);
                                 ?>
                                 <a href="<?php echo htmlspecialchars(sahtout_news_article_href($news, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="news-card group min-w-0">
-                                    <div class="news-card-media">
-                                        <img src="<?php echo htmlspecialchars($home_news_src, ENT_QUOTES, 'UTF-8'); ?>"
-                                             alt="<?php echo htmlspecialchars($news['title']); ?>"
-                                             class="news-card-media-img"
-                                             width="640"
-                                             height="360"
-                                             loading="lazy"
-                                             decoding="async"
-                                             onerror="this.onerror=null;this.src='<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>';">
+                                    <div class="news-card-media"
+                                         role="img"
+                                         aria-label="<?php echo htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8'); ?>"
+                                         style="background-image: url('<?php echo htmlspecialchars($home_news_src, ENT_QUOTES, 'UTF-8'); ?>');"
+                                         data-fallback-bg="<?php echo htmlspecialchars($home_news_default, ENT_QUOTES, 'UTF-8'); ?>">
                                         <div class="news-card-media-shade" aria-hidden="true"></div>
                                         <div class="news-card-media-caption p-2 sm:p-3 min-w-0">
                                             <h3 class="text-xs sm:text-sm font-bold text-white min-w-0 wrap-anywhere line-clamp-2"><?php echo htmlspecialchars($news['title']); ?></h3>
