@@ -49,3 +49,30 @@ function armory_playerbots_table_exists($char_db, string $schema = 'acore_player
 
     return $cache[$cacheKey] = $exists;
 }
+
+/**
+ * SQL AND fragment for Solo PvP bot filtering when display mode is humans_only.
+ * Includes every non-bot character and playerbots with at least one PvP kill.
+ *
+ * @return string Empty when mode is "all" or Playerbots metadata is unavailable.
+ */
+function armory_solo_pvp_bot_filter_sql($char_db, string $displayMode): string
+{
+    if ($displayMode !== 'humans_only') {
+        return '';
+    }
+    if (!($char_db instanceof mysqli) || !empty($char_db->connect_error)) {
+        return '';
+    }
+    if (!armory_playerbots_table_exists($char_db)) {
+        return '';
+    }
+
+    return " AND (
+        NOT EXISTS (
+            SELECT 1 FROM `acore_playerbots`.`playerbots_account_type` pat
+            WHERE pat.account_id = c.account
+        )
+        OR c.totalKills > 0
+    ) ";
+}

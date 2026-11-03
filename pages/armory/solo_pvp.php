@@ -12,19 +12,9 @@ if (!isset($armoryConfig) || !is_array($armoryConfig)) {
 
 $soloPvPDisplay = $armoryConfig['solo_pvp_display'] ?? 'all';
 
-// Build SQL filter for human-only players.
-// Graceful fallback: when the Playerbots table (or its database) is not
-// available, the filter is simply skipped and the normal leaderboard is
-// shown — no errors or database details reach visitors.
-$botWhereClause = '';
-if ($soloPvPDisplay === 'humans_only' && isset($char_db)) {
-    if (armory_playerbots_table_exists($char_db)) {
-        $botWhereClause = " AND NOT EXISTS (
-            SELECT 1 FROM `acore_playerbots`.`playerbots_account_type` pat 
-            WHERE pat.account_id = c.account
-        ) ";
-    }
-}
+// Bot filter (humans_only): all non-bots + bots with PvP kills > 0.
+// Graceful fallback when Playerbots metadata is missing — no filter applied.
+$botWhereClause = isset($char_db) ? armory_solo_pvp_bot_filter_sql($char_db, $soloPvPDisplay) : '';
 
 // Level Filter (all | 80 | under80)
 $bracket = $_GET['bracket'] ?? 'all';

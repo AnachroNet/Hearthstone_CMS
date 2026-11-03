@@ -226,7 +226,7 @@ if (in_array('humans_only', [$armoryDisplaySoloPvP, $armoryDisplayArena2v2, $arm
                                         <input type="radio" name="solo_pvp_display" value="humans_only" class="mt-1 accent-[#c9a227]" <?php echo ($armoryDisplaySoloPvP === 'humans_only') ? 'checked' : ''; ?>>
                                         <div>
                                             <div class="text-[#e5e7eb] font-semibold text-xs"><?php echo translate('opt_humans_only', 'Human Players Only'); ?></div>
-                                            <div class="text-[#6a7a8a] text-[11px] mt-0.5"><?php echo translate('opt_humans_only_desc', 'Filter out playerbots from the Solo PvP leaderboard.'); ?></div>
+                                            <div class="text-[#6a7a8a] text-[11px] mt-0.5"><?php echo translate('opt_humans_only_solo_pvp_desc', 'Show all human characters and playerbots with at least one PvP kill. Bots with zero kills are hidden.'); ?></div>
                                         </div>
                                     </label>
                                 </div>
