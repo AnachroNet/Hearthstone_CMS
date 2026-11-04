@@ -517,20 +517,22 @@ function sahtout_holiday_occurrences_in_year(array $holidayRow, int $year): arra
 }
 
 /**
- * @return array{year: int, month: int, events_by_day: array<int, list<array>>, month_events: list<array>, holidays_enabled: bool, dbc_row_count: int, loaded_holiday_count: int, total_occurrences: int}
+ * @return array{
+ *   all: list<array>,
+ *   dbc_row_count: int,
+ *   loaded_holiday_count: int,
+ *   site_event_count: int,
+ *   holidays_enabled: bool
+ * }
  */
-function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, ?mysqli $worldDb = null): array
+function sahtout_holiday_calendar_gather_occurrences(?mysqli $siteDb, int $centerYear, ?mysqli $worldDb = null): array
 {
     $empty = [
-        'year' => $year,
-        'month' => $month,
-        'events_by_day' => [],
-        'month_events' => [],
-        'holidays_enabled' => sahtout_holiday_calendar_tables_exist($siteDb),
+        'all' => [],
         'dbc_row_count' => 0,
         'loaded_holiday_count' => 0,
-        'total_occurrences' => 0,
         'site_event_count' => 0,
+        'holidays_enabled' => sahtout_holiday_calendar_tables_exist($siteDb),
     ];
 
     if (!$empty['holidays_enabled']) {
@@ -543,7 +545,6 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
         $dbcRowCount = (int) ($countRes->fetch_assoc()['c'] ?? 0);
         $countRes->free();
     }
-    $empty['dbc_row_count'] = $dbcRowCount;
 
     $dbcHolidays = sahtout_holiday_calendar_load_holidays($siteDb);
     $stubs = sahtout_holiday_calendar_stubs_from_game_events($worldDb, $siteDb);
@@ -582,14 +583,12 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
     }
     unset($holidayRow);
 
-    $empty['loaded_holiday_count'] = count($holidays);
-
     if ($holidays === [] && $dbcRowCount > 0) {
         error_log('holiday_calendar: no holidays from site DBC or game_event (dbc rows=' . $dbcRowCount . ')');
     }
 
     $all = [];
-    foreach ([$year - 1, $year, $year + 1] as $y) {
+    foreach ([$centerYear - 1, $centerYear, $centerYear + 1] as $y) {
         foreach ($holidays as $row) {
             try {
                 foreach (sahtout_holiday_occurrences_in_year($row, $y) as $occ) {
@@ -602,13 +601,10 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
         }
     }
 
-    $siteOccurrences = sahtout_site_calendar_event_occurrences($siteDb, $year - 1, $year + 1);
+    $siteOccurrences = sahtout_site_calendar_event_occurrences($siteDb, $centerYear - 1, $centerYear + 1);
     foreach ($siteOccurrences as $occ) {
         $all[] = $occ;
     }
-
-    $empty['site_event_count'] = count($siteOccurrences);
-    $empty['total_occurrences'] = count($all);
 
     if ($all === [] && count($holidays) > 0) {
         error_log(
@@ -616,6 +612,91 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
             . count($holidays) . ' holidays (dbc rows=' . $dbcRowCount . ')'
         );
     }
+
+    return [
+        'all' => $all,
+        'dbc_row_count' => $dbcRowCount,
+        'loaded_holiday_count' => count($holidays),
+        'site_event_count' => count($siteOccurrences),
+        'holidays_enabled' => true,
+    ];
+}
+
+/**
+ * Events in progress today or starting within the next N days.
+ *
+ * @return list<array>
+ */
+function sahtout_holiday_calendar_upcoming_events(
+    ?mysqli $siteDb,
+    ?mysqli $worldDb,
+    DateTimeImmutable $today,
+    int $horizonDays = 30
+): array {
+    $gather = sahtout_holiday_calendar_gather_occurrences($siteDb, (int) $today->format('Y'), $worldDb);
+    if (!$gather['holidays_enabled']) {
+        return [];
+    }
+
+    $todayStr = $today->format('Y-m-d');
+    $horizonEnd = $today->modify('+' . max(0, $horizonDays) . ' days')->format('Y-m-d');
+
+    $out = [];
+    $seen = [];
+    foreach ($gather['all'] as $occ) {
+        $start = (string) ($occ['start'] ?? '');
+        $end = (string) ($occ['end'] ?? '');
+        if ($start === '' || $end === '') {
+            continue;
+        }
+        $inProgress = $start <= $todayStr && $end >= $todayStr;
+        $startingSoon = $start > $todayStr && $start <= $horizonEnd;
+        if (!$inProgress && !$startingSoon) {
+            continue;
+        }
+        $key = (int) ($occ['holiday_id'] ?? 0) . '|' . $start;
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $out[] = $occ;
+    }
+
+    usort($out, static function ($a, $b) {
+        return strcmp($a['start'], $b['start']) ?: strcmp($a['name'], $b['name']);
+    });
+
+    return $out;
+}
+
+/**
+ * @return array{year: int, month: int, events_by_day: array<int, list<array>>, month_events: list<array>, holidays_enabled: bool, dbc_row_count: int, loaded_holiday_count: int, total_occurrences: int}
+ */
+function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, ?mysqli $worldDb = null): array
+{
+    $empty = [
+        'year' => $year,
+        'month' => $month,
+        'events_by_day' => [],
+        'month_events' => [],
+        'holidays_enabled' => sahtout_holiday_calendar_tables_exist($siteDb),
+        'dbc_row_count' => 0,
+        'loaded_holiday_count' => 0,
+        'total_occurrences' => 0,
+        'site_event_count' => 0,
+    ];
+
+    if (!$empty['holidays_enabled']) {
+        return $empty;
+    }
+
+    $gather = sahtout_holiday_calendar_gather_occurrences($siteDb, $year, $worldDb);
+    $all = $gather['all'];
+    $dbcRowCount = $gather['dbc_row_count'];
+    $empty['dbc_row_count'] = $dbcRowCount;
+    $empty['loaded_holiday_count'] = $gather['loaded_holiday_count'];
+    $empty['site_event_count'] = $gather['site_event_count'];
+    $empty['total_occurrences'] = count($all);
 
     $monthStart = sprintf('%04d-%02d-01', $year, $month);
     $daysInMonth = (int) (new DateTimeImmutable($monthStart))->format('t');
@@ -665,10 +746,10 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
         'month_events' => $monthEvents,
         'holidays_enabled' => true,
         'dbc_row_count' => $dbcRowCount,
-        'loaded_holiday_count' => count($holidays),
+        'loaded_holiday_count' => $gather['loaded_holiday_count'],
         'total_occurrences' => count($all),
         'month_occurrence_count' => count($monthEvents),
-        'site_event_count' => count($siteOccurrences),
+        'site_event_count' => $gather['site_event_count'],
     ];
 }
 
@@ -689,9 +770,14 @@ function sahtout_holiday_calendar_parse_month(?string $calParam): array
     return [$y, $m];
 }
 
-function sahtout_holiday_calendar_nav_url(string $basePath, int $year, int $month): string
+function sahtout_holiday_calendar_nav_url(string $basePath, int $year, int $month, string $pageSlug = 'events'): string
 {
-    return htmlspecialchars($basePath . '?cal=' . sprintf('%04d-%02d', $year, $month), ENT_QUOTES, 'UTF-8');
+    $url = rtrim($basePath, '/');
+    if ($pageSlug !== '') {
+        $url .= '/' . trim($pageSlug, '/');
+    }
+
+    return htmlspecialchars($url . '?cal=' . sprintf('%04d-%02d', $year, $month), ENT_QUOTES, 'UTF-8');
 }
 
 function sahtout_holiday_calendar_shift_month(int $year, int $month, int $delta): array

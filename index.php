@@ -176,12 +176,12 @@ ob_start();
             flex: 1 1 0;
             min-width: 0;
             justify-content: center;
-            padding: 9px 10px;
-            font-size: 11px;
+            padding: 6px 8px;
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: 0.03em;
-            gap: 6px;
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            letter-spacing: 0.02em;
+            gap: 4px;
+            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -193,13 +193,18 @@ ob_start();
             animation: none;
         }
         @media (min-width: 640px) {
-            .home-hero-actions { gap: 0.65rem; margin-top: 1rem; max-width: 36rem; }
+            .home-hero-actions { gap: 0.5rem; margin-top: 0.85rem; max-width: 28rem; }
             .home-hero-actions .btn-game,
             .home-hero-actions .social-btn {
-                padding: 9px 14px;
-                font-size: 13px;
-                gap: 8px;
+                padding: 7px 12px;
+                font-size: 11px;
+                gap: 6px;
             }
+        }
+
+        .home-coming-events-cta {
+            margin-top: 1.25rem;
+            text-align: center;
         }
 
         .news-card {
@@ -364,12 +369,19 @@ if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error
     $home_breaking_news = sahtout_breaking_news_fetch_for_display($world_db);
 }
 
-$home_cal = sahtout_holiday_calendar_for_home(
-    isset($site_db) && $site_db instanceof mysqli ? $site_db : null,
-    isset($_GET['cal']) ? (string) $_GET['cal'] : null,
-    isset($site_timezone) ? (string) $site_timezone : '',
-    isset($world_db) && $world_db instanceof mysqli ? $world_db : null
-);
+$home_calendar_enabled = isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error
+    && sahtout_holiday_calendar_tables_exist($site_db);
+$home_upcoming_events = [];
+if ($home_calendar_enabled) {
+    $home_cal_tz = sahtout_holiday_calendar_timezone(isset($site_timezone) ? (string) $site_timezone : '');
+    $home_cal_today = new DateTimeImmutable('now', $home_cal_tz);
+    $home_upcoming_events = sahtout_holiday_calendar_upcoming_events(
+        $site_db,
+        isset($world_db) && $world_db instanceof mysqli ? $world_db : null,
+        $home_cal_today,
+        30
+    );
+}
 ?>
 
     <main class="max-w-350 mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -423,150 +435,26 @@ $home_cal = sahtout_holiday_calendar_for_home(
                     </div>
                 </div>
 
-                <?php if (!empty($home_cal['show'])): ?>
-                <?php
-                $home_calendar = is_array($home_cal['calendar'] ?? null)
-                    ? $home_cal['calendar']
-                    : sahtout_holiday_calendar_empty_month($home_cal['year'], $home_cal['month']);
-                $home_cal_year = $home_cal['year'];
-                $home_cal_month = $home_cal['month'];
-                $home_cal_is_current_month = $home_cal['is_current_month'];
-                $home_cal_today_day = $home_cal['today_day'];
-                $home_cal_prev_y = $home_cal['prev_y'];
-                $home_cal_prev_m = $home_cal['prev_m'];
-                $home_cal_next_y = $home_cal['next_y'];
-                $home_cal_next_m = $home_cal['next_m'];
-                $home_cal_month_label = $home_cal['month_label'];
-                $home_cal_today = $home_cal['today'];
-                ?>
-                <section class="wow-panel home-event-calendar p-3 sm:p-4 md:p-6" aria-labelledby="home-event-calendar-heading">
-                    <h2 id="home-event-calendar-heading" class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
+                <?php if ($home_calendar_enabled): ?>
+                <section class="wow-panel home-event-calendar home-coming-events p-3 sm:p-4 md:p-6" aria-labelledby="home-coming-events-heading">
+                    <h2 id="home-coming-events-heading" class="section-title text-lg sm:text-xl md:text-2xl mb-2 sm:mb-3">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <?php echo translate('home_event_calendar_title', 'Event Calendar'); ?>
+                        <?php echo translate('home_coming_events_title', 'Coming Events'); ?>
                     </h2>
+                    <p class="text-sm text-gray-400 mb-4"><?php echo translate('home_coming_events_intro', 'Active now or starting within the next 30 days.'); ?></p>
 
-                    <div class="home-event-calendar-header">
-                        <div class="home-event-calendar-nav">
-                            <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, $home_cal_prev_y, $home_cal_prev_m); ?>" aria-label="<?php echo translate('home_event_calendar_prev', 'Previous month'); ?>">‹</a>
-                            <span class="home-event-calendar-month-label"><?php echo htmlspecialchars($home_cal_month_label, ENT_QUOTES, 'UTF-8'); ?></span>
-                            <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, $home_cal_next_y, $home_cal_next_m); ?>" aria-label="<?php echo translate('home_event_calendar_next', 'Next month'); ?>">›</a>
-                        </div>
-                        <?php if (!$home_cal_is_current_month && $home_cal_today instanceof DateTimeImmutable): ?>
-                        <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, (int) $home_cal_today->format('Y'), (int) $home_cal_today->format('n')); ?>" class="text-xs font-semibold text-[#f2cf5b] hover:text-white transition-colors">
-                            <?php echo translate('home_event_calendar_today', 'Today'); ?>
-                        </a>
-                        <?php endif; ?>
-                    </div>
-
-                    <?php
-                    $cal_grid_start = new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal_year, $home_cal_month));
-                    $cal_leading_blanks = ((int) $cal_grid_start->format('w') + 6) % 7;
-                    $cal_days_in_month = (int) $cal_grid_start->format('t');
-                    $dow_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                    ?>
-                    <div class="home-event-calendar-grid" role="grid" aria-readonly="true">
-                        <?php foreach ($dow_labels as $dow): ?>
-                            <div class="home-event-calendar-dow" role="columnheader"><?php echo htmlspecialchars($dow, ENT_QUOTES, 'UTF-8'); ?></div>
-                        <?php endforeach; ?>
-
-                        <?php for ($blank = 0; $blank < $cal_leading_blanks; $blank++): ?>
-                            <div class="home-event-calendar-cell is-empty" role="gridcell" aria-hidden="true"></div>
-                        <?php endfor; ?>
-
-                        <?php for ($day = 1; $day <= $cal_days_in_month; $day++):
-                            $is_today = $home_cal_is_current_month && $day === $home_cal_today_day;
-                            $day_events = $home_calendar['events_by_day'][$day] ?? [];
-                            $cell_classes = 'home-event-calendar-cell' . ($is_today ? ' is-today' : '');
-                            ?>
-                            <div class="<?php echo $cell_classes; ?>" role="gridcell">
-                                <div class="home-event-calendar-daynum"><?php echo $day; ?></div>
-                                <?php
-                                $chips_shown = 0;
-                                foreach ($day_events as $ev):
-                                    if ($chips_shown >= 3) {
-                                        break;
-                                    }
-                                    $chips_shown++;
-                                    $chip_tooltip = sahtout_holiday_event_tooltip_html($ev);
-                                    ?>
-                                    <?php
-                                    $chip_class = 'home-event-calendar-chip has-event-tooltip';
-                                    if (!empty($ev['is_site_event'])) {
-                                        $chip_class .= ' is-site-event';
-                                    }
-                                    ?>
-                                    <span class="<?php echo $chip_class; ?>" data-tooltip="<?php echo htmlspecialchars($chip_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </span>
-                                <?php endforeach; ?>
-                                <?php if (count($day_events) > 3): ?>
-                                    <span class="text-[10px] text-[#f2cf5b]">+<?php echo count($day_events) - 3; ?></span>
-                                <?php endif; ?>
-                            </div>
-                        <?php endfor; ?>
-                    </div>
-
-                    <?php if ($home_calendar['month_events'] !== []): ?>
-                    <div class="home-event-calendar-list">
-                        <h3 class="text-sm font-bold text-[#f2cf5b] mb-2"><?php echo translate('home_event_calendar_this_month', 'Events this month'); ?></h3>
-                        <ul>
-                            <?php
-                            $listed = [];
-                            foreach ($home_calendar['month_events'] as $ev):
-                                $key = $ev['holiday_id'] . '|' . $ev['start'];
-                                if (isset($listed[$key])) {
-                                    continue;
-                                }
-                                $listed[$key] = true;
-                                $range = sahtout_holiday_event_date_range($ev);
-                                $list_tooltip = sahtout_holiday_event_tooltip_html($ev);
-                                ?>
-                                <li class="has-event-tooltip" data-tooltip="<?php echo htmlspecialchars($list_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
-                                    <strong><?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                                    <span class="dates"> · <?php echo htmlspecialchars($range, ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php if ($ev['description'] !== ''): ?>
-                                        <?php
-                                        $ev_desc = (string) $ev['description'];
-                                        if (strlen($ev_desc) > 160) {
-                                            $ev_desc = substr($ev_desc, 0, 157) . '…';
-                                        }
-                                        ?>
-                                        <br><span><?php echo htmlspecialchars($ev_desc, ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                    <?php else: ?>
-                    <p class="home-event-calendar-footnote mt-4 mb-0"><?php echo translate('home_event_calendar_empty', 'No world events fall in this month.'); ?></p>
-                    <?php endif; ?>
-
-                    <?php
-                    $cal_meta = is_array($home_calendar) ? $home_calendar : [];
-                    $dbc_rows = (int) ($cal_meta['dbc_row_count'] ?? 0);
-                    $loaded = (int) ($cal_meta['loaded_holiday_count'] ?? 0);
-                    $occ_total = (int) ($cal_meta['total_occurrences'] ?? 0);
-                    $occ_month = (int) ($cal_meta['month_occurrence_count'] ?? count($home_calendar['month_events'] ?? []));
-                    ?>
-                    <p class="home-event-calendar-footnote mb-0">
-                        <?php echo translate('home_event_calendar_footnote', 'Dates follow WoW calendar rules (same as the in-game event schedule). Battleground Call to Arms weekends are hidden.'); ?>
+                    <div class="home-event-calendar-list border-0 pt-0 mt-0">
                         <?php
-                        printf(
-                            ' ' . translate('home_event_calendar_stats', '(%1$d DBC rows, %2$d holidays loaded, %3$d dated spans, %4$d this month).'),
-                            $dbc_rows,
-                            $loaded,
-                            $occ_total,
-                            $occ_month
-                        );
+                        $event_list_events = $home_upcoming_events;
+                        include $project_root . 'includes/event_calendar_event_list.php';
                         ?>
-                        <?php if ($dbc_rows === 0): ?>
-                            <?php echo ' '; echo translate('home_event_calendar_no_dbc_rows', 'Import holidays_dbc data into the site database (dbc_import.sql).'); ?>
-                        <?php elseif ($loaded === 0): ?>
-                            <?php echo ' '; echo translate('home_event_calendar_no_loaded', 'Holiday rows exist but none could be loaded — check PHP error log.'); ?>
-                        <?php elseif ($occ_total === 0): ?>
-                            <?php echo ' '; echo translate('home_event_calendar_no_occurrences', 'Holidays loaded but no dated occurrences — check holiday_date_calculator / game_event.'); ?>
-                        <?php endif; ?>
-                    </p>
+                    </div>
+
+                    <div class="home-coming-events-cta">
+                        <a href="<?php echo htmlspecialchars($base_path . 'events', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5">
+                            <?php echo translate('home_event_calendar_open_full', 'Event Calendar'); ?>
+                        </a>
+                    </div>
                     <script src="<?php echo htmlspecialchars($base_path . 'assets/js/home-event-calendar-tooltip.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
                 </section>
                 <?php endif; ?>

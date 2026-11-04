@@ -575,6 +575,10 @@ $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
                     <?php echo translate('nav_news', 'News'); ?>
                 </a>
 
+                <a href="<?php echo $esc_base; ?>events" class="nav-link <?php echo $page_class === 'events' ? 'active' : ''; ?>">
+                    <?php echo translate('nav_events', 'Events'); ?>
+                </a>
+
                 <a href="<?php echo $esc_base; ?>armory/solo_pvp" class="nav-link <?php echo strpos($page_class, 'armory') !== false ? 'active' : ''; ?>">
                     <?php echo translate('nav_armory', 'Armory'); ?>
                 </a>
