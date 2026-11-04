@@ -49,21 +49,35 @@ function sahtout_holiday_rule_for(int $holidayId): ?array
     return null;
 }
 
-function sahtout_holiday_unpack_date(int $packed): ?array
+function sahtout_holiday_decode_packed(int $packed): ?array
 {
     if ($packed === 0) {
         return null;
     }
 
-    return [
-        'year' => (($packed >> 24) & 0x1F) + 2000,
-        'month' => (($packed >> 20) & 0xF) + 1,
-        'day' => (($packed >> 14) & 0x3F) + 1,
-    ];
+    $year = (($packed >> 24) & 0x1F) + 2000;
+    // WoW stores tm_mon (0 = January) in bits 20–23 (see AzerothCore HolidayDateCalculator::UnpackDate).
+    $month = (($packed >> 20) & 0xF) + 1;
+    $day = (($packed >> 14) & 0x3F) + 1;
+
+    if ($month < 1 || $month > 12 || $day < 1 || $day > 31 || !checkdate($month, $day, $year)) {
+        return null;
+    }
+
+    return ['year' => $year, 'month' => $month, 'day' => $day];
+}
+
+function sahtout_holiday_unpack_date(int $packed): ?array
+{
+    return sahtout_holiday_decode_packed($packed);
 }
 
 function sahtout_holiday_pack_date(int $year, int $month, int $day): int
 {
+    if (!checkdate($month, $day, $year)) {
+        return 0;
+    }
+
     $dt = new DateTimeImmutable(sprintf('%04d-%02d-%02d', $year, $month, $day));
     $wday = (int) $dt->format('w');
     $yearOffset = $year < 2000 ? 0 : min(31, $year - 2000);
@@ -354,10 +368,17 @@ function sahtout_holiday_packed_for_year(int $holidayId, int $year): array
 
 function sahtout_holiday_annualize_packed(int $packed, int $targetYear): ?int
 {
-    $u = sahtout_holiday_unpack_date($packed);
-    if ($u === null) {
+    if ($packed === 0 || $targetYear < 2000 || $targetYear > 2030) {
         return null;
     }
 
-    return sahtout_holiday_pack_date($targetYear, $u['month'], $u['day']);
+    $month = (($packed >> 20) & 0xF) + 1;
+    $day = (($packed >> 14) & 0x3F) + 1;
+    if ($month < 1 || $month > 12 || $day < 1 || $day > 31 || !checkdate($month, $day, $targetYear)) {
+        return null;
+    }
+
+    $repacked = sahtout_holiday_pack_date($targetYear, $month, $day);
+
+    return $repacked !== 0 ? $repacked : null;
 }

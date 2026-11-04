@@ -221,6 +221,10 @@ function sahtout_holiday_calendar_should_show(int $holidayId, int $calendarFilte
     if ($holidayId === 335) {
         return false;
     }
+    // Stranglethorn / Kalu'ak fishing events use legacy packed Date_* values (not annual calendar dates).
+    if ($holidayId === 301 || $holidayId === 424) {
+        return false;
+    }
     if ($flags === 0 && $holidayId === 406) {
         return false;
     }
