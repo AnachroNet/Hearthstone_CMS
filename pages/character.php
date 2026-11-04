@@ -126,7 +126,8 @@ ob_start();
 
     /* Stats */
     .vitals { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
-    .vitals-lifetime .vital b { font-size: 1.1rem; }
+    .vitals-lifetime .vital.level b { color: var(--gold); }
+    .vitals-lifetime .vital.deaths b { color: #f87171; }
     .vitals-lifetime .vital.playtime b { font-size: .78rem; line-height: 1.35; font-family: 'Inter', sans-serif; font-weight: 700; color: #fff; }
     .vital { background: var(--card); border: 1px solid var(--gold-line); padding: .7rem .5rem; text-align: center; }
     .vital b { display: block; font-family: 'Cinzel', serif; font-size: 1.35rem; color: #fff; line-height: 1.15; }
@@ -640,9 +641,9 @@ if ($ilvl > 0) {
             <div id="stats-tab" class="tab-content active mt-6" role="tabpanel" aria-labelledby="tab-stats" tabindex="0">
                 <?php if ($character): ?>
                     <div class="vitals vitals-lifetime">
-                        <div class="vital"><b><?= (int) $character['level'] ?></b><span><?= translate('level_label', 'Level') ?></span></div>
+                        <div class="vital level"><b><?= (int) $character['level'] ?></b><span><?= translate('level_label', 'Level') ?></span></div>
                         <div class="vital"><b><?= number_format($lifetime_npc_kills) ?></b><span><?= translate('stat_creatures_killed', 'Creatures Killed') ?></span></div>
-                        <div class="vital"><b><?= number_format($lifetime_deaths) ?></b><span><?= translate('stat_deaths', 'Deaths') ?></span></div>
+                        <div class="vital deaths"><b><?= number_format($lifetime_deaths) ?></b><span><?= translate('stat_deaths', 'Deaths') ?></span></div>
                         <div class="vital"><b><?= number_format($lifetime_duels_won) ?></b><span><?= translate('stat_duels_won', 'Duels Won') ?></span></div>
                         <div class="vital playtime"><b><?= htmlspecialchars(sahtout_format_playtime_dhm($lifetime_totaltime), ENT_QUOTES, 'UTF-8') ?></b><span><?= translate('stat_time_played', 'Time Played') ?></span></div>
                     </div>
