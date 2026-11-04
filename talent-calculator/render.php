@@ -100,7 +100,24 @@ ob_start();
         box-shadow: 0 0 8px rgba(242,207,82,.2);
     }
     .tc-calculator-wrap { overflow-x: auto; text-align: center; }
-    #replaceMeWithTalents { display: inline-block; text-align: left; max-width: 100%; }
+    /* Legacy calculator: fixed-size tables/icons — undo Tailwind preflight in this subtree */
+    body.page-talent-calculator #replaceMeWithTalents {
+        display: block;
+        width: max-content;
+        max-width: none;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: left;
+    }
+    body.page-talent-calculator #replaceMeWithTalents img {
+        display: inline;
+        vertical-align: bottom;
+        max-width: none;
+        height: revert;
+    }
+    body.page-talent-calculator #replaceMeWithTalents table {
+        border-collapse: collapse;
+    }
     @media (min-width: 768px) {
         .tc-glass { padding: 1.75rem 1.5rem 2.25rem; }
     }
