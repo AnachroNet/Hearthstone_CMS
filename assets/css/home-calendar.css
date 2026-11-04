@@ -122,6 +122,13 @@
     cursor: default;
 }
 
+.home-event-calendar-chip.is-site-event {
+    color: #1e2430;
+    background: linear-gradient(180deg, #f0f2f5 0%, #c4cad4 48%, #8a939f 100%);
+    border: 1px solid rgba(192, 202, 214, 0.55);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
 .home-event-calendar-list li.has-event-tooltip {
     cursor: default;
     border-radius: 2px;

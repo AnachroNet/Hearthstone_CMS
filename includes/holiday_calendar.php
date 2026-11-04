@@ -5,6 +5,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'holiday_date_calculator.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'site_calendar_events.php';
 
 /** Case-insensitive DBC row field (MySQL drivers may lower-case column names). */
 function sahtout_holiday_row_value(array $row, string $field): mixed
@@ -529,6 +530,7 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
         'dbc_row_count' => 0,
         'loaded_holiday_count' => 0,
         'total_occurrences' => 0,
+        'site_event_count' => 0,
     ];
 
     if (!$empty['holidays_enabled']) {
@@ -580,13 +582,11 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
     }
     unset($holidayRow);
 
-    if ($holidays === []) {
-        error_log('holiday_calendar: no holidays from site DBC or game_event (dbc rows=' . $dbcRowCount . ')');
-
-        return $empty;
-    }
-
     $empty['loaded_holiday_count'] = count($holidays);
+
+    if ($holidays === [] && $dbcRowCount > 0) {
+        error_log('holiday_calendar: no holidays from site DBC or game_event (dbc rows=' . $dbcRowCount . ')');
+    }
 
     $all = [];
     foreach ([$year - 1, $year, $year + 1] as $y) {
@@ -601,9 +601,16 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
             }
         }
     }
+
+    $siteOccurrences = sahtout_site_calendar_event_occurrences($siteDb, $year - 1, $year + 1);
+    foreach ($siteOccurrences as $occ) {
+        $all[] = $occ;
+    }
+
+    $empty['site_event_count'] = count($siteOccurrences);
     $empty['total_occurrences'] = count($all);
 
-    if ($all === []) {
+    if ($all === [] && count($holidays) > 0) {
         error_log(
             'holiday_calendar: zero occurrences for '
             . count($holidays) . ' holidays (dbc rows=' . $dbcRowCount . ')'
@@ -661,6 +668,7 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, 
         'loaded_holiday_count' => count($holidays),
         'total_occurrences' => count($all),
         'month_occurrence_count' => count($monthEvents),
+        'site_event_count' => count($siteOccurrences),
     ];
 }
 

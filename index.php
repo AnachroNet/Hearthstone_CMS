@@ -402,7 +402,7 @@ $home_cal = sahtout_holiday_calendar_for_home(
                 <section class="wow-panel home-event-calendar p-3 sm:p-4 md:p-6" aria-labelledby="home-event-calendar-heading">
                     <h2 id="home-event-calendar-heading" class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <?php echo translate('home_event_calendar_title', 'In-Game Event Calendar'); ?>
+                        <?php echo translate('home_event_calendar_title', 'Event Calendar'); ?>
                     </h2>
 
                     <div class="home-event-calendar-header">
@@ -449,7 +449,13 @@ $home_cal = sahtout_holiday_calendar_for_home(
                                     $chips_shown++;
                                     $chip_tooltip = sahtout_holiday_event_tooltip_html($ev);
                                     ?>
-                                    <span class="home-event-calendar-chip has-event-tooltip" data-tooltip="<?php echo htmlspecialchars($chip_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php
+                                    $chip_class = 'home-event-calendar-chip has-event-tooltip';
+                                    if (!empty($ev['is_site_event'])) {
+                                        $chip_class .= ' is-site-event';
+                                    }
+                                    ?>
+                                    <span class="<?php echo $chip_class; ?>" data-tooltip="<?php echo htmlspecialchars($chip_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
                                         <?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 <?php endforeach; ?>
