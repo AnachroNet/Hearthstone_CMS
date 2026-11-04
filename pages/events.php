@@ -38,20 +38,51 @@ ob_start();
             margin: 0;
             position: relative;
         }
-        .events-glass {
-            background: rgba(5, 7, 11, 0.65);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+        .events-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .events-content .glass-container {
+            background: rgba(5, 7, 11, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(201,162,39,.22);
+            border-radius: 0;
+            padding: 1.75rem 1.25rem;
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(0,0,0,.25);
             position: relative;
         }
-        .events-glass::before {
+
+        @media (min-width: 640px) {
+            .events-content .glass-container {
+                padding: 2rem 2rem;
+            }
+        }
+
+        .events-content .glass-container::before {
             content: '';
             position: absolute;
             inset: 5px;
             border: 1px solid rgba(201,162,39,.14);
             pointer-events: none;
+        }
+
+        .events-content .glass-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(#e8c552,#e8c552) left top / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) left top / 2px 18px,
+                linear-gradient(#e8c552,#e8c552) right top / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) right top / 2px 18px,
+                linear-gradient(#e8c552,#e8c552) left bottom / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) left bottom / 2px 18px,
+                linear-gradient(#e8c552,#e8c552) right bottom / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) right bottom / 2px 18px;
+            background-repeat: no-repeat;
         }
         .events-page-title {
             font-family: 'Cinzel', serif;
@@ -94,27 +125,29 @@ $page_head = ob_get_clean();
 include $project_root . 'includes/header.php';
 ?>
 
-<main class="max-w-5xl mx-auto px-4 sm:px-6 py-6 md:py-10">
-    <?php if (empty($event_cal['show'])): ?>
-        <div class="events-glass p-6 md:p-8 text-center text-gray-300">
-            <?php echo translate('events_calendar_unavailable', 'The event calendar is not available yet. Import holiday DBC data into the site database.'); ?>
-        </div>
-    <?php else: ?>
-        <div class="events-glass p-4 sm:p-6 md:p-8">
-            <h1 id="event-calendar-page-heading" class="events-page-title text-2xl sm:text-3xl md:text-4xl text-center mb-2">
-                <?php echo translate('home_event_calendar_title', 'Event Calendar'); ?>
-            </h1>
-            <p class="text-center text-sm text-gray-400 mb-4 max-w-2xl mx-auto">
-                <?php echo translate('events_page_intro', 'World holidays from the in-game schedule plus community events managed by staff.'); ?>
-            </p>
-            <div class="events-legend justify-center">
-                <span><i class="legend-wow" aria-hidden="true"></i><?php echo translate('events_legend_wow', 'World events'); ?></span>
-                <span><i class="legend-site" aria-hidden="true"></i><?php echo translate('events_legend_site', 'Community events'); ?></span>
+<div class="events-content min-h-screen flex items-start justify-center px-4 md:px-8 py-6 md:py-10">
+    <div class="container mx-auto w-full max-w-4xl px-2 sm:px-4">
+        <?php if (empty($event_cal['show'])): ?>
+            <div class="glass-container text-center text-gray-300">
+                <?php echo translate('events_calendar_unavailable', 'The event calendar is not available yet. Import holiday DBC data into the site database.'); ?>
             </div>
-            <?php include $project_root . 'includes/event_calendar_panel.php'; ?>
-        </div>
-        <script src="<?php echo htmlspecialchars($base_path . 'assets/js/home-event-calendar-tooltip.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
-    <?php endif; ?>
-</main>
+        <?php else: ?>
+            <div class="glass-container">
+                <h1 id="event-calendar-page-heading" class="events-page-title text-2xl sm:text-3xl text-center mb-2">
+                    <?php echo translate('home_event_calendar_title', 'Event Calendar'); ?>
+                </h1>
+                <p class="text-center text-sm text-gray-400 mb-4 mx-auto">
+                    <?php echo translate('events_page_intro', 'World holidays from the in-game schedule plus community events managed by staff.'); ?>
+                </p>
+                <div class="events-legend justify-center">
+                    <span><i class="legend-wow" aria-hidden="true"></i><?php echo translate('events_legend_wow', 'World events'); ?></span>
+                    <span><i class="legend-site" aria-hidden="true"></i><?php echo translate('events_legend_site', 'Community events'); ?></span>
+                </div>
+                <?php include $project_root . 'includes/event_calendar_panel.php'; ?>
+            </div>
+            <script src="<?php echo htmlspecialchars($base_path . 'assets/js/home-event-calendar-tooltip.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
+        <?php endif; ?>
+    </div>
+</div>
 
 <?php include $project_root . 'includes/footer.php'; ?>

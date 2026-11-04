@@ -207,6 +207,24 @@ ob_start();
             text-align: center;
         }
 
+        .home-gold-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1.2;
+            text-decoration: none;
+            color: #1a1200;
+            background: linear-gradient(to bottom, #f6d478, #c9a227);
+            border: 1px solid #8a6a14;
+            transition: filter 0.2s ease;
+        }
+        .home-gold-cta:hover {
+            filter: brightness(1.1);
+        }
+
         .news-card {
             display: block;
             position: relative;
@@ -451,7 +469,7 @@ if ($home_calendar_enabled) {
                     </div>
 
                     <div class="home-coming-events-cta">
-                        <a href="<?php echo htmlspecialchars($base_path . 'events', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-xs sm:text-sm px-4 sm:px-5 py-2 sm:py-2.5">
+                        <a href="<?php echo htmlspecialchars($base_path . 'events', ENT_QUOTES, 'UTF-8'); ?>" class="home-gold-cta">
                             <?php echo translate('home_event_calendar_open_full', 'Event Calendar'); ?>
                         </a>
                     </div>
