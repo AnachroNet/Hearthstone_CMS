@@ -1,0 +1,85 @@
+/**
+ * SahtoutCMS + Tailwind (standards mode) fixes for legacy talent calculator markup.
+ * Standalone calculator pages omit DOCTYPE and rely on quirks-mode unitless CSS;
+ * site header uses HTML5 + preflight which zeroes table padding and shrinks images.
+ */
+
+body.page-talent-calculator #replaceMeWithTalents,
+body.page-talent-calculator #replaceMeWithTalents *,
+body.page-talent-calculator #replaceMeWithTalents *::before,
+body.page-talent-calculator #replaceMeWithTalents *::after {
+    box-sizing: content-box;
+}
+
+body.page-talent-calculator #replaceMeWithTalents {
+    display: block;
+    width: max-content;
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+    line-height: normal;
+}
+
+body.page-talent-calculator #replaceMeWithTalents img {
+    display: inline !important;
+    vertical-align: bottom;
+    max-width: none !important;
+    height: revert !important;
+}
+
+body.page-talent-calculator #replaceMeWithTalents table {
+    border-collapse: collapse;
+    font-size: 12px;
+    line-height: normal;
+}
+
+/* Tailwind preflight removes cellpadding presentation from <td> */
+body.page-talent-calculator #replaceMeWithTalents td.tdPaddingTen {
+    padding: 10px;
+}
+body.page-talent-calculator #replaceMeWithTalents td.tdPaddingThree {
+    padding: 3px;
+}
+body.page-talent-calculator #replaceMeWithTalents td.tdPaddingFive {
+    padding: 5px;
+}
+
+body.page-talent-calculator #replaceMeWithTalents table[cellpadding="5"] > tbody > tr > td,
+body.page-talent-calculator #replaceMeWithTalents table[cellpadding="5"] > tr > td {
+    padding: 5px;
+}
+
+body.page-talent-calculator #replaceMeWithTalents table[cellpadding="10"] > tbody > tr > td,
+body.page-talent-calculator #replaceMeWithTalents table[cellpadding="10"] > tr > td {
+    padding: 10px;
+}
+
+/* talent.css unitless dimensions (invalid in standards mode) */
+body.page-talent-calculator #replaceMeWithTalents .tabletopleft {
+    width: 14px;
+    height: 13px;
+}
+body.page-talent-calculator #replaceMeWithTalents .tabletopright {
+    width: 19px;
+    height: 13px;
+}
+body.page-talent-calculator #replaceMeWithTalents .tableleft {
+    width: 14px;
+}
+body.page-talent-calculator #replaceMeWithTalents .tablebotleft {
+    width: 14px;
+    height: 40px;
+}
+body.page-talent-calculator #replaceMeWithTalents .tablebotright {
+    width: 14px;
+    height: 40px;
+}
+body.page-talent-calculator #replaceMeWithTalents .tablebotrightright {
+    width: 4px;
+    height: 40px;
+}
+body.page-talent-calculator #replaceMeWithTalents .tablebotleftleft {
+    width: 4px;
+    height: 40px;
+}

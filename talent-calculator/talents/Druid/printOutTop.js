@@ -12,7 +12,7 @@ var imgDir = "";
 massiveReplaceString += '<div class="talentwrap1"><div class="talentwrap2"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td>';
 
 if (variableIsSite) {
-	massiveReplaceString += '<div style = "position: relative; top: -12; left: 13;"><div style = "position: absolute;"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td><img src = "'+ imgPath +'/'+ nlclass +'/images'+ lg +'/text-classname.gif" /></td>';
+	massiveReplaceString += '<div style = "position: relative; top: -12px; left: 13px;"><div style = "position: absolute;"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td><img src = "'+ imgPath +'/'+ nlclass +'/images'+ lg +'/text-classname.gif" /></td>';
 	if (!lg)
 		massiveReplaceString += '<td valign = "top"><img src = "'+ imgPath +'/includes/images/text-talents.gif" /></td>';
 	massiveReplaceString += '</tr></table></div></div>';

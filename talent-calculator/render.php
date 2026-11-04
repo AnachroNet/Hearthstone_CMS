@@ -26,6 +26,7 @@ $page_meta_description = translate('tc_meta_description', 'Plan your WotLK 3.3.5
 $page_meta_robots = 'index';
 
 $tc_css = $tc_web_base . 'talents/' . $tc_dir . '/talent.css';
+$tc_integration_css = $tc_web_base . 'tc-integration.css';
 $tc_script_base = $tc_web_base . 'talents/' . $tc_dir . '/';
 $tc_public_url = rtrim($site_url, '/') . '/talent-calculator/' . rawurlencode($tc_slug) . '.php';
 $page_document_base = $tc_web_base;
@@ -33,6 +34,7 @@ $page_document_base = $tc_web_base;
 ob_start();
 ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($tc_css, ENT_QUOTES, 'UTF-8'); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($tc_integration_css, ENT_QUOTES, 'UTF-8'); ?>">
 <style>
     body.page-talent-calculator {
         min-height: 100vh;
@@ -100,24 +102,6 @@ ob_start();
         box-shadow: 0 0 8px rgba(242,207,82,.2);
     }
     .tc-calculator-wrap { overflow-x: auto; text-align: center; }
-    /* Legacy calculator: fixed-size tables/icons — undo Tailwind preflight in this subtree */
-    body.page-talent-calculator #replaceMeWithTalents {
-        display: block;
-        width: max-content;
-        max-width: none;
-        margin-left: auto;
-        margin-right: auto;
-        text-align: left;
-    }
-    body.page-talent-calculator #replaceMeWithTalents img {
-        display: inline;
-        vertical-align: bottom;
-        max-width: none;
-        height: revert;
-    }
-    body.page-talent-calculator #replaceMeWithTalents table {
-        border-collapse: collapse;
-    }
     @media (min-width: 768px) {
         .tc-glass { padding: 1.75rem 1.5rem 2.25rem; }
     }
