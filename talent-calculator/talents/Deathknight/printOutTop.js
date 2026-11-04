@@ -9,7 +9,7 @@ var talentDescriptionArray = new Array;
 
 var imgDir = "";
 
-massiveReplaceString += '<div id="tcCalcColumn"><div class="talentwrap1"><div class="talentwrap2"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td>';
+massiveReplaceString += '<div id="tcCalcColumn"><div id="tcTreeBlock"><div class="talentwrap1"><div class="talentwrap2"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td>';
 
 if (variableIsSite) {
 	massiveReplaceString += '<div style = "position: relative; top: -12px; left: 13px;"><div style = "position: absolute;"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td><img src = "'+ imgPath +'/'+ nlclass +'/images'+ lg +'/text-classname.gif" /></td>';
@@ -292,7 +292,7 @@ for (var printTreeID = 0; printTreeID < numberOfTrees; printTreeID++) {
 
 
 
-massiveReplaceString += "</tr></table></div></div>";
+massiveReplaceString += "</tr></table></div></div></div>";
 
 massiveReplaceString += '<div id = "hideBoxBot" class="tc-stats-panel wow-panel"';
 
@@ -315,7 +315,7 @@ if (variableIsSite) {
 	massiveReplaceString += '<a onClick = "printableVersion();" style="cursor:pointer"><img src = "'+ imgPath +'/includes/images/printableversion.png" border = "0"></a>';
 	massiveReplaceString += '<a href = "#none" onClick = "resetTreeAll(); return false;"><img src = \"'+ imgPath +'/includes/images/resetall.png\" border = "0"></a>';
 	massiveReplaceString += '</div></div>';
-	massiveReplaceString += '<div class="tc-share-block"><span class="tc-share-label">'+ textToSave +'</span> <span class="tc-share-url">'+ theURLtoCopy +'?tal=<span id = "copyURL"></span></span></div>';
+	massiveReplaceString += '<div class="tc-share-block"><div class="tc-share-label">'+ textToSave +'</div><div class="tc-share-url">'+ theURLtoCopy +'?tal=<span id = "copyURL"></span></div></div>';
 } else {
 	massiveReplaceString += '<table><tr><td valign = "top" width = "350">';
 	massiveReplaceString += '<table border = "0" width = "100%" cellpadding = "0" cellspacing = "0"><tr></tr><tr><td style = "padding: 7;" bgcolor = "#000000" width = "350">';
