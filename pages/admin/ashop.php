@@ -675,6 +675,7 @@ $statRewardsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_cha
 $allStatRewards = $statRewardsReady ? sahtout_admin_fetch_character_stat_rewards($site_db) : [];
 $statTypeLabels = [
     'world_kills' => translate('admin_stat_reward_type_world_kills', 'World Kills'),
+    'pvp_kills' => translate('admin_stat_reward_type_pvp_kills', 'PvP Kills'),
     'duels_won' => translate('admin_stat_reward_type_duels_won', 'Duels Won'),
     'deaths' => translate('admin_stat_reward_type_deaths', 'Deaths'),
     'hours_played' => translate('admin_stat_reward_type_hours_played', 'Hours Played'),

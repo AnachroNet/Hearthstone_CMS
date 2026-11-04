@@ -34,7 +34,7 @@ function sahtout_character_stat_grants_table_exists(mysqli $siteDb): bool
 /** @return list<string> */
 function sahtout_character_stat_reward_types(): array
 {
-    return ['world_kills', 'duels_won', 'deaths', 'hours_played'];
+    return ['world_kills', 'pvp_kills', 'duels_won', 'deaths', 'hours_played'];
 }
 
 function sahtout_normalize_character_stat_type(string $type): ?string
@@ -48,6 +48,7 @@ function sahtout_character_stat_type_label_key(string $type): string
 {
     return match ($type) {
         'world_kills' => 'admin_stat_reward_type_world_kills',
+        'pvp_kills' => 'admin_stat_reward_type_pvp_kills',
         'duels_won' => 'admin_stat_reward_type_duels_won',
         'deaths' => 'admin_stat_reward_type_deaths',
         'hours_played' => 'admin_stat_reward_type_hours_played',
@@ -168,12 +169,13 @@ function sahtout_admin_delete_character_stat_reward(mysqli $siteDb, int $rewardI
 /**
  * Best value across all characters on the account.
  *
- * @return array{world_kills: int, duels_won: int, deaths: int, hours_played: int}
+ * @return array{world_kills: int, pvp_kills: int, duels_won: int, deaths: int, hours_played: int}
  */
 function sahtout_account_character_stat_maximums(mysqli $charDb, int $accountId): array
 {
     $out = [
         'world_kills' => 0,
+        'pvp_kills' => 0,
         'duels_won' => 0,
         'deaths' => 0,
         'hours_played' => 0,
@@ -182,7 +184,7 @@ function sahtout_account_character_stat_maximums(mysqli $charDb, int $accountId)
         return $out;
     }
 
-    $stmt = $charDb->prepare('SELECT guid, totaltime FROM characters WHERE account = ?');
+    $stmt = $charDb->prepare('SELECT guid, totaltime, totalKills FROM characters WHERE account = ?');
     if (!$stmt) {
         return $out;
     }
@@ -198,6 +200,7 @@ function sahtout_account_character_stat_maximums(mysqli $charDb, int $accountId)
     while ($row = $res->fetch_assoc()) {
         $guids[] = (int) $row['guid'];
         $maxPlaytime = max($maxPlaytime, (int) ($row['totaltime'] ?? 0));
+        $out['pvp_kills'] = max($out['pvp_kills'], (int) ($row['totalKills'] ?? 0));
     }
     $stmt->close();
 

@@ -56,6 +56,7 @@ return [
     'admin_stat_rewards_updated' => 'Character stat milestone saved.',
     'admin_stat_rewards_deleted' => 'Character stat milestone deleted.',
     'admin_stat_reward_type_world_kills' => 'World Kills',
+    'admin_stat_reward_type_pvp_kills' => 'PvP Kills',
     'admin_stat_reward_type_duels_won' => 'Duels Won',
     'admin_stat_reward_type_deaths' => 'Deaths',
     'admin_stat_reward_type_hours_played' => 'Hours Played',

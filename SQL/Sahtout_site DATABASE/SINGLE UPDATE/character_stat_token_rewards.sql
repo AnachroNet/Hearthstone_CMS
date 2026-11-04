@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS `character_stat_token_rewards` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `stat_type` enum('world_kills','duels_won','deaths','hours_played') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `stat_type` enum('world_kills','pvp_kills','duels_won','deaths','hours_played') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `threshold` int unsigned NOT NULL,
   `tokens` int unsigned NOT NULL DEFAULT '0',
   `is_enabled` tinyint(1) NOT NULL DEFAULT '0',
