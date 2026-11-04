@@ -39,6 +39,42 @@ $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 $valid_categories = ['Mount', 'Pet', 'Gold', 'Service', 'Stuff', 'Set'];
 
+$inventory_subtab = 'items';
+if ($shop_tab === 'inventory') {
+    $invSubRaw = isset($_GET['subtab']) ? (string) $_GET['subtab'] : 'items';
+    $inventory_subtab = in_array($invSubRaw, ['items', 'edit'], true) ? $invSubRaw : 'items';
+}
+
+$ashop_build_inventory_url = static function (
+    string $base_path,
+    int $page,
+    string $category_filter,
+    string $search_query,
+    string $subtab = 'items',
+    ?string $status = null,
+    ?string $message = null
+): string {
+    $query = ['tab' => 'inventory', 'subtab' => $subtab];
+    if ($status !== null) {
+        $query['status'] = $status;
+    }
+    if ($message !== null) {
+        $query['message'] = $message;
+    }
+    if ($subtab === 'items') {
+        if ($page > 1) {
+            $query['page'] = (string) $page;
+        }
+        if ($category_filter !== '') {
+            $query['category'] = $category_filter;
+        }
+        if ($search_query !== '') {
+            $query['search'] = $search_query;
+        }
+    }
+    return $base_path . 'admin/ashop?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+};
+
 // Fetch all available site items for Mount, Pet, Stuff dropdown
 $site_items = [];
 $sql = "SELECT entry, name FROM site_items ORDER BY name";
@@ -259,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_rewards_post(
 // Handle shop inventory form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post() && !sahtout_admin_shop_is_stat_rewards_post()) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_csrf_error', 'CSRF token validation failed.')));
+        header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_csrf_error', 'CSRF token validation failed.')));
         exit;
     }
 
@@ -283,7 +319,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
             $image = null;
 
             if (!in_array($category, $valid_categories)) {
-                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_category', 'Invalid category')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_category', 'Invalid category')));
                 exit;
             }
 
@@ -313,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
 
                 if ($is_set === 1) {
                     if ($itemset_id === null || $itemset_id <= 0) {
-                        header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_itemset_id', 'Invalid item set ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                        header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_itemset_id', 'Invalid item set ID')));
                         exit;
                     }
 
@@ -325,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                     $stmt->fetch();
                     $stmt->close();
                     if ($count == 0) {
-                        header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_itemset_id', 'Invalid item set ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                        header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_itemset_id', 'Invalid item set ID')));
                         exit;
                     }
                     $entry = null;
@@ -333,7 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                     $itemset_id = null;
 
                     if ($entry === null || $entry <= 0) {
-                        header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_entry_id', 'Invalid entry ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                        header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_entry_id', 'Invalid entry ID')));
                         exit;
                     }
 
@@ -345,14 +381,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                     $stmt->fetch();
                     $stmt->close();
                     if ($count == 0) {
-                        header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_entry_id', 'Invalid entry ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                        header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_entry_id', 'Invalid entry ID')));
                         exit;
                     }
                 }
             }
 
             if ($category === 'Service' && $level_boost !== null && ($level_boost < 2 || $level_boost > 255)) {
-                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_level_boost', 'Level boost must be between 2 and 255')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_level_boost', 'Level boost must be between 2 and 255')));
                 exit;
             }
 
@@ -367,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                         translate('admin_shop_upload_dir_not_writable', 'Upload failed: the image folder "%1$s" is not writable by the web server (www-data). Please add write permission first, e.g.: sudo chown -R www-data:www-data "%1$s"'),
                         $upload_dir
                     );
-                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($permission_message) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', $permission_message));
                     exit;
                 }
 
@@ -384,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                         UPLOAD_ERR_EXTENSION => translate('admin_shop_upload_err_extension', 'A PHP extension stopped the upload')
                     ];
                     $error_message = isset($error_messages[$file['error']]) ? $error_messages[$file['error']] : translate('admin_shop_upload_err_unknown', 'Unknown upload error');
-                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($error_message) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', $error_message));
                     exit;
                 }
 
@@ -398,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                     } else {
                         $upload_error = translate('admin_shop_invalid_file_type', 'Invalid file type. Only JPG, PNG, GIF allowed');
                     }
-                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($upload_error) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', $upload_error));
                     exit;
                 }
 
@@ -419,7 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
         }
     }
 } else {
-    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_upload_failed', 'Failed to upload file')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+    header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_upload_failed', 'Failed to upload file')));
     exit;
 }
             } elseif ($action === 'edit') {
@@ -464,14 +500,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                 }
                 
                 if ($stmt->execute()) {
-                    header("Location: {$base_path}admin/ashop?status=success&message=" . urlencode(translate('admin_shop_operation_success', 'Operation successful!')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'items', 'success', translate('admin_shop_operation_success', 'Operation successful!')));
                     exit;
                 } else {
                     throw new Exception(sprintf(translate('admin_shop_db_error', 'Database error: %s'), $stmt->error));
                 }
             } catch (Exception $e) {
                 error_log("Database error: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
-                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', $e->getMessage()));
                 exit;
             } finally {
                 if (isset($stmt)) $stmt->close();
@@ -501,14 +537,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                 $stmt->bind_param("i", $item_id);
                 
                 if ($stmt->execute()) {
-                    header("Location: {$base_path}admin/ashop?status=success&message=" . urlencode(translate('admin_shop_operation_success', 'Operation successful!')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'items', 'success', translate('admin_shop_operation_success', 'Operation successful!')));
                     exit;
                 } else {
                     throw new Exception(sprintf(translate('admin_shop_db_error', 'Database error: %s'), $stmt->error));
                 }
             } catch (Exception $e) {
                 error_log("Delete error: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
-                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'items', 'error', $e->getMessage()));
                 exit;
             } finally {
                 if (isset($stmt)) $stmt->close();
@@ -1015,6 +1051,10 @@ ob_start();
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        .inventory-subtab { display: none; }
+        .inventory-subtab.active { display: block; }
+        .sub-tab-link { padding: 0.5rem 1rem; font-size: 0.9rem; }
+
         .ach-search-results {
             position: absolute;
             z-index: 50;
@@ -1080,6 +1120,166 @@ ob_start();
                     </div>
 
                     <div id="shop-inventory-tab" class="tab-content <?php echo $shop_tab === 'inventory' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
+
+                    <div class="border-b border-[rgba(201,162,39,.12)]">
+                        <nav class="flex gap-0 overflow-x-auto" aria-label="<?php echo htmlspecialchars(translate('admin_shop_tab_inventory', 'Store Inventory')); ?>">
+                            <a class="tab-link sub-tab-link whitespace-nowrap <?php echo $inventory_subtab === 'items' ? 'active' : ''; ?>"
+                               href="<?php echo htmlspecialchars($ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'items')); ?>"
+                               data-inventory-subtab="items">
+                                <i class="fas fa-list mr-2"></i><?php echo translate('admin_shop_subtab_items', 'Shop Items'); ?>
+                            </a>
+                            <a class="tab-link sub-tab-link whitespace-nowrap <?php echo $inventory_subtab === 'edit' ? 'active' : ''; ?>"
+                               href="<?php echo htmlspecialchars($ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit')); ?>"
+                               data-inventory-subtab="edit">
+                                <i class="fas fa-edit mr-2"></i><?php echo translate('admin_shop_subtab_edit', 'Add/Edit Shop Items'); ?>
+                            </a>
+                        </nav>
+                    </div>
+
+                    <div id="inventory-items-panel" class="inventory-subtab <?php echo $inventory_subtab === 'items' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
+
+                    <!-- Shop Items List -->
+                    <div class="wow-panel p-4 md:p-6 lg:p-8">
+                        <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_shop_list_header', 'Shop Items'); ?></h2>
+                        
+                        <!-- Filter & Search -->
+                        <form method="GET" class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 md:gap-4 items-end mb-4 md:mb-6" action="<?php echo $base_path; ?>admin/ashop">
+                            <input type="hidden" name="tab" value="inventory">
+                            <input type="hidden" name="subtab" value="items">
+                            <div>
+                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_category_filter', 'Filter by Category'); ?></label>
+                                <select name="category" id="category_filter" class="wow-select">
+                                    <option value=""><?php echo translate('admin_shop_all_categories', 'All Categories'); ?></option>
+                                    <?php foreach ($valid_categories as $cat): ?>
+                                        <option value="<?php echo $cat; ?>" <?php echo $category_filter === $cat ? 'selected' : ''; ?>>
+                                            <?php echo translate('admin_shop_category_' . strtolower($cat), $cat); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_search', 'Search by Name'); ?></label>
+                                <input type="text" name="search" id="search" class="wow-input" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="<?php echo translate('admin_shop_placeholder_search', 'Enter item name'); ?>">
+                            </div>
+                            <button type="submit" class="btn-game btn-gold w-full md:w-auto justify-center">
+                                <i class="fas fa-search"></i>
+                                <?php echo translate('admin_shop_apply_button', 'Apply'); ?>
+                            </button>
+                        </form>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8">
+                            <table class="wow-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-num"><?php echo translate('admin_shop_table_id', 'ID'); ?></th>
+                                        <th><?php echo translate('admin_shop_table_category', 'Category'); ?></th>
+                                        <th><?php echo translate('admin_shop_table_name', 'Name'); ?></th>
+                                        <th class="hidden sm:table-cell col-num"><?php echo translate('admin_shop_table_tokens', 'Tokens'); ?></th>
+                                        <th class="hidden md:table-cell col-num"><?php echo translate('admin_shop_table_stock', 'Stock'); ?></th>
+                                        <th class="hidden lg:table-cell align-center"><?php echo translate('admin_shop_table_image', 'Image'); ?></th>
+                                        <th class="col-actions align-right"><?php echo translate('admin_shop_table_actions', 'Actions'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($items)): ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-gray-400 py-6 md:py-8">
+                                                <i class="fas fa-shopping-cart text-3xl md:text-4xl text-gray-600 block mb-3"></i>
+                                                <?php echo translate('admin_shop_no_items', 'No items found.'); ?>
+                                            </td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <?php foreach ($items as $row): ?>
+                                            <tr>
+                                                <td class="col-num text-sm md:text-base"><?php echo $row['item_id']; ?></td>
+                                                <td>
+                                                    <span class="category-badge text-xs">
+                                                        <?php echo translate('admin_shop_category_' . strtolower($row['category']), $row['category']); ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-sm md:text-base">
+                                                    <?php echo htmlspecialchars($row['name']); ?>
+                                                    <?php if ((int)$row['is_set'] === 1 && !empty($row['itemset_id'])): ?>
+                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_set_label', 'Set:') . ' #' . (int)$row['itemset_id']; ?></small>
+                                                    <?php elseif (!empty($row['entry_name'])): ?>
+                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_item_label', 'Item:') . ' ' . htmlspecialchars($row['entry_name']); ?></small>
+                                                    <?php elseif ($row['gold_amount'] > 0): ?>
+                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_gold_label', 'Gold:') . ' ' . number_format($row['gold_amount']); ?></small>
+                                                    <?php elseif ($row['level_boost']): ?>
+                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_level_label', 'Level:') . ' +' . $row['level_boost']; ?></small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="hidden sm:table-cell col-num text-sm md:text-base"><?php echo $row['token_cost']; ?></td>
+                                                <td class="hidden md:table-cell col-num text-sm md:text-base"><?php echo $row['stock'] ?? '∞'; ?></td>
+                                                <td class="hidden lg:table-cell align-center">
+                                                    <?php if ($row['image']): ?>
+                                                        <img src="<?php echo htmlspecialchars($row['image']); ?>" alt="<?php echo translate('admin_shop_image_alt', 'Item Image'); ?>" class="max-w-[50px] max-h-[50px]">
+                                                    <?php else: ?>
+                                                        <span class="text-muted-wow text-xs"><?php echo translate('admin_shop_no_image', 'No Image'); ?></span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="actions-cell">
+                                                    <div class="action-buttons">
+                                                        <button class="btn-game btn-edit-action text-xs py-1.5 px-2 md:px-3 edit-item" data-item='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>'>
+                                                            <i class="fas fa-edit"></i>
+                                                            <span class="hidden sm:inline"><?php echo translate('admin_shop_edit_button', 'Edit'); ?></span>
+                                                        </button>
+                                                        <button type="button" class="btn-game btn-danger text-xs py-1.5 px-2 md:px-3" onclick="openModal('deleteModal-<?php echo $row['item_id']; ?>')">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                            <span class="hidden sm:inline"><?php echo translate('admin_shop_delete_button', 'Delete'); ?></span>
+                                                        </button>
+                                                    </div>
+
+                                                    <div id="deleteModal-<?php echo $row['item_id']; ?>" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+                                                        <div class="wow-panel w-full max-w-md p-6 relative">
+                                                            <h3 class="wow-title text-xl mb-4"><?php echo translate('admin_shop_delete_modal_title', 'Delete Item'); ?></h3>
+                                                            <p class="text-gray-300 mb-6"><?php echo translate('admin_shop_delete_confirm', 'Are you sure you want to delete this item?'); ?></p>
+                                                            <form method="POST" class="flex justify-end gap-4">
+                                                                <input type="hidden" name="action" value="delete">
+                                                                <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
+                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                                <button type="button" class="btn-game btn-iron" onclick="closeModal('deleteModal-<?php echo $row['item_id']; ?>')">
+                                                                    <?php echo translate('admin_shop_cancel_button', 'Cancel'); ?>
+                                                                </button>
+                                                                <button type="submit" class="btn-game btn-danger">
+                                                                    <?php echo translate('admin_shop_confirm_delete_button', 'Confirm Delete'); ?>
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <?php
+                        sahtout_admin_render_pagination_nav([
+                            'current_page' => $page,
+                            'total_pages' => (int) $total_pages,
+                            'base_path' => $base_path,
+                            'route' => 'admin/ashop',
+                            'query' => array_filter([
+                                'tab' => 'inventory',
+                                'subtab' => 'items',
+                                'category' => $category_filter !== '' ? $category_filter : null,
+                                'search' => $search_query !== '' ? $search_query : null,
+                            ]),
+                            'theme' => 'game',
+                            'aria_label' => translate('admin_shop_pagination_aria', 'Page navigation'),
+                            'prev_label' => translate('admin_shop_previous', 'Previous'),
+                            'next_label' => translate('admin_shop_next', 'Next'),
+                            'nav_class' => 'flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8',
+                        ]);
+                        ?>
+                    </div>
+
+                    </div><!-- /inventory-items-panel -->
+
+                    <div id="inventory-edit-panel" class="inventory-subtab <?php echo $inventory_subtab === 'edit' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
 
                     <!-- Add/Edit Shop Item Form -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8">
@@ -1221,142 +1421,7 @@ ob_start();
                         </form>
                     </div>
 
-                    <!-- Shop Items List -->
-                    <div class="wow-panel p-4 md:p-6 lg:p-8">
-                        <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_shop_list_header', 'Shop Items'); ?></h2>
-                        
-                        <!-- Filter & Search -->
-                        <form method="GET" class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 md:gap-4 items-end mb-4 md:mb-6" action="<?php echo $base_path; ?>admin/ashop">
-                            <input type="hidden" name="tab" value="inventory">
-                            <div>
-                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_category_filter', 'Filter by Category'); ?></label>
-                                <select name="category" id="category_filter" class="wow-select">
-                                    <option value=""><?php echo translate('admin_shop_all_categories', 'All Categories'); ?></option>
-                                    <?php foreach ($valid_categories as $cat): ?>
-                                        <option value="<?php echo $cat; ?>" <?php echo $category_filter === $cat ? 'selected' : ''; ?>>
-                                            <?php echo translate('admin_shop_category_' . strtolower($cat), $cat); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_search', 'Search by Name'); ?></label>
-                                <input type="text" name="search" id="search" class="wow-input" value="<?php echo htmlspecialchars($search_query); ?>" placeholder="<?php echo translate('admin_shop_placeholder_search', 'Enter item name'); ?>">
-                            </div>
-                            <button type="submit" class="btn-game btn-gold w-full md:w-auto justify-center">
-                                <i class="fas fa-search"></i>
-                                <?php echo translate('admin_shop_apply_button', 'Apply'); ?>
-                            </button>
-                        </form>
-
-                        <!-- Table -->
-                        <div class="overflow-x-auto -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8">
-                            <table class="wow-table">
-                                <thead>
-                                    <tr>
-                                        <th class="col-num"><?php echo translate('admin_shop_table_id', 'ID'); ?></th>
-                                        <th><?php echo translate('admin_shop_table_category', 'Category'); ?></th>
-                                        <th><?php echo translate('admin_shop_table_name', 'Name'); ?></th>
-                                        <th class="hidden sm:table-cell col-num"><?php echo translate('admin_shop_table_tokens', 'Tokens'); ?></th>
-                                        <th class="hidden md:table-cell col-num"><?php echo translate('admin_shop_table_stock', 'Stock'); ?></th>
-                                        <th class="hidden lg:table-cell align-center"><?php echo translate('admin_shop_table_image', 'Image'); ?></th>
-                                        <th class="col-actions align-right"><?php echo translate('admin_shop_table_actions', 'Actions'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($items)): ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center text-gray-400 py-6 md:py-8">
-                                                <i class="fas fa-shopping-cart text-3xl md:text-4xl text-gray-600 block mb-3"></i>
-                                                <?php echo translate('admin_shop_no_items', 'No items found.'); ?>
-                                            </td>
-                                        </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($items as $row): ?>
-                                            <tr>
-                                                <td class="col-num text-sm md:text-base"><?php echo $row['item_id']; ?></td>
-                                                <td>
-                                                    <span class="category-badge text-xs">
-                                                        <?php echo translate('admin_shop_category_' . strtolower($row['category']), $row['category']); ?>
-                                                    </span>
-                                                </td>
-                                                <td class="text-sm md:text-base">
-                                                    <?php echo htmlspecialchars($row['name']); ?>
-                                                    <?php if ((int)$row['is_set'] === 1 && !empty($row['itemset_id'])): ?>
-                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_set_label', 'Set:') . ' #' . (int)$row['itemset_id']; ?></small>
-                                                    <?php elseif (!empty($row['entry_name'])): ?>
-                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_item_label', 'Item:') . ' ' . htmlspecialchars($row['entry_name']); ?></small>
-                                                    <?php elseif ($row['gold_amount'] > 0): ?>
-                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_gold_label', 'Gold:') . ' ' . number_format($row['gold_amount']); ?></small>
-                                                    <?php elseif ($row['level_boost']): ?>
-                                                        <br><small class="text-muted-wow"><?php echo translate('admin_shop_level_label', 'Level:') . ' +' . $row['level_boost']; ?></small>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="hidden sm:table-cell col-num text-sm md:text-base"><?php echo $row['token_cost']; ?></td>
-                                                <td class="hidden md:table-cell col-num text-sm md:text-base"><?php echo $row['stock'] ?? '∞'; ?></td>
-                                                <td class="hidden lg:table-cell align-center">
-                                                    <?php if ($row['image']): ?>
-                                                        <img src="<?php echo htmlspecialchars($row['image']); ?>" alt="<?php echo translate('admin_shop_image_alt', 'Item Image'); ?>" class="max-w-[50px] max-h-[50px]">
-                                                    <?php else: ?>
-                                                        <span class="text-muted-wow text-xs"><?php echo translate('admin_shop_no_image', 'No Image'); ?></span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="actions-cell">
-                                                    <div class="action-buttons">
-                                                        <button class="btn-game btn-edit-action text-xs py-1.5 px-2 md:px-3 edit-item" data-item='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>'>
-                                                            <i class="fas fa-edit"></i>
-                                                            <span class="hidden sm:inline"><?php echo translate('admin_shop_edit_button', 'Edit'); ?></span>
-                                                        </button>
-                                                        <button type="button" class="btn-game btn-danger text-xs py-1.5 px-2 md:px-3" onclick="openModal('deleteModal-<?php echo $row['item_id']; ?>')">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                            <span class="hidden sm:inline"><?php echo translate('admin_shop_delete_button', 'Delete'); ?></span>
-                                                        </button>
-                                                    </div>
-
-                                                    <div id="deleteModal-<?php echo $row['item_id']; ?>" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
-                                                        <div class="wow-panel w-full max-w-md p-6 relative">
-                                                            <h3 class="wow-title text-xl mb-4"><?php echo translate('admin_shop_delete_modal_title', 'Delete Item'); ?></h3>
-                                                            <p class="text-gray-300 mb-6"><?php echo translate('admin_shop_delete_confirm', 'Are you sure you want to delete this item?'); ?></p>
-                                                            <form method="POST" class="flex justify-end gap-4">
-                                                                <input type="hidden" name="action" value="delete">
-                                                                <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
-                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                                <button type="button" class="btn-game btn-iron" onclick="closeModal('deleteModal-<?php echo $row['item_id']; ?>')">
-                                                                    <?php echo translate('admin_shop_cancel_button', 'Cancel'); ?>
-                                                                </button>
-                                                                <button type="submit" class="btn-game btn-danger">
-                                                                    <?php echo translate('admin_shop_confirm_delete_button', 'Confirm Delete'); ?>
-                                                                </button>
-                                                            </form>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <?php
-                        sahtout_admin_render_pagination_nav([
-                            'current_page' => $page,
-                            'total_pages' => (int) $total_pages,
-                            'base_path' => $base_path,
-                            'route' => 'admin/ashop',
-                            'query' => array_filter([
-                                'tab' => 'inventory',
-                                'category' => $category_filter !== '' ? $category_filter : null,
-                                'search' => $search_query !== '' ? $search_query : null,
-                            ]),
-                            'theme' => 'game',
-                            'aria_label' => translate('admin_shop_pagination_aria', 'Page navigation'),
-                            'prev_label' => translate('admin_shop_previous', 'Previous'),
-                            'next_label' => translate('admin_shop_next', 'Next'),
-                            'nav_class' => 'flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8',
-                        ]);
-                        ?>
-                    </div>
+                    </div><!-- /inventory-edit-panel -->
 
                     </div><!-- /shop-inventory-tab -->
 
@@ -1383,6 +1448,29 @@ ob_start();
             if (modal) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
+            }
+        }
+
+        function setInventorySubtab(subtab) {
+            const itemsPanel = document.getElementById('inventory-items-panel');
+            const editPanel = document.getElementById('inventory-edit-panel');
+            if (!itemsPanel || !editPanel) {
+                return;
+            }
+            const isEdit = subtab === 'edit';
+            itemsPanel.classList.toggle('active', !isEdit);
+            editPanel.classList.toggle('active', isEdit);
+            document.querySelectorAll('[data-inventory-subtab]').forEach(link => {
+                link.classList.toggle('active', link.dataset.inventorySubtab === subtab);
+            });
+            if (window.history && window.history.replaceState) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', 'inventory');
+                url.searchParams.set('subtab', subtab);
+                if (isEdit) {
+                    url.searchParams.delete('page');
+                }
+                window.history.replaceState(null, '', url);
             }
         }
 
@@ -1580,6 +1668,7 @@ ob_start();
                 button.addEventListener('click', function() {
                     const item = JSON.parse(this.dataset.item);
 
+                    setInventorySubtab('edit');
                     formAction.value = 'edit';
                     document.getElementById('item_id').value = item.item_id;
                     document.getElementById('category').value = item.category;
@@ -1627,6 +1716,7 @@ ob_start();
                 submitBtn.innerHTML = '<i class="fas fa-plus"></i> ' + <?php echo json_encode(translate('admin_shop_add_button', 'Add Item')); ?>;
                 this.style.display = 'none';
                 updateFormFields();
+                setInventorySubtab('items');
             });
 
             // Form validation

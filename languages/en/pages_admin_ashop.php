@@ -5,6 +5,8 @@ return [
     'admin_shop_title' => 'Shop Management',
     'admin_shop_tab_inventory' => 'Store Inventory',
     'admin_shop_tab_rewards' => 'Rewards',
+    'admin_shop_subtab_items' => 'Shop Items',
+    'admin_shop_subtab_edit' => 'Add/Edit Shop Items',
     'admin_shop_add_edit_header' => 'Add/Edit Shop Item',
     'admin_shop_list_header' => 'Shop Items',
     'admin_shop_operation_success' => 'Operation successful!',
