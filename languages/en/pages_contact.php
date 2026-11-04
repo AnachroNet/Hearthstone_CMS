@@ -1,0 +1,21 @@
+<?php
+return [
+    'contact_page_title' => 'Contact Us',
+    'contact_meta_description' => 'Send a message to server staff',
+    'contact_title' => 'Contact Us',
+    'contact_intro' => 'Report website issues, ask account questions, or reach staff without logging into the game. Replies appear on your Account Dashboard.',
+    'contact_csrf_error' => 'Security token validation failed. Please try again.',
+    'contact_unavailable' => 'Contact submissions are not available right now.',
+    'contact_table_missing' => 'Contact storage is not set up yet. Please try again later or use in-game support.',
+    'contact_invalid_subject' => 'Enter a subject (255 characters or fewer).',
+    'contact_invalid_message' => 'Enter a message (20,000 characters or fewer).',
+    'contact_submit_failed' => 'Could not submit your message. Please try again.',
+    'contact_submit_success' => 'Your message was sent. Staff will reply on your Account Dashboard under Inquiries.',
+    'contact_go_account' => 'View your inquiries on the Account Dashboard',
+    'contact_label_datetime' => 'Date / time',
+    'contact_label_account' => 'Account',
+    'contact_label_subject' => 'Subject',
+    'contact_label_message' => 'Message',
+    'contact_submit' => 'Send message',
+    'contact_cancel' => 'Account Dashboard',
+];

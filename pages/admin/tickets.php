@@ -9,8 +9,10 @@ require_once $project_root . 'includes/account_gm_tickets.php';
 require_once $project_root . 'includes/admin_ticket_compensation.php';
 require_once $project_root . 'includes/admin_comp_item_ui.php';
 require_once $project_root . 'includes/admin_page_styles.php';
+require_once $project_root . 'includes/user_inquiries.php';
 
 $page_class = 'tickets';
+$servicesTab = (isset($_GET['tab']) && $_GET['tab'] === 'inquiries') ? 'inquiries' : 'tickets';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -33,6 +35,14 @@ $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $perPage = 15;
 $openEditId = isset($_GET['edit']) ? max(0, (int) $_GET['edit']) : 0;
 
+$inquiryStatusFilter = isset($_GET['inquiry_status']) && in_array($_GET['inquiry_status'], ['pending', 'answered', 'closed', 'all'], true)
+    ? (string) $_GET['inquiry_status']
+    : 'pending';
+$inquirySearch = isset($_GET['inquiry_search']) ? trim((string) $_GET['inquiry_search']) : '';
+$inquiryPage = isset($_GET['inquiry_page']) ? max(1, (int) $_GET['inquiry_page']) : 1;
+$inquiryPerPage = 15;
+$openEditInquiryId = isset($_GET['inquiry_edit']) ? max(0, (int) $_GET['inquiry_edit']) : 0;
+
 $flashMessage = null;
 $flashType = 'success';
 
@@ -46,6 +56,48 @@ $gmCharacters = [];
 if (isset($auth_db, $char_db) && $auth_db instanceof mysqli && $char_db instanceof mysqli
     && !$auth_db->connect_error && !$char_db->connect_error) {
     $gmCharacters = sahtout_gm_level3_characters($auth_db, $char_db, DB_AUTH);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_inquiry') {
+    $csrf = (string) ($_POST['csrf_token'] ?? '');
+    $redirectParams = array_filter([
+        'tab' => 'inquiries',
+        'inquiry_status' => $_POST['return_inquiry_status'] ?? null,
+        'inquiry_search' => $_POST['return_inquiry_search'] ?? null,
+        'inquiry_page' => $_POST['return_inquiry_page'] ?? null,
+        'inquiry_edit' => (int) ($_POST['inquiry_id'] ?? 0) ?: null,
+    ]);
+
+    if (!hash_equals((string) ($_SESSION['csrf_token'] ?? ''), $csrf)) {
+        $redirectParams['msg'] = 'inquiry_csrf';
+        $redirectParams['msg_type'] = 'danger';
+    } elseif (!isset($site_db) || $site_db->connect_error) {
+        $redirectParams['msg'] = 'inquiry_unavailable';
+        $redirectParams['msg_type'] = 'danger';
+    } else {
+        $inquiryId = (int) ($_POST['inquiry_id'] ?? 0);
+        $responseText = (string) ($_POST['response_text'] ?? '');
+        $stateAction = (string) ($_POST['state_action'] ?? 'save');
+        $responder = (string) ($_SESSION['username'] ?? '');
+
+        $result = sahtout_admin_save_user_inquiry($site_db, $inquiryId, $responseText, $responder, $stateAction);
+
+        unset($redirectParams['inquiry_edit']);
+        if (!$result['ok']) {
+            $redirectParams['msg'] = $result['message'];
+            $redirectParams['msg_type'] = 'danger';
+            $redirectParams['inquiry_edit'] = $inquiryId > 0 ? $inquiryId : null;
+        } else {
+            $redirectParams['msg'] = match ($stateAction) {
+                'close' => 'inquiry_closed',
+                'reopen' => 'inquiry_reopened',
+                default => 'inquiry_saved',
+            };
+        }
+    }
+
+    header('Location: ' . $base_path . 'admin/tickets?' . http_build_query($redirectParams));
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_ticket') {
@@ -74,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         );
 
         $redirectParams = array_filter([
+            'tab' => 'tickets',
             'status' => $_POST['return_status'] ?? null,
             'search' => $_POST['return_search'] ?? null,
             'page' => $_POST['return_page'] ?? null,
@@ -100,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_ticket') {
     $csrf = (string) ($_POST['csrf_token'] ?? '');
     $redirectParams = array_filter([
+        'tab' => 'tickets',
         'status' => $_POST['return_status'] ?? null,
         'search' => $_POST['return_search'] ?? null,
         'page' => $_POST['return_page'] ?? null,
@@ -133,6 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ticket_compensation') {
     $csrf = (string) ($_POST['csrf_token'] ?? '');
     $redirectParams = array_filter([
+        'tab' => 'tickets',
         'status' => $_POST['return_status'] ?? null,
         'search' => $_POST['return_search'] ?? null,
         'page' => $_POST['return_page'] ?? null,
@@ -221,6 +276,12 @@ if (isset($_GET['msg'])) {
         'comp_csrf' => translate('admin_tickets_csrf_error', 'Security token validation failed.'),
         'comp_unavailable' => translate('admin_tickets_unavailable', 'The gm_ticket table is not available on the character database.'),
         'comp_invalid' => translate('admin_tickets_comp_invalid_action', 'Unknown compensation action.'),
+        'inquiry_saved' => translate('admin_inquiries_saved', 'Inquiry response saved.'),
+        'inquiry_closed' => translate('admin_inquiries_closed', 'Inquiry closed.'),
+        'inquiry_reopened' => translate('admin_inquiries_reopened', 'Inquiry reopened as pending.'),
+        'inquiry_csrf' => translate('admin_inquiries_csrf_error', 'Security token validation failed.'),
+        'inquiry_unavailable' => translate('admin_inquiries_unavailable', 'The user_inquiries table is not available on the website database.'),
+        'empty_response' => translate('admin_inquiries_empty_response', 'Enter a response before saving.'),
         default => htmlspecialchars($msgKey),
     };
     if (isset($_GET['reload']) && $_GET['reload'] === '0') {
@@ -255,8 +316,18 @@ if ($page > $totalPages) {
     $page = $totalPages;
 }
 
-$page_title = translate('admin_tickets_page_title', 'Support Tickets');
-$page_meta_description = translate('admin_tickets_meta_description', 'View in-game GM tickets');
+$inquiryData = ['available' => false, 'inquiries' => [], 'total' => 0];
+if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+    $inquiryFilter = $inquiryStatusFilter === 'all' ? 'all' : $inquiryStatusFilter;
+    $inquiryData = sahtout_admin_user_inquiries($site_db, $inquiryFilter, $inquirySearch, $inquiryPage, $inquiryPerPage);
+}
+$inquiryTotalPages = max(1, (int) ceil(($inquiryData['total'] ?? 0) / $inquiryPerPage));
+if ($inquiryPage > $inquiryTotalPages) {
+    $inquiryPage = $inquiryTotalPages;
+}
+
+$page_title = translate('admin_user_services_page_title', 'User Services');
+$page_meta_description = translate('admin_user_services_meta_description', 'Support tickets and website inquiries');
 $page_meta_robots = 'noindex';
 
 ob_start();
@@ -281,6 +352,19 @@ sahtout_admin_page_styles();
             color: #fca5a5;
             box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35);
         }
+        .tab-link {
+            display: inline-block;
+            padding: 0.65rem 1rem;
+            border-bottom: 2px solid transparent;
+            color: #9ca3af;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-decoration: none;
+        }
+        .tab-link:hover { color: #f2cf5b; }
+        .tab-link.active { color: #f2cf5b; border-bottom-color: #f2cf5b; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 </style>
 <?php
 sahtout_admin_comp_item_styles();
@@ -295,14 +379,25 @@ $page_head = ob_get_clean();
     <main class="main-content-area flex-1 p-3 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 lg:ml-[280px]">
         <div class="content-wrapper">
             <div class="space-y-4 md:space-y-6 lg:space-y-8">
-            <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_tickets_title', 'Support Tickets'); ?></h1>
-            <p class="text-gray-400 text-sm max-w-3xl"><?php echo translate('admin_tickets_intro', 'Review and update in-game Help (?) tickets. Changes are written to the character database and reloaded on the worldserver when SOAP is configured.'); ?></p>
+            <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_user_services_title', 'User Services'); ?></h1>
+
+            <div class="flex flex-wrap gap-1 border-b border-[rgba(201,162,39,.15)] pb-0 mb-4">
+                <a class="tab-link whitespace-nowrap <?php echo $servicesTab === 'tickets' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?tab=tickets'); ?>">
+                    <i class="fas fa-life-ring mr-2"></i><?php echo translate('admin_user_services_tab_tickets', 'Support Tickets'); ?>
+                </a>
+                <a class="tab-link whitespace-nowrap <?php echo $servicesTab === 'inquiries' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?tab=inquiries'); ?>">
+                    <i class="fas fa-envelope mr-2"></i><?php echo translate('admin_user_services_tab_inquiries', 'User Inquiries'); ?>
+                </a>
+            </div>
 
             <?php if ($flashMessage): ?>
                 <div class="<?php echo $flashType === 'danger' ? 'bg-red-900/40 border-red-500/50 text-red-300' : 'bg-green-900/40 border-green-500/50 text-green-300'; ?> border px-4 py-3 rounded-sm text-sm">
                     <?php echo htmlspecialchars($flashMessage); ?>
                 </div>
             <?php endif; ?>
+
+            <div id="user-services-tickets-tab" class="tab-content <?php echo $servicesTab === 'tickets' ? 'active' : ''; ?> space-y-4">
+            <p class="text-gray-400 text-sm max-w-3xl"><?php echo translate('admin_tickets_intro', 'Review and update in-game Help (?) tickets. Changes are written to the character database and reloaded on the worldserver when SOAP is configured.'); ?></p>
 
             <?php if (!$ticketData['available']): ?>
                 <div class="panel p-6 text-center text-gray-400">
@@ -311,6 +406,7 @@ $page_head = ob_get_clean();
             <?php else: ?>
                 <div class="panel p-4 md:p-6 lg:p-8">
                     <form method="get" action="<?php echo htmlspecialchars($base_path . 'admin/tickets'); ?>" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                        <input type="hidden" name="tab" value="tickets">
                         <select name="status" class="input-dark">
                             <option value="open" <?php echo $statusFilter === 'open' ? 'selected' : ''; ?>><?php echo translate('admin_tickets_status_open', 'Open only'); ?></option>
                             <option value="closed" <?php echo $statusFilter === 'closed' ? 'selected' : ''; ?>><?php echo translate('admin_tickets_status_closed', 'Closed / completed'); ?></option>
@@ -404,7 +500,11 @@ $page_head = ob_get_clean();
                                 </span>
                                 <div class="flex gap-2">
                                     <?php
-                                    $queryBase = array_filter(['status' => $statusFilter !== 'open' ? $statusFilter : null, 'search' => $search !== '' ? $search : null]);
+                                    $queryBase = array_filter([
+                                        'tab' => 'tickets',
+                                        'status' => $statusFilter !== 'open' ? $statusFilter : null,
+                                        'search' => $search !== '' ? $search : null,
+                                    ]);
                                     if ($page > 1):
                                         $prevQ = $queryBase + ['page' => $page - 1];
                                     ?>
@@ -421,6 +521,10 @@ $page_head = ob_get_clean();
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+            </div>
+
+            <?php include __DIR__ . '/user_inquiries_tab.inc.php'; ?>
+
             </div>
         </div>
     </main>
@@ -567,6 +671,7 @@ $page_head = ob_get_clean();
         <?php endforeach; ?>
     <?php endif; ?>
 
+    <?php include __DIR__ . '/user_inquiries_modals.inc.php'; ?>
     <?php sahtout_admin_comp_item_lookup_modal(); ?>
 </div>
 
@@ -589,11 +694,25 @@ $page_head = ob_get_clean();
             if (id) openModal(id);
             return;
         }
+        var openInqBtn = e.target.closest('.open-inquiry-modal-btn');
+        if (openInqBtn) {
+            e.preventDefault();
+            var inqId = openInqBtn.getAttribute('data-modal');
+            if (inqId) openModal(inqId);
+            return;
+        }
         var closeBtn = e.target.closest('.close-modal-btn');
         if (closeBtn) {
             e.preventDefault();
             var closeId = closeBtn.getAttribute('data-modal');
             if (closeId) closeModal(closeId);
+            return;
+        }
+        var closeInqBtn = e.target.closest('.close-inquiry-modal-btn');
+        if (closeInqBtn) {
+            e.preventDefault();
+            var closeInqId = closeInqBtn.getAttribute('data-modal');
+            if (closeInqId) closeModal(closeInqId);
             return;
         }
         if (e.target.classList.contains('modal-backdrop') && e.target.classList.contains('active')) {
@@ -608,6 +727,15 @@ $page_head = ob_get_clean();
         if (!form) return;
         var input = form.querySelector('.ticket-state-action-input');
         if (input) input.value = stateBtn.getAttribute('data-state') || 'save';
+    });
+
+    document.addEventListener('click', function (e) {
+        var inqStateBtn = e.target.closest('.inquiry-state-btn');
+        if (!inqStateBtn) return;
+        var inqForm = inqStateBtn.closest('form');
+        if (!inqForm) return;
+        var inqInput = inqForm.querySelector('.inquiry-state-action-input');
+        if (inqInput) inqInput.value = inqStateBtn.getAttribute('data-state') || 'save';
     });
 
     document.addEventListener('keydown', function (e) {
@@ -630,6 +758,11 @@ $page_head = ob_get_clean();
     <?php if ($openEditId > 0): ?>
     document.addEventListener('DOMContentLoaded', function () {
         openModal('ticketModal-<?php echo (int) $openEditId; ?>');
+    });
+    <?php endif; ?>
+    <?php if ($openEditInquiryId > 0): ?>
+    document.addEventListener('DOMContentLoaded', function () {
+        openModal('inquiryModal-<?php echo (int) $openEditInquiryId; ?>');
     });
     <?php endif; ?>
 })();

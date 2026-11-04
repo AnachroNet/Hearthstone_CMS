@@ -8,13 +8,17 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/config.cap.php';
 require_once $project_root . 'includes/srp6.php';
 require_once $project_root . 'includes/achievement_reward_sync.php';
+require_once $project_root . 'includes/redirect_helpers.php';
 
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOCKOUT_DURATION', 900);
 define('ATTEMPT_WINDOW', 3600);
 
+$loginReturnPath = isset($_GET['return']) ? (string) $_GET['return'] : '';
+$loginReturnTarget = sahtout_safe_internal_return_path($loginReturnPath, $base_path);
+
 if (isset($_SESSION['user_id'])) {
-    header("Location: {$base_path}account");
+    header('Location: ' . ($loginReturnTarget ?? "{$base_path}account"));
     exit();
 }
 
@@ -560,7 +564,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     }
                                 }
 
-                                header("Location: {$base_path}account");
+                                $afterLogin = sahtout_safe_internal_return_path(
+                                    (string) ($_POST['return'] ?? $loginReturnPath),
+                                    $base_path
+                                );
+                                header('Location: ' . ($afterLogin ?? "{$base_path}account"));
                                 exit();
                                 }
                             } else {
@@ -765,6 +773,9 @@ include_once $project_root . 'includes/header.php';
 
             <form method="POST" class="space-y-4">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                <?php if ($loginReturnPath !== ''): ?>
+                <input type="hidden" name="return" value="<?php echo htmlspecialchars($loginReturnPath, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
                 <div class="relative">
                     <i class="fas fa-user text-[rgba(201,162,39,0.4)] absolute top-3.5 left-3"></i>
                     <input

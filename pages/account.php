@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.mail.php';
 require_once $project_root . 'languages/language.php'; // Include language file for translations
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/account_gm_tickets.php';
+require_once $project_root . 'includes/user_inquiries.php';
 require_once $project_root . 'includes/achievement_reward_sync.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
 require_once $project_root . 'includes/character_lifetime_stats.php';
@@ -31,6 +32,7 @@ $account_teleport_locations_ready = false;
 $currencies = ['tokens' => 0, 'avatar' => NULL];
 $available_avatars = [];
 $gm_tickets_view = ['available' => false, 'tickets' => [], 'open_count' => 0, 'message' => null];
+$user_inquiries_view = ['available' => false, 'inquiries' => [], 'pending_count' => 0];
 $gmlevel = $_SESSION['gmlevel'] ?? 0;
 $role = $_SESSION['role'] ?? 'player';
 $debug_errors = $_SESSION['debug_errors'] ?? [];
@@ -558,6 +560,12 @@ if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_erro
             error_log('[account.php] gm tickets: ' . $e->getMessage());
         }
     }
+
+    try {
+        $user_inquiries_view = sahtout_account_user_inquiries($site_db, (int) $_SESSION['user_id']);
+    } catch (Throwable $e) {
+        error_log('[account.php] user inquiries: ' . $e->getMessage());
+    }
 }
 
 // NOTE: Database connections are intentionally left open here.
@@ -621,6 +629,20 @@ function renderTicketPlaceholderHtml(string $text): string
     }
 
     return '<div class="ticket-body-inner text-gray-500 italic">' . htmlspecialchars($text) . '</div>';
+}
+
+function renderInquirySummaryBadge(array $inquiry): string
+{
+    $status = (string) ($inquiry['status'] ?? 'pending');
+    $statusKey = sahtout_inquiry_status_label_key($status);
+    $css = sahtout_inquiry_status_css_class($status);
+    $label = translate($statusKey, ucfirst($status));
+
+    return sprintf(
+        '<span class="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded border %s">%s</span>',
+        htmlspecialchars($css),
+        htmlspecialchars($label)
+    );
 }
 
 function renderGmTicketSummaryBadge(array $ticket): string
@@ -1333,8 +1355,11 @@ include_once $project_root . 'includes/header.php';
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="tickets">
                     <i class="fa-solid fa-life-ring"></i> <?php echo translate('tab_tickets', 'Support'); ?>
-                    <?php if (!empty($gm_tickets_view['open_count'])): ?>
-                        <span class="text-[10px] min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold leading-5"><?php echo (int) $gm_tickets_view['open_count']; ?></span>
+                    <?php
+                    $support_badge_count = (int) ($gm_tickets_view['open_count'] ?? 0) + (int) ($user_inquiries_view['pending_count'] ?? 0);
+                    if ($support_badge_count > 0):
+                    ?>
+                        <span class="text-[10px] min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold leading-5"><?php echo $support_badge_count; ?></span>
                     <?php endif; ?>
                 </button>
                 <button type="button" class="nav-tab-gaming px-6 py-2.5 font-semibold text-sm rounded-lg transition-all duration-300 bg-[rgba(10,14,22,0.6)] border border-[rgba(201,162,39,0.2)] text-gray-300 hover:border-[#f2cf5b]/50 hover:text-white flex items-center justify-center gap-2 cursor-pointer" data-tab="security">
@@ -1541,9 +1566,19 @@ include_once $project_root . 'includes/header.php';
                                 <p class="mt-3 text-sm text-gray-400">
                                     <i class="fa-solid fa-life-ring text-[#f2cf5b] mr-1"></i>
                                     <?php echo (int) $gm_tickets_view['open_count']; ?>
-                                    <?php echo translate('label_open_tickets', 'Open tickets'); ?> —
+                                    <?php echo translate('label_open_tickets', 'Open in-game tickets'); ?> —
                                     <button type="button" class="text-[#f2cf5b] hover:text-white underline-offset-2 hover:underline font-semibold" data-tab="tickets" onclick="document.querySelector('.nav-tab-gaming[data-tab=tickets]')?.click();">
-                                        <?php echo translate('overview_open_tickets_link', 'View tickets'); ?>
+                                        <?php echo translate('overview_open_tickets_link', 'View support'); ?>
+                                    </button>
+                                </p>
+                            <?php endif; ?>
+                            <?php if (!empty($user_inquiries_view['available']) && (int) ($user_inquiries_view['pending_count'] ?? 0) > 0): ?>
+                                <p class="mt-2 text-sm text-gray-400">
+                                    <i class="fa-solid fa-envelope text-[#f2cf5b] mr-1"></i>
+                                    <?php echo (int) $user_inquiries_view['pending_count']; ?>
+                                    <?php echo translate('label_pending_inquiries', 'Pending inquiries'); ?> —
+                                    <button type="button" class="text-[#f2cf5b] hover:text-white underline-offset-2 hover:underline font-semibold" data-tab="tickets" onclick="document.querySelector('.nav-tab-gaming[data-tab=tickets]')?.click();">
+                                        <?php echo translate('overview_pending_inquiries_link', 'View inquiries'); ?>
                                     </button>
                                 </p>
                             <?php endif; ?>
@@ -1662,8 +1697,9 @@ include_once $project_root . 'includes/header.php';
                     <?php endif; ?>
                 </div>
 
-                <!-- SUPPORT TICKETS TAB -->
+                <!-- SUPPORT & INQUIRIES TAB -->
                 <div class="tab-pane hidden" id="tab-tickets">
+                    <section class="mb-10">
                     <h2 class="text-2xl font-bold text-white flex items-center gap-3 mb-2">
                         <i class="fa-solid fa-life-ring text-[#f2cf5b]"></i>
                         <?php echo translate('section_support_tickets', 'Support Tickets'); ?>
@@ -1746,6 +1782,81 @@ include_once $project_root . 'includes/header.php';
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
+                    </section>
+
+                    <section>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3 mb-2">
+                        <i class="fa-solid fa-envelope text-[#f2cf5b]"></i>
+                        <?php echo translate('section_inquiries', 'Inquiries'); ?>
+                    </h2>
+                    <p class="text-gray-400 text-sm mb-6 max-w-2xl">
+                        <?php echo translate('inquiries_intro', 'Website messages sent through Contact Us. Staff replies appear below.'); ?>
+                        <a href="<?php echo htmlspecialchars($base_path . 'contact', ENT_QUOTES, 'UTF-8'); ?>" class="text-[#f2cf5b] hover:text-white font-semibold ml-1"><?php echo translate('inquiries_new_link', 'Send a new message'); ?></a>
+                    </p>
+
+                    <?php if (empty($user_inquiries_view['available'])): ?>
+                        <div class="glass-card empty-state">
+                            <span class="empty-state-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            <p class="text-gray-300 font-semibold"><?php echo translate('inquiries_unavailable', 'Inquiry history is not available right now.'); ?></p>
+                        </div>
+                    <?php elseif (empty($user_inquiries_view['inquiries'])): ?>
+                        <div class="glass-card empty-state">
+                            <span class="empty-state-icon"><i class="fa-solid fa-inbox"></i></span>
+                            <p class="text-gray-300 font-semibold"><?php echo translate('inquiries_none', 'You have not submitted any Contact Us messages yet.'); ?></p>
+                        </div>
+                    <?php else: ?>
+                        <div class="space-y-4">
+                            <?php foreach ($user_inquiries_view['inquiries'] as $inquiry): ?>
+                                <details class="ticket-card glass-card rounded-lg overflow-hidden group">
+                                    <summary class="p-4 sm:p-5 flex flex-row items-center gap-3 sm:gap-4">
+                                        <div class="ticket-summary-line min-w-0 flex-1">
+                                            <?php echo renderInquirySummaryBadge($inquiry); ?>
+                                            <span class="ticket-summary-name"><?php echo htmlspecialchars((string) $inquiry['subject']); ?></span>
+                                            <span class="ticket-summary-sep"><?php echo htmlspecialchars(sprintf(translate('inquiry_id', 'Inquiry #%s'), $inquiry['id'])); ?></span>
+                                            <span class="ticket-summary-meta">
+                                                <?php echo translate('inquiry_submitted', 'Submitted'); ?>:
+                                                <?php echo htmlspecialchars(sahtout_format_inquiry_time($inquiry['created_at'])); ?>
+                                            </span>
+                                        </div>
+                                        <i class="fa-solid fa-chevron-down text-[#f2cf5b]/60 group-open:rotate-180 transition-transform shrink-0"></i>
+                                    </summary>
+                                    <div class="ticket-detail-panel border-t border-[rgba(201,162,39,0.08)] space-y-4">
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
+                                                <?php echo translate('inquiry_your_message', 'Your message'); ?>
+                                            </h4>
+                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
+                                                <?php echo renderTicketBodyHtml((string) $inquiry['message']); ?>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2">
+                                                <?php echo translate('inquiry_staff_response', 'Staff response'); ?>
+                                            </h4>
+                                            <div class="ticket-body-block text-sm text-gray-200 bg-[rgba(0,0,0,0.35)] border border-[rgba(201,162,39,0.1)] rounded">
+                                                <?php
+                                                $inqResponse = trim((string) ($inquiry['response_text'] ?? ''));
+                                                if ($inqResponse !== '') {
+                                                    echo renderTicketBodyHtml($inqResponse);
+                                                    if (!empty($inquiry['responder_username'])) {
+                                                        echo '<p class="text-xs text-gray-500 mt-3 mb-0">' . htmlspecialchars(
+                                                            translate('inquiry_responder', 'Replied by') . ' ' . (string) $inquiry['responder_username']
+                                                        ) . '</p>';
+                                                    }
+                                                } elseif (($inquiry['status'] ?? '') === 'pending') {
+                                                    echo renderTicketPlaceholderHtml(translate('inquiry_pending_response', 'Your message is waiting for staff review.'));
+                                                } else {
+                                                    echo renderTicketPlaceholderHtml(translate('inquiry_no_response', 'No staff response was recorded.'));
+                                                }
+                                                ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </details>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    </section>
                 </div>
 
                 <!-- SECURITY TAB -->

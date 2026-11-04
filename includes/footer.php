@@ -157,6 +157,11 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
                     <a href="<?php echo $base_path; ?>armory/solo_pvp" class="footer-nav-link"><?php echo translate('nav_armory', 'Armory'); ?></a>
                     <a href="<?php echo $base_path; ?>shop" class="footer-nav-link"><?php echo translate('nav_shop', 'Shop'); ?></a>
                     <a href="<?php echo $base_path; ?>account" class="footer-nav-link"><?php echo translate('nav_account', 'Account'); ?></a>
+                    <?php if (isset($_SESSION['user_id'])): ?>
+                    <a href="<?php echo $base_path; ?>contact" class="footer-nav-link"><?php echo translate('nav_contact', 'Contact Us'); ?></a>
+                    <?php else: ?>
+                    <a href="<?php echo $base_path; ?>login?return=<?php echo rawurlencode('contact'); ?>" class="footer-nav-link"><?php echo translate('nav_contact', 'Contact Us'); ?></a>
+                    <?php endif; ?>
                 </div>
                 <div class="h-px w-48 bg-gradient-to-r from-transparent via-[#c9a227] to-transparent opacity-50"></div>
                 <p class="text-gray-500 text-xs tracking-wider uppercase font-semibold">
