@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
 require_once $project_root . 'includes/breaking_news.php';
+require_once $project_root . 'includes/holiday_calendar.php';
 require_once $project_root . 'includes/news_helpers.php';
 
 global $world_db;
@@ -290,6 +291,7 @@ ob_start();
         }
     </style>
     <link rel="stylesheet" href="<?php echo htmlspecialchars($base_path . 'assets/css/home-breaking-news.css', ENT_QUOTES, 'UTF-8'); ?>">
+    <link rel="stylesheet" href="<?php echo htmlspecialchars($base_path . 'assets/css/home-calendar.css', ENT_QUOTES, 'UTF-8'); ?>">
 <?php
 $page_head = ob_get_clean();
 
@@ -315,6 +317,25 @@ $home_breaking_news = null;
 if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error) {
     $home_breaking_news = sahtout_breaking_news_fetch_for_display($world_db);
 }
+
+$home_calendar = null;
+$home_cal_year = 0;
+$home_cal_month = 0;
+if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+    [$home_cal_year, $home_cal_month] = sahtout_holiday_calendar_parse_month(
+        isset($_GET['cal']) ? (string) $_GET['cal'] : null
+    );
+    $home_calendar = sahtout_holiday_calendar_build($site_db, $home_cal_year, $home_cal_month);
+}
+
+$home_cal_tz = new DateTimeZone(isset($site_timezone) && $site_timezone !== '' ? $site_timezone : 'UTC');
+$home_cal_today = new DateTimeImmutable('now', $home_cal_tz);
+$home_cal_is_current_month = $home_cal_year === (int) $home_cal_today->format('Y')
+    && $home_cal_month === (int) $home_cal_today->format('n');
+$home_cal_today_day = (int) $home_cal_today->format('j');
+[$home_cal_prev_y, $home_cal_prev_m] = sahtout_holiday_calendar_shift_month($home_cal_year, $home_cal_month, -1);
+[$home_cal_next_y, $home_cal_next_m] = sahtout_holiday_calendar_shift_month($home_cal_year, $home_cal_month, 1);
+$home_cal_month_label = (new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal_year, $home_cal_month)))->format('F Y');
 ?>
 
     <main class="max-w-350 mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -370,6 +391,108 @@ if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <?php if ($home_calendar !== null && !empty($home_calendar['holidays_enabled'])): ?>
+                <section class="wow-panel home-event-calendar p-3 sm:p-4 md:p-6" aria-labelledby="home-event-calendar-heading">
+                    <h2 id="home-event-calendar-heading" class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <?php echo translate('home_event_calendar_title', 'In-Game Event Calendar'); ?>
+                    </h2>
+
+                    <div class="home-event-calendar-header">
+                        <div class="home-event-calendar-nav">
+                            <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, $home_cal_prev_y, $home_cal_prev_m); ?>" aria-label="<?php echo translate('home_event_calendar_prev', 'Previous month'); ?>">‹</a>
+                            <span class="home-event-calendar-month-label"><?php echo htmlspecialchars($home_cal_month_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, $home_cal_next_y, $home_cal_next_m); ?>" aria-label="<?php echo translate('home_event_calendar_next', 'Next month'); ?>">›</a>
+                        </div>
+                        <?php if (!$home_cal_is_current_month): ?>
+                        <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, (int) $home_cal_today->format('Y'), (int) $home_cal_today->format('n')); ?>" class="text-xs font-semibold text-[#f2cf5b] hover:text-white transition-colors">
+                            <?php echo translate('home_event_calendar_today', 'Today'); ?>
+                        </a>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php
+                    $cal_grid_start = new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal_year, $home_cal_month));
+                    $cal_leading_blanks = ((int) $cal_grid_start->format('w') + 6) % 7;
+                    $cal_days_in_month = (int) $cal_grid_start->format('t');
+                    $dow_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                    ?>
+                    <div class="home-event-calendar-grid" role="grid" aria-readonly="true">
+                        <?php foreach ($dow_labels as $dow): ?>
+                            <div class="home-event-calendar-dow" role="columnheader"><?php echo htmlspecialchars($dow, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <?php endforeach; ?>
+
+                        <?php for ($blank = 0; $blank < $cal_leading_blanks; $blank++): ?>
+                            <div class="home-event-calendar-cell is-empty" role="gridcell" aria-hidden="true"></div>
+                        <?php endfor; ?>
+
+                        <?php for ($day = 1; $day <= $cal_days_in_month; $day++):
+                            $is_today = $home_cal_is_current_month && $day === $home_cal_today_day;
+                            $day_events = $home_calendar['events_by_day'][$day] ?? [];
+                            $cell_classes = 'home-event-calendar-cell' . ($is_today ? ' is-today' : '');
+                            ?>
+                            <div class="<?php echo $cell_classes; ?>" role="gridcell">
+                                <div class="home-event-calendar-daynum"><?php echo $day; ?></div>
+                                <?php
+                                $chips_shown = 0;
+                                foreach ($day_events as $ev):
+                                    if ($chips_shown >= 3) {
+                                        break;
+                                    }
+                                    $chips_shown++;
+                                    $tip = trim($ev['name'] . (isset($ev['description']) && $ev['description'] !== '' ? "\n" . $ev['description'] : ''));
+                                    ?>
+                                    <span class="home-event-calendar-chip" title="<?php echo htmlspecialchars($tip, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </span>
+                                <?php endforeach; ?>
+                                <?php if (count($day_events) > 3): ?>
+                                    <span class="text-[10px] text-[#f2cf5b]">+<?php echo count($day_events) - 3; ?></span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+
+                    <?php if ($home_calendar['month_events'] !== []): ?>
+                    <div class="home-event-calendar-list">
+                        <h3 class="text-sm font-bold text-[#f2cf5b] mb-2"><?php echo translate('home_event_calendar_this_month', 'Events this month'); ?></h3>
+                        <ul>
+                            <?php
+                            $listed = [];
+                            foreach ($home_calendar['month_events'] as $ev):
+                                $key = $ev['holiday_id'] . '|' . $ev['start'];
+                                if (isset($listed[$key])) {
+                                    continue;
+                                }
+                                $listed[$key] = true;
+                                $range = $ev['start'] === $ev['end']
+                                    ? date('M j', strtotime($ev['start']))
+                                    : date('M j', strtotime($ev['start'])) . ' – ' . date('M j', strtotime($ev['end']));
+                                ?>
+                                <li>
+                                    <strong><?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    <span class="dates"> · <?php echo htmlspecialchars($range, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php if ($ev['description'] !== ''): ?>
+                                        <?php
+                                        $ev_desc = (string) $ev['description'];
+                                        if (strlen($ev_desc) > 160) {
+                                            $ev_desc = substr($ev_desc, 0, 157) . '…';
+                                        }
+                                        ?>
+                                        <br><span><?php echo htmlspecialchars($ev_desc, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                    <?php else: ?>
+                    <p class="home-event-calendar-footnote mt-4 mb-0"><?php echo translate('home_event_calendar_empty', 'No world events fall in this month.'); ?></p>
+                    <?php endif; ?>
+
+                    <p class="home-event-calendar-footnote mb-0"><?php echo translate('home_event_calendar_footnote', 'Dates follow WoW calendar rules (same as the in-game event schedule). Battleground Call to Arms weekends are hidden.'); ?></p>
+                </section>
+                <?php endif; ?>
 
                 <!-- Featured / latest news -->
                 <section class="wow-panel home-featured-news p-3 sm:p-4 md:p-6" aria-labelledby="home-featured-news-heading">
