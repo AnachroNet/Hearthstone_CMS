@@ -49,10 +49,10 @@ if (!defined('ALLOWED_ACCESS')) {
                 <thead>
                     <tr>
                         <th><?php echo translate('admin_stat_rewards_col_type', 'Stat'); ?></th>
-                        <th><?php echo translate('admin_stat_rewards_threshold', 'Threshold'); ?></th>
-                        <th><?php echo translate('admin_stat_rewards_tokens', 'Tokens'); ?></th>
+                        <th class="col-num"><?php echo translate('admin_stat_rewards_threshold', 'Threshold'); ?></th>
+                        <th class="col-num"><?php echo translate('admin_stat_rewards_tokens', 'Tokens'); ?></th>
                         <th><?php echo translate('admin_rewards_col_enabled', 'Enabled'); ?></th>
-                        <th></th>
+                        <th class="col-actions align-right"><?php echo translate('admin_rewards_col_actions', 'Actions'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,28 +63,34 @@ if (!defined('ALLOWED_ACCESS')) {
                     ?>
                     <tr>
                         <td><span class="type-pill"><?php echo htmlspecialchars($statTypeLabels[$stype] ?? $stype); ?></span></td>
-                        <td class="text-gray-200"><?php echo number_format((int) ($row['threshold'] ?? 0)); ?></td>
-                        <td colspan="3">
-                            <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="flex flex-wrap items-end gap-3 justify-end">
+                        <td class="col-num text-gray-200"><?php echo number_format((int) ($row['threshold'] ?? 0)); ?></td>
+                        <?php $statUpdateFormId = 'stat-reward-update-' . $rid; ?>
+                        <td class="col-num">
+                            <form id="<?php echo htmlspecialchars($statUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" hidden>
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
                                 <input type="hidden" name="action" value="stat_update">
                                 <input type="hidden" name="reward_id" value="<?php echo $rid; ?>">
-                                <div class="w-28">
-                                    <input type="number" name="tokens" class="wow-input text-sm py-2" min="0" max="9999999" value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
-                                </div>
-                                <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer">
-                                    <input type="checkbox" name="is_enabled" value="1" class="rounded border-gray-600" <?php echo $enabled ? 'checked' : ''; ?>>
-                                    <?php echo translate('admin_rewards_enable_label', 'Enabled'); ?>
-                                </label>
-                                <button type="submit" class="btn-game btn-gold text-xs py-2 px-3"><?php echo translate('admin_rewards_save', 'Save'); ?></button>
                             </form>
-                            <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="inline mt-2"
-                                  onsubmit="return confirm(<?php echo json_encode(translate('admin_stat_rewards_delete_confirm', 'Delete this character stat milestone?')); ?>);">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
-                                <input type="hidden" name="action" value="stat_delete">
-                                <input type="hidden" name="reward_id" value="<?php echo $rid; ?>">
-                                <button type="submit" class="text-xs text-red-400 hover:text-red-300 mt-2"><?php echo translate('admin_stat_rewards_delete', 'Delete'); ?></button>
-                            </form>
+                            <label class="sr-only" for="<?php echo htmlspecialchars($statUpdateFormId . '-tokens', ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('admin_stat_rewards_tokens', 'Tokens'); ?></label>
+                            <input type="number" id="<?php echo htmlspecialchars($statUpdateFormId . '-tokens', ENT_QUOTES, 'UTF-8'); ?>" form="<?php echo htmlspecialchars($statUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" name="tokens" class="wow-input text-sm py-2 w-full max-w-[7rem] block" min="0" max="9999999" value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
+                        </td>
+                        <td>
+                            <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer whitespace-nowrap">
+                                <input type="checkbox" form="<?php echo htmlspecialchars($statUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" name="is_enabled" value="1" class="rounded border-gray-600 shrink-0" <?php echo $enabled ? 'checked' : ''; ?>>
+                                <?php echo translate('admin_rewards_enable_label', 'Enabled'); ?>
+                            </label>
+                        </td>
+                        <td class="actions-cell">
+                            <div class="action-buttons action-buttons--stack">
+                                <button type="submit" form="<?php echo htmlspecialchars($statUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-xs py-2 px-3"><?php echo translate('admin_rewards_save', 'Save'); ?></button>
+                                <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="inline"
+                                      onsubmit="return confirm(<?php echo json_encode(translate('admin_stat_rewards_delete_confirm', 'Delete this character stat milestone?')); ?>);">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                                    <input type="hidden" name="action" value="stat_delete">
+                                    <input type="hidden" name="reward_id" value="<?php echo $rid; ?>">
+                                    <button type="submit" class="text-xs text-red-400 hover:text-red-300"><?php echo translate('admin_stat_rewards_delete', 'Delete'); ?></button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>

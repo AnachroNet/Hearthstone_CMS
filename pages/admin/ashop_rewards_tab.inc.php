@@ -107,9 +107,9 @@ if (!defined('ALLOWED_ACCESS')) {
                 <th><?php echo translate('admin_rewards_col_achievement', 'Achievement'); ?></th>
                 <th><?php echo translate('admin_rewards_col_type', 'Type'); ?></th>
                 <th><?php echo translate('admin_rewards_col_detail', 'Detail'); ?></th>
-                <th><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></th>
+                <th class="col-num"><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></th>
                 <th><?php echo translate('admin_rewards_col_enabled', 'Enabled'); ?></th>
-                <th></th>
+                <th class="col-actions align-right"><?php echo translate('admin_rewards_col_actions', 'Actions'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -141,31 +141,34 @@ if (!defined('ALLOWED_ACCESS')) {
                     <?php endif; ?>
                 </td>
                 <td class="text-gray-300 text-sm"><?php echo htmlspecialchars(sahtout_admin_reward_detail_label($row, $rewardCreatureNames)); ?></td>
-                <td colspan="3">
-                    <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="flex flex-wrap items-end gap-3 justify-end">
+                <?php $rewardUpdateFormId = 'reward-update-' . $achId; ?>
+                <td class="col-num">
+                    <form id="<?php echo htmlspecialchars($rewardUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" hidden>
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="action" value="update">
                         <?php if ($reward_page > 1): ?>
                             <input type="hidden" name="reward_page" value="<?php echo (int) $reward_page; ?>">
                         <?php endif; ?>
                         <input type="hidden" name="achievement_id" value="<?php echo $achId; ?>">
-                        <div class="w-28">
-                            <label class="sr-only"><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></label>
-                            <input type="number" name="tokens" class="wow-input text-sm py-2" min="0" max="9999999"
-                                   value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
-                        </div>
-                        <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer" title="<?php echo htmlspecialchars(translate('admin_rewards_enable_hint', 'When checked, this reward is active for account-wide sync.')); ?>">
-                            <input type="checkbox" name="is_enabled" value="1" class="rounded border-gray-600"
-                                <?php echo $rewardEnabled ? 'checked' : ''; ?>>
-                            <span><?php echo translate('admin_rewards_enable_label', 'Enabled'); ?></span>
-                            <?php if (!$rewardEnabled): ?>
-                                <span class="text-gray-500">(<?php echo translate('admin_rewards_off', 'off'); ?>)</span>
-                            <?php endif; ?>
-                        </label>
-                        <button type="submit" class="btn-game btn-gold text-xs py-2 px-3">
-                            <?php echo translate('admin_rewards_save', 'Save'); ?>
-                        </button>
                     </form>
+                    <label class="sr-only" for="<?php echo htmlspecialchars($rewardUpdateFormId . '-tokens', ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></label>
+                    <input type="number" id="<?php echo htmlspecialchars($rewardUpdateFormId . '-tokens', ENT_QUOTES, 'UTF-8'); ?>" form="<?php echo htmlspecialchars($rewardUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" name="tokens" class="wow-input text-sm py-2 w-full max-w-[7rem] block" min="0" max="9999999"
+                           value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
+                </td>
+                <td>
+                    <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer whitespace-nowrap" title="<?php echo htmlspecialchars(translate('admin_rewards_enable_hint', 'When checked, this reward is active for account-wide sync.')); ?>">
+                        <input type="checkbox" form="<?php echo htmlspecialchars($rewardUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" name="is_enabled" value="1" class="rounded border-gray-600 shrink-0"
+                            <?php echo $rewardEnabled ? 'checked' : ''; ?>>
+                        <span><?php echo translate('admin_rewards_enable_label', 'Enabled'); ?></span>
+                        <?php if (!$rewardEnabled): ?>
+                            <span class="text-gray-500">(<?php echo translate('admin_rewards_off', 'off'); ?>)</span>
+                        <?php endif; ?>
+                    </label>
+                </td>
+                <td class="actions-cell">
+                    <button type="submit" form="<?php echo htmlspecialchars($rewardUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-xs py-2 px-3">
+                        <?php echo translate('admin_rewards_save', 'Save'); ?>
+                    </button>
                 </td>
             </tr>
             <?php endforeach; ?>

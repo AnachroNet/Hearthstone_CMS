@@ -193,8 +193,8 @@ function sahtout_admin_format_event_dates(array $row): string
                         <tr>
                             <th><?php echo translate('admin_events_col_title', 'Title'); ?></th>
                             <th><?php echo translate('admin_events_col_dates', 'Dates'); ?></th>
-                            <th><?php echo translate('admin_events_col_status', 'Status'); ?></th>
-                            <th class="text-right"><?php echo translate('admin_events_col_actions', 'Actions'); ?></th>
+                            <th class="align-center"><?php echo translate('admin_events_col_status', 'Status'); ?></th>
+                            <th class="col-actions align-right"><?php echo translate('admin_events_col_actions', 'Actions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -213,15 +213,15 @@ function sahtout_admin_format_event_dates(array $row): string
                                 <?php endif; ?>
                             </td>
                             <td class="text-[#f2cf5b] text-sm whitespace-nowrap"><?php echo htmlspecialchars(sahtout_admin_format_event_dates($row)); ?></td>
-                            <td>
+                            <td class="align-center">
                                 <?php if ((int) ($row['is_active'] ?? 0) === 1): ?>
                                     <span class="badge-active"><?php echo translate('admin_events_status_active', 'Active'); ?></span>
                                 <?php else: ?>
                                     <span class="badge-inactive"><?php echo translate('admin_events_status_hidden', 'Hidden'); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <div class="flex justify-end gap-2 flex-wrap">
+                            <td class="actions-cell">
+                                <div class="action-buttons">
                                     <button type="button" onclick="openModal('editModal-<?php echo (int) $row['id']; ?>')" class="btn-iron btn-iron-sm text-xs py-2 px-3">
                                         <i class="fas fa-edit"></i>
                                         <?php echo translate('admin_events_edit_short', 'Edit'); ?>

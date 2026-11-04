@@ -149,10 +149,10 @@ if ($flash !== '') {
                             <th><?php echo translate('admin_teleport_locations_col_name', 'Name'); ?></th>
                             <th><?php echo translate('admin_teleport_locations_col_map', 'Map'); ?></th>
                             <th><?php echo translate('admin_teleport_locations_col_coords', 'Coordinates'); ?></th>
-                            <th><?php echo translate('admin_teleport_locations_col_sort', 'Order'); ?></th>
-                            <th><?php echo translate('admin_teleport_locations_col_status', 'Status'); ?></th>
+                            <th class="col-num"><?php echo translate('admin_teleport_locations_col_sort', 'Order'); ?></th>
+                            <th class="align-center"><?php echo translate('admin_teleport_locations_col_status', 'Status'); ?></th>
                             <th><?php echo translate('admin_teleport_locations_col_visibility', 'Visibility'); ?></th>
-                            <th class="text-right"><?php echo translate('admin_teleport_locations_col_actions', 'Actions'); ?></th>
+                            <th class="col-actions align-right"><?php echo translate('admin_teleport_locations_col_actions', 'Actions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -165,8 +165,8 @@ if ($flash !== '') {
                                 <?php echo number_format($row['position_y'], 2); ?>,
                                 <?php echo number_format($row['position_z'], 2); ?>
                             </td>
-                            <td><?php echo (int) $row['sort_order']; ?></td>
-                            <td>
+                            <td class="col-num"><?php echo (int) $row['sort_order']; ?></td>
+                            <td class="align-center">
                                 <?php if ($row['is_active']): ?>
                                     <span class="badge-active"><?php echo translate('admin_teleport_locations_status_active', 'Active'); ?></span>
                                 <?php else: ?>
@@ -180,8 +180,8 @@ if ($flash !== '') {
                                     <span class="text-gray-400 text-xs"><?php echo translate('admin_teleport_locations_visibility_all', 'All players'); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <div class="flex justify-end gap-2 flex-wrap">
+                            <td class="actions-cell">
+                                <div class="action-buttons">
                                     <button type="button" onclick="openModal('editModal-<?php echo (int) $row['id']; ?>')" class="btn-iron btn-iron-sm text-xs py-2 px-3">
                                         <i class="fas fa-edit"></i> <?php echo translate('admin_teleport_locations_edit_short', 'Edit'); ?>
                                     </button>

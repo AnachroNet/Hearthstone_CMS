@@ -837,6 +837,31 @@ ob_start();
             background: rgba(30, 35, 45, 0.8);
         }
 
+        .wow-table th.align-right,
+        .wow-table td.align-right { text-align: right; }
+        .wow-table th.align-center,
+        .wow-table td.align-center { text-align: center; }
+        .wow-table th.col-num,
+        .wow-table td.col-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .wow-table th.col-actions,
+        .wow-table td.actions-cell { text-align: right; vertical-align: middle; }
+        .wow-table .action-buttons {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .wow-table .action-buttons--stack {
+            flex-direction: column;
+            align-items: flex-end;
+            flex-wrap: nowrap;
+        }
+
         .category-badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;

@@ -474,10 +474,30 @@ ob_start();
             border-bottom: 1px solid rgba(201,162,39,.1);
             color: #d8d8d8;
             background: rgba(22, 25, 32, 0.6);
+            vertical-align: middle;
         }
 
         .wow-table tr:hover td {
             background: rgba(30, 35, 45, 0.8);
+        }
+
+        .wow-table th.align-right,
+        .wow-table td.align-right { text-align: right; }
+        .wow-table th.align-center,
+        .wow-table td.align-center { text-align: center; }
+        .wow-table th.col-actions,
+        .wow-table td.actions-cell { text-align: right; vertical-align: middle; }
+        .wow-table .action-buttons {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            align-items: center;
+        }
+        .wow-table .action-buttons--stack {
+            flex-direction: column;
+            align-items: flex-end;
+            flex-wrap: nowrap;
         }
 
         .category-badge {
@@ -708,7 +728,7 @@ ob_start();
                                             <th class="hidden md:table-cell"><?php echo translate('admin_maintenance_col_until', 'Until'); ?></th>
                                             <th><?php echo translate('admin_maintenance_col_status', 'Status'); ?></th>
                                             <th class="hidden sm:table-cell"><?php echo translate('admin_maintenance_col_posted_by', 'Posted by'); ?></th>
-                                            <th></th>
+                                            <th class="col-actions align-right"><?php echo translate('admin_news_table_actions', 'Actions'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -727,7 +747,7 @@ ob_start();
                                                 <td class="hidden md:table-cell whitespace-nowrap"><?php echo htmlspecialchars((string) ($ann['visible_until'] ?? '')); ?></td>
                                                 <td><?php echo htmlspecialchars($statusLabel); ?></td>
                                                 <td class="hidden sm:table-cell"><?php echo htmlspecialchars((string) ($ann['posted_by'] ?? '')); ?></td>
-                                                <td>
+                                                <td class="actions-cell">
                                                     <form method="POST" class="inline" onsubmit="return confirm(<?php echo json_encode(translate('admin_maintenance_delete_confirm', 'Delete this announcement?')); ?>);">
                                                         <input type="hidden" name="action" value="announcement_delete">
                                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -894,8 +914,8 @@ ob_start();
                                         <th class="hidden md:table-cell"><?php echo translate('admin_news_table_category', 'Category'); ?></th>
                                         <th class="hidden lg:table-cell"><?php echo translate('admin_news_table_posted_by', 'Posted By'); ?></th>
                                         <th class="hidden sm:table-cell"><?php echo translate('admin_news_table_date', 'Date'); ?></th>
-                                        <th class="text-center"><?php echo translate('admin_news_table_important', 'Important'); ?></th>
-                                        <th class="text-right"><?php echo translate('admin_news_table_actions', 'Actions'); ?></th>
+                                        <th class="align-center"><?php echo translate('admin_news_table_important', 'Important'); ?></th>
+                                        <th class="col-actions align-right"><?php echo translate('admin_news_table_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -929,7 +949,7 @@ ob_start();
                                                 </td>
                                                 <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo htmlspecialchars($news['posted_by']); ?></td>
                                                 <td class="hidden sm:table-cell text-sm text-gray-400"><?php echo date('M j, Y', strtotime($news['post_date'])); ?></td>
-                                                <td class="text-center">
+                                                <td class="align-center">
                                                     <?php if ($news['is_important']): ?>
                                                         <span class="inline-flex items-center gap-1 text-red-400 text-xs font-bold">
                                                             <i class="fas fa-star"></i>
@@ -939,8 +959,8 @@ ob_start();
                                                         <span class="text-gray-500 text-xs">—</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td class="text-right">
-                                                    <div class="flex justify-end gap-2">
+                                                <td class="actions-cell">
+                                                    <div class="action-buttons">
                                                         <button type="button" onclick="openModal('editModal-<?php echo $news['id']; ?>')" class="btn-game btn-iron text-xs py-2 px-3">
                                                             <i class="fas fa-edit"></i>
                                                             <?php echo translate('admin_news_edit_button', 'Edit'); ?>

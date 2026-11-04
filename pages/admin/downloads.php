@@ -192,9 +192,9 @@ if ($flash !== '') {
                         <tr>
                             <th><?php echo translate('admin_downloads_col_title', 'Title'); ?></th>
                             <th><?php echo translate('admin_downloads_col_category', 'Category'); ?></th>
-                            <th><?php echo translate('admin_downloads_col_sort', 'Order'); ?></th>
-                            <th><?php echo translate('admin_downloads_col_status', 'Status'); ?></th>
-                            <th class="text-right"><?php echo translate('admin_downloads_col_actions', 'Actions'); ?></th>
+                            <th class="col-num"><?php echo translate('admin_downloads_col_sort', 'Order'); ?></th>
+                            <th class="align-center"><?php echo translate('admin_downloads_col_status', 'Status'); ?></th>
+                            <th class="col-actions align-right"><?php echo translate('admin_downloads_col_actions', 'Actions'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -207,16 +207,16 @@ if ($flash !== '') {
                                 <?php endif; ?>
                             </td>
                             <td><?php echo htmlspecialchars($categories[$row['category']] ?? $row['category']); ?></td>
-                            <td><?php echo (int) $row['sort_order']; ?></td>
-                            <td>
+                            <td class="col-num"><?php echo (int) $row['sort_order']; ?></td>
+                            <td class="align-center">
                                 <?php if ($row['is_active']): ?>
                                     <span class="badge-active"><?php echo translate('admin_downloads_status_active', 'Active'); ?></span>
                                 <?php else: ?>
                                     <span class="badge-inactive"><?php echo translate('admin_downloads_status_hidden', 'Hidden'); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td>
-                                <div class="flex justify-end gap-2 flex-wrap">
+                            <td class="actions-cell">
+                                <div class="action-buttons">
                                     <button type="button" onclick="openModal('editModal-<?php echo (int) $row['id']; ?>')" class="btn-iron btn-iron-sm text-xs py-2 px-3">
                                         <i class="fas fa-edit"></i>
                                         <?php echo translate('admin_downloads_edit_short', 'Edit'); ?>

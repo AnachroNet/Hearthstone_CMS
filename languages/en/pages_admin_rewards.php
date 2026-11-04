@@ -16,6 +16,7 @@ return [
     'admin_rewards_col_detail' => 'Detail',
     'admin_rewards_col_tokens' => 'Tokens',
     'admin_rewards_col_enabled' => 'Enabled',
+    'admin_rewards_col_actions' => 'Actions',
     'admin_rewards_type_level' => 'Level',
     'admin_rewards_type_quest' => 'Quests',
     'admin_rewards_type_dungeon' => 'Dungeon',
