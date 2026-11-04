@@ -272,7 +272,7 @@ ob_start();
     .talent-spec-panel[hidden] { display: none !important; }
     .talent-dbc-hint { font-size: .75rem; color: var(--muted); margin-top: 1rem; }
     .talent-tree-empty { font-size: .8rem; color: var(--muted); font-style: italic; margin: .25rem 0 0; }
-    .talent-calc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin: 1rem 0 1.25rem; }
+    .talent-calc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin: 1.25rem 0 0; }
     .talent-calc-actions .btn-game {
         display: inline-flex; align-items: center; gap: .55rem;
         padding: .85rem 1.75rem; font-weight: 800; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase;
@@ -286,13 +286,16 @@ ob_start();
         box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 -8px 14px rgba(0,0,0,.25);
     }
     .talent-calc-embed {
-        width: 100%; max-width: 100%; border: 0; display: block; min-height: 680px;
+        width: 100%; max-width: 100%; border: 0; display: block;
+        height: 720px;
         background: transparent;
+        overflow: hidden;
     }
     .talent-calc-embed-wrap {
-        margin: 0 auto 1rem; max-width: 100%; overflow: visible;
+        margin: 0 auto; max-width: 100%; overflow: visible;
         border: 1px solid rgba(201,162,39,.18); background: rgba(0,0,0,.25);
     }
+    #talents-tab { overflow: visible; }
 </style>
 <script>
 /* Image fallbacks: missing icons swap to data-fallback, otherwise are hidden (no broken-image boxes). */
@@ -832,13 +835,6 @@ $map = [
                         <b><?= (int) $pointsTotal ?></b> <?= htmlspecialchars(translate('talents_points_spent', 'talent points spent')) ?>
                     </div>
                 <?php endif; ?>
-                    <?php if (!empty($calc['supported']) && !empty($calc['url'])): ?>
-                    <div class="talent-calc-actions">
-                        <a href="<?= htmlspecialchars($calc['url'], ENT_QUOTES, 'UTF-8') ?>" class="btn-game btn-gold">
-                            <?= htmlspecialchars(translate('talents_open_calculator', 'Open in Talent Calculator'), ENT_QUOTES, 'UTF-8') ?>
-                        </a>
-                    </div>
-                    <?php endif; ?>
                     <?php if ($showCalcEmbed):
                         $embedUrl = rtrim($base_path, '/') . '/talent-calculator/embed.php?class='
                             . rawurlencode((string) $calc['slug']) . '&tal=' . rawurlencode((string) $calc['tal']);
@@ -848,6 +844,7 @@ $map = [
                             class="talent-calc-embed"
                             title="<?= htmlspecialchars(translate('talents_embed_title', 'Talent build'), ENT_QUOTES, 'UTF-8') ?>"
                             src="<?= htmlspecialchars($embedUrl, ENT_QUOTES, 'UTF-8') ?>"
+                            scrolling="no"
                             loading="lazy"></iframe>
                     </div>
                     <?php else: ?>
@@ -878,6 +875,13 @@ $map = [
                             <?php endforeach; ?>
                         </div>
                         <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php if (!empty($calc['supported']) && !empty($calc['url'])): ?>
+                    <div class="talent-calc-actions">
+                        <a href="<?= htmlspecialchars($calc['url'], ENT_QUOTES, 'UTF-8') ?>" class="btn-game btn-gold">
+                            <?= htmlspecialchars(translate('talents_open_calculator', 'Open in Talent Calculator'), ENT_QUOTES, 'UTF-8') ?>
+                        </a>
                     </div>
                     <?php endif; ?>
                 <?php
@@ -1087,6 +1091,17 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { label.textContent = original; }, 2200);
         });
     }
+
+    window.addEventListener('message', function (event) {
+        if (!event.data || event.data.type !== 'sahtout-tc-embed-height') return;
+        const height = Number(event.data.height);
+        if (!Number.isFinite(height) || height <= 0) return;
+        document.querySelectorAll('iframe.talent-calc-embed').forEach(function (iframe) {
+            if (iframe.contentWindow === event.source) {
+                iframe.style.height = Math.ceil(height) + 'px';
+            }
+        });
+    });
 
     document.querySelectorAll('.talent-spec-btn').forEach(btn => {
         btn.addEventListener('click', () => {

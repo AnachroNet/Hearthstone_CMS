@@ -46,9 +46,10 @@ $esc_page_id = json_encode($tc_pageId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_Q
     <style>
         html, body.page-talent-calculator-embed {
             margin: 0;
-            padding: 0;
-            min-height: 0;
-            background: transparent;
+            padding: 0 !important;
+            min-height: 0 !important;
+            background: transparent !important;
+            background-image: none !important;
             overflow: visible;
         }
         body.page-talent-calculator-embed .tc-embed-wrap {
@@ -81,5 +82,30 @@ window.__tcMountId = 'replaceMeWithTalents';
 <script src="<?php echo htmlspecialchars($tc_script_base . 'localize.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars($tc_script_base . 'arraysFill.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
 <script src="<?php echo htmlspecialchars($tc_script_base . 'printOutTop.js', ENT_QUOTES, 'UTF-8'); ?>"></script>
+<script>
+(function () {
+    function reportEmbedHeight() {
+        var root = document.getElementById('replaceMeWithTalents');
+        var h = 0;
+        if (root) {
+            h = Math.ceil(root.getBoundingClientRect().height);
+        }
+        if (!h) {
+            h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+        }
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'sahtout-tc-embed-height', height: h + 8 }, '*');
+        }
+    }
+    window.addEventListener('load', function () {
+        reportEmbedHeight();
+        setTimeout(reportEmbedHeight, 150);
+        setTimeout(reportEmbedHeight, 600);
+    });
+    if (document.readyState === 'complete') {
+        reportEmbedHeight();
+    }
+})();
+</script>
 </body>
 </html>
