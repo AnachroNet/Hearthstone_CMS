@@ -450,9 +450,13 @@ function sahtout_admin_inquiry_award_tokens(mysqli $siteDb, int $inquiryId, int 
  */
 function sahtout_admin_inquiry_account_options(mysqli $siteDb, int $limit = 3000): array
 {
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'playerbot_accounts.php';
+
     $limit = max(1, min(5000, $limit));
     $rows = [];
-    $sql = 'SELECT account_id, username, tokens FROM user_currencies ORDER BY username ASC LIMIT ' . (int) $limit;
+    $sql = 'SELECT account_id, username, tokens FROM user_currencies WHERE 1=1'
+        . sahtout_sql_exclude_playerbots('username')
+        . ' ORDER BY username ASC LIMIT ' . (int) $limit;
     $result = $siteDb->query($sql);
     if (!$result) {
         return $rows;
@@ -476,6 +480,8 @@ function sahtout_admin_inquiry_account_options(mysqli $siteDb, int $limit = 3000
 
 function sahtout_admin_inquiry_account_username(mysqli $siteDb, int $accountId): ?string
 {
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'playerbot_accounts.php';
+
     if ($accountId <= 0) {
         return null;
     }
@@ -495,8 +501,11 @@ function sahtout_admin_inquiry_account_username(mysqli $siteDb, int $accountId):
         return null;
     }
     $username = trim((string) ($row['username'] ?? ''));
+    if ($username === '' || sahtout_is_playerbot_username($username)) {
+        return null;
+    }
 
-    return $username !== '' ? $username : null;
+    return $username;
 }
 
 /**
