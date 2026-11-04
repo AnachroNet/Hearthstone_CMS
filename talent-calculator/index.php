@@ -20,8 +20,8 @@ $page_head = ob_get_clean();
 include $project_root . 'includes/header.php';
 ?>
 
-<div class="tc-content min-h-screen px-3 sm:px-6 lg:px-8 py-8 md:py-12">
-    <div class="max-w-4xl mx-auto">
+<div class="tc-content min-h-screen py-8 md:py-12">
+    <div class="container mx-auto max-w-7xl px-2 sm:px-4">
         <div class="wow-panel relative overflow-hidden p-4 sm:p-6 md:p-8">
             <h1 class="wow-title text-2xl sm:text-3xl md:text-4xl"><?php echo htmlspecialchars(translate('tc_page_title', 'Talent Calculator'), ENT_QUOTES, 'UTF-8'); ?></h1>
             <p class="tc-intro"><?php echo htmlspecialchars(translate('tc_index_intro', 'Choose a class to plan a Wrath of the Lich King (3.3.5a) talent build. Share your build by copying the link at the bottom of the calculator.'), ENT_QUOTES, 'UTF-8'); ?></p>

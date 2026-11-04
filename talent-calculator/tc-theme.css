@@ -165,5 +165,10 @@ body.page-talent-calculator .tc-calculator-wrap {
     overflow-x: auto;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
     width: 100%;
+}
+
+body.page-talent-calculator .tc-calculator-wrap #replaceMeWithTalents {
+    flex: 0 1 auto;
 }

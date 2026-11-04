@@ -12,9 +12,11 @@ body.page-talent-calculator #replaceMeWithTalents *::after {
 }
 
 body.page-talent-calculator #replaceMeWithTalents {
-    display: block;
-    width: max-content;
-    max-width: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
     margin-left: auto;
     margin-right: auto;
     text-align: left;
@@ -23,7 +25,18 @@ body.page-talent-calculator #replaceMeWithTalents {
 
 body.page-talent-calculator #tcCalcColumn {
     width: max-content;
-    max-width: none;
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .talentwrap1,
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table {
     margin-left: auto;
     margin-right: auto;
 }
