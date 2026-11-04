@@ -7,6 +7,8 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php'; // Site title used in $page_title
 require_once $project_root . 'includes/itemset_dbc.php';
 
+global $site_db, $world_db;
+
 $page_class = 'shop';
 
 $selected_category = isset($_GET['category']) ? $_GET['category'] : 'All';
@@ -41,7 +43,7 @@ $tooltip_fields = 'entry, name, description, Quality, Flags, ItemLevel, Required
 $item_tooltip_inline_css = true;
 
 $query = "
-    SELECT si.item_id, si.category, si.name, si.description, si.image, si.token_cost, si.stock, si.level_boost, si.at_login_flags, si.is_set, si.itemset_id, sit.entry AS sit_entry, sis.set_item_count
+    SELECT si.item_id, si.category, si.name, si.description, si.image, si.token_cost, si.stock, si.level_boost, si.at_login_flags, si.is_set, si.itemset_id, si.entry, sit.entry AS sit_entry, sit.RequiredLevel AS item_required_level, sis.set_item_count
     FROM shop_items si
     LEFT JOIN site_items sit ON si.entry = sit.entry
     LEFT JOIN (
@@ -61,8 +63,10 @@ if ($stmt) {
         $items[$row['category']][] = $row;
     }
     $stmt->close();
+    $worldDb = (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null;
     foreach ($items as &$categoryItems) {
         sahtout_itemset_apply_piece_counts_to_rows($site_db, $categoryItems);
+        sahtout_shop_apply_item_required_levels($site_db, $worldDb, $categoryItems);
     }
     unset($categoryItems);
 } else {
@@ -276,6 +280,11 @@ ob_start();
             50% { transform: scale(1.05); }
         }
         
+        .shop-required-level {
+            color: #f2cf5b;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+        }
+
         .limited-stock-badge {
             animation: pulse 2s infinite;
         }
@@ -469,12 +478,31 @@ include_once $project_root . 'includes/header.php';
                                             <i class="fas fa-cubes mr-1"></i>
                                             <?php echo translate('shop_set_contains', 'Set') . ' #' . (int)$item['itemset_id'] . ' - ' . (int)($item['set_item_count'] ?? 0) . ' ' . translate('shop_items', 'items'); ?>
                                         </p>
-                                        <?php if (!empty($item['set_required_level'])): ?>
-                                            <p class="text-amber-300/90 text-xs font-semibold mt-1 force-wrap">
-                                                <i class="fas fa-level-up-alt mr-1"></i>
-                                                <?php echo str_replace('{level}', (string) (int) $item['set_required_level'], translate('shop_set_requires_level', 'Requires level {level} to equip all pieces.')); ?>
-                                            </p>
-                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    <?php
+                                    $shopDisplayReqLevel = 0;
+                                    $shopDisplayReqText = '';
+                                    if ((int) ($item['is_set'] ?? 0) === 1 && !empty($item['set_required_level'])) {
+                                        $shopDisplayReqLevel = (int) $item['set_required_level'];
+                                        $shopDisplayReqText = str_replace(
+                                            '{level}',
+                                            (string) $shopDisplayReqLevel,
+                                            translate('shop_set_requires_level', 'Requires level {level} to equip all pieces.')
+                                        );
+                                    } elseif ((int) ($item['item_required_level'] ?? 0) > 0) {
+                                        $shopDisplayReqLevel = (int) $item['item_required_level'];
+                                        $shopDisplayReqText = str_replace(
+                                            '{level}',
+                                            (string) $shopDisplayReqLevel,
+                                            translate('shop_item_requires_level', 'Requires level {level}.')
+                                        );
+                                    }
+                                    ?>
+                                    <?php if ($shopDisplayReqLevel > 0 && $shopDisplayReqText !== ''): ?>
+                                        <p class="shop-required-level text-xs font-semibold mt-1 force-wrap">
+                                            <i class="fas fa-level-up-alt mr-1"></i>
+                                            <?php echo htmlspecialchars($shopDisplayReqText, ENT_QUOTES, 'UTF-8'); ?>
+                                        </p>
                                     <?php endif; ?>
                                     
                                     <?php if ($category === 'Service'): ?>

@@ -586,3 +586,43 @@ function sahtout_itemset_apply_piece_counts_to_rows(?mysqli $siteDb, array &$row
     }
     unset($row);
 }
+
+/**
+ * Fill item_required_level on non-set shop rows (site_items join, then item_template).
+ *
+ * @param list<array<string, mixed>> $rows
+ */
+function sahtout_shop_apply_item_required_levels(?mysqli $siteDb, ?mysqli $worldDb, array &$rows): void
+{
+    $entries = [];
+    foreach ($rows as $row) {
+        if ((int) ($row['is_set'] ?? 0) === 1) {
+            continue;
+        }
+        if ((int) ($row['item_required_level'] ?? 0) > 0) {
+            continue;
+        }
+        $entry = (int) ($row['sit_entry'] ?? $row['entry'] ?? 0);
+        if ($entry > 0) {
+            $entries[$entry] = true;
+        }
+    }
+    if ($entries === []) {
+        return;
+    }
+
+    $levels = sahtout_itemset_dbc_resolve_required_levels($siteDb, $worldDb, array_keys($entries));
+    foreach ($rows as &$row) {
+        if ((int) ($row['is_set'] ?? 0) === 1) {
+            continue;
+        }
+        if ((int) ($row['item_required_level'] ?? 0) > 0) {
+            continue;
+        }
+        $entry = (int) ($row['sit_entry'] ?? $row['entry'] ?? 0);
+        if ($entry > 0 && isset($levels[$entry]) && $levels[$entry] > 0) {
+            $row['item_required_level'] = $levels[$entry];
+        }
+    }
+    unset($row);
+}

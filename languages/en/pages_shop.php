@@ -35,6 +35,7 @@ return [
     'shop_set_contains' => 'Set',
     'shop_items' => 'items',
     'shop_set_requires_level' => 'Requires level {level} to equip all pieces.',
+    'shop_item_requires_level' => 'Requires level {level}.',
     'shop_level_boost' => 'Level Boost',
     'shop_rename_character' => 'Character Rename',
     'shop_reset_spells' => 'Reset Spells',

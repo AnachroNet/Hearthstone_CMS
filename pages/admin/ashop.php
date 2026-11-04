@@ -982,6 +982,11 @@ ob_start();
             border-bottom: 1px solid rgba(201,162,39,.05);
         }
 
+        .itemset-preview-req-level {
+            color: #f2cf5b;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+        }
+
         .itemset-preview ul li:last-child {
             border-bottom: none;
         }
@@ -1443,7 +1448,7 @@ ob_start();
                                     <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_itemset_preview', 'Set Preview'); ?></label>
                                     <div class="itemset-preview">
                                         <p id="itemset_preview_empty" class="text-muted-wow text-sm mb-0"><?php echo translate('admin_shop_itemset_preview_hint', 'Enter an item set ID to preview its items.'); ?></p>
-                                        <p id="itemset_preview_req" class="text-amber-300/90 text-xs font-semibold mb-2 hidden"></p>
+                                        <p id="itemset_preview_req" class="itemset-preview-req-level text-xs font-semibold mb-2 hidden"></p>
                                         <ul id="itemset_preview_list" class="mb-0"></ul>
                                     </div>
                                 </div>
