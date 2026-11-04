@@ -17,18 +17,18 @@ if (!defined('ALLOWED_ACCESS')) {
 <?php echo $rewards_alert_html; ?>
 
 <?php if (!$rewardsReady): ?>
-    <div class="panel p-4 md:p-6 lg:p-8 text-amber-300 border border-amber-500/30">
+    <div class="wow-panel p-4 md:p-6 lg:p-8 text-amber-300 border border-amber-500/30">
         <?php echo translate('admin_rewards_table_missing', 'Run achievement_catalog.sql on the site database first.'); ?>
     </div>
 <?php else: ?>
 
 <?php if (!$catalogReady): ?>
-    <div class="panel p-4 text-amber-300 text-sm border border-amber-500/30">
+    <div class="wow-panel p-4 text-amber-300 text-sm border border-amber-500/30">
         <?php echo translate('admin_rewards_catalog_missing', 'Import achievement_catalog data to search achievements when adding rows.'); ?>
     </div>
 <?php endif; ?>
 
-<div class="panel p-4 md:p-6 lg:p-8">
+<div class="wow-panel p-4 md:p-6 lg:p-8">
     <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_rewards_add', 'Add reward'); ?></h2>
     <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="space-y-4" id="addRewardForm">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -37,8 +37,8 @@ if (!defined('ALLOWED_ACCESS')) {
 
         <div class="grid md:grid-cols-2 gap-4">
             <div>
-                <label class="form-label" for="milestone_type"><?php echo translate('admin_rewards_col_type', 'Milestone type'); ?></label>
-                <select name="milestone_type" id="milestone_type" class="input-dark" required>
+                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="milestone_type"><?php echo translate('admin_rewards_col_type', 'Milestone type'); ?></label>
+                <select name="milestone_type" id="milestone_type" class="wow-input" required>
                     <option value="level"><?php echo htmlspecialchars($milestoneLabels['level']); ?></option>
                     <option value="quest_count"><?php echo htmlspecialchars($milestoneLabels['quest_count']); ?></option>
                     <option value="dungeon"><?php echo htmlspecialchars($milestoneLabels['dungeon']); ?></option>
@@ -46,37 +46,37 @@ if (!defined('ALLOWED_ACCESS')) {
                 </select>
             </div>
             <div id="milestoneValueWrap">
-                <label class="form-label" for="milestone_value"><?php echo translate('admin_rewards_milestone_value', 'Level or quest count'); ?></label>
-                <input type="number" min="1" max="999999" name="milestone_value" id="milestone_value" class="input-dark" placeholder="80">
+                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="milestone_value"><?php echo translate('admin_rewards_milestone_value', 'Level or quest count'); ?></label>
+                <input type="number" min="1" max="999999" name="milestone_value" id="milestone_value" class="wow-input" placeholder="80">
             </div>
         </div>
 
         <div id="dungeonNameWrap" class="hidden">
-            <label class="form-label" for="dungeon_name"><?php echo translate('admin_rewards_dungeon_name', 'Dungeon name (optional)'); ?></label>
-            <input type="text" name="dungeon_name" id="dungeon_name" class="input-dark" maxlength="128" placeholder="Utgarde Keep">
+            <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="dungeon_name"><?php echo translate('admin_rewards_dungeon_name', 'Dungeon name (optional)'); ?></label>
+            <input type="text" name="dungeon_name" id="dungeon_name" class="wow-input" maxlength="128" placeholder="Utgarde Keep">
         </div>
 
         <div class="relative">
-            <label class="form-label" for="achievement_search"><?php echo translate('admin_rewards_achievement', 'Achievement'); ?></label>
-            <input type="text" id="achievement_search" class="input-dark" autocomplete="off"
+            <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="achievement_search"><?php echo translate('admin_rewards_achievement', 'Achievement'); ?></label>
+            <input type="text" id="achievement_search" class="wow-input" autocomplete="off"
                    placeholder="<?php echo htmlspecialchars(translate('admin_rewards_search_placeholder', 'Search by title or achievement ID…')); ?>"
                    <?php echo $catalogReady ? '' : 'disabled'; ?>>
             <p id="achievement_picked" class="text-sm text-gray-500 mt-1"></p>
             <div id="achievement_results" class="ach-search-results"></div>
         </div>
 
-        <button type="submit" class="btn-gold" id="addRewardBtn" disabled>
+        <button type="submit" class="btn-game btn-gold" id="addRewardBtn" disabled>
             <i class="fas fa-plus"></i> <?php echo translate('admin_rewards_create', 'Add reward row'); ?>
         </button>
     </form>
 </div>
 
-<div class="panel p-4 md:p-6 lg:p-8 overflow-x-auto">
+<div class="wow-panel p-4 md:p-6 lg:p-8 overflow-x-auto">
     <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_rewards_list', 'Configured rewards'); ?></h2>
     <?php if ($allRewards === []): ?>
         <p class="text-gray-500"><?php echo translate('admin_rewards_empty', 'No reward rows yet. Run the DBC import or add one above.'); ?></p>
     <?php else: ?>
-    <table class="table-dark">
+    <table class="wow-table">
         <thead>
             <tr>
                 <th><?php echo translate('admin_rewards_col_achievement', 'Achievement'); ?></th>
@@ -123,7 +123,7 @@ if (!defined('ALLOWED_ACCESS')) {
                         <input type="hidden" name="achievement_id" value="<?php echo $achId; ?>">
                         <div class="w-28">
                             <label class="sr-only"><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></label>
-                            <input type="number" name="tokens" class="input-dark text-sm py-2" min="0" max="9999999"
+                            <input type="number" name="tokens" class="wow-input text-sm py-2" min="0" max="9999999"
                                    value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
                         </div>
                         <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer" title="<?php echo htmlspecialchars(translate('admin_rewards_enable_hint', 'When checked, this reward is active for account-wide sync.')); ?>">
@@ -134,7 +134,7 @@ if (!defined('ALLOWED_ACCESS')) {
                                 <span class="text-gray-500">(<?php echo translate('admin_rewards_off', 'off'); ?>)</span>
                             <?php endif; ?>
                         </label>
-                        <button type="submit" class="btn-gold btn-iron-sm text-xs py-2 px-3">
+                        <button type="submit" class="btn-game btn-gold text-xs py-2 px-3">
                             <?php echo translate('admin_rewards_save', 'Save'); ?>
                         </button>
                     </form>
