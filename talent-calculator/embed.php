@@ -60,6 +60,9 @@ $esc_page_id = json_encode($tc_pageId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_Q
         body.page-talent-calculator-embed #replaceMeWithTalents {
             pointer-events: auto;
         }
+        body.page-talent-calculator-embed [id^="hideReset"] {
+            display: none !important;
+        }
         body.page-talent-calculator-embed #talentMouseOver0,
         body.page-talent-calculator-embed [id^="talentMouseOver"] {
             z-index: 200000;

@@ -17,7 +17,7 @@ if (variableIsSite) {
 		massiveReplaceString += '<td valign = "top"><img src = "'+ imgPath +'/includes/images/text-talents.gif" /></td>';
 	massiveReplaceString += '</tr></table></div></div>';
 	iconSize = ' width = "36" height = "36"';
-	resetDisplay = 'style = "display: block;"';
+	resetDisplay = window.__tcEmbedReadOnly ? 'style = "display: none;"' : 'style = "display: block;"';
 } else {
 	imgDir = "armory/";
 	iconSize = ' width = "32" height = "34"';
