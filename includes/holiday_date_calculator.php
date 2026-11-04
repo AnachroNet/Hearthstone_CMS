@@ -77,11 +77,32 @@ function sahtout_holiday_add_days(int $year, int $month, int $day, int $deltaDay
         ($deltaDays >= 0 ? '+' : '') . $deltaDays . ' days'
     );
 
-    return [
+    return sahtout_holiday_normalize_ymd_array([
         'year' => (int) $dt->format('Y'),
         'month' => (int) $dt->format('n'),
         'day' => (int) $dt->format('j'),
-    ];
+    ]);
+}
+
+/** @param array{year: int, month: int, day: int} $parts */
+function sahtout_holiday_normalize_ymd_array(array $parts): array
+{
+    try {
+        $dt = new DateTimeImmutable(sprintf(
+            '%04d-%02d-%02d',
+            (int) $parts['year'],
+            (int) $parts['month'],
+            (int) $parts['day']
+        ));
+
+        return [
+            'year' => (int) $dt->format('Y'),
+            'month' => (int) $dt->format('n'),
+            'day' => (int) $dt->format('j'),
+        ];
+    } catch (Exception $e) {
+        return $parts;
+    }
 }
 
 function sahtout_holiday_easter_sunday(int $year): array
@@ -101,7 +122,7 @@ function sahtout_holiday_easter_sunday(int $year): array
     $month = intdiv($h + $l - 7 * $m + 114, 31);
     $day = (($h + $l - 7 * $m + 114) % 31) + 1;
 
-    return ['year' => $year, 'month' => $month, 'day' => $day];
+    return sahtout_holiday_normalize_ymd_array(['year' => $year, 'month' => $month, 'day' => $day]);
 }
 
 function sahtout_holiday_nth_weekday(int $year, int $month, int $weekday, int $nth): array
@@ -157,7 +178,7 @@ function sahtout_holiday_jd_to_date(float $jd): array
     $month = ($e < 14) ? $e - 1 : $e - 13;
     $year = ($month > 2) ? $c - 4716 : $c - 4715;
 
-    return ['year' => $year, 'month' => $month, 'day' => $day];
+    return sahtout_holiday_normalize_ymd_array(['year' => $year, 'month' => $month, 'day' => $day]);
 }
 
 function sahtout_holiday_new_moon(float $k): float
@@ -241,7 +262,11 @@ function sahtout_holiday_calculate_date(array $rule, int $year): array
 {
     switch ($rule['type']) {
         case 'fixed':
-            return ['year' => $year, 'month' => $rule['month'], 'day' => $rule['day']];
+            return sahtout_holiday_normalize_ymd_array([
+                'year' => $year,
+                'month' => (int) $rule['month'],
+                'day' => (int) $rule['day'],
+            ]);
         case 'nth_weekday':
             $d = sahtout_holiday_nth_weekday($year, $rule['month'], $rule['weekday'], $rule['nth']);
             if (!empty($rule['offset'])) {

@@ -501,9 +501,19 @@ $home_cal = sahtout_holiday_calendar_for_home(
                     $dbc_rows = (int) ($cal_meta['dbc_row_count'] ?? 0);
                     $loaded = (int) ($cal_meta['loaded_holiday_count'] ?? 0);
                     $occ_total = (int) ($cal_meta['total_occurrences'] ?? 0);
+                    $occ_month = (int) ($cal_meta['month_occurrence_count'] ?? count($home_calendar['month_events'] ?? []));
                     ?>
                     <p class="home-event-calendar-footnote mb-0">
                         <?php echo translate('home_event_calendar_footnote', 'Dates follow WoW calendar rules (same as the in-game event schedule). Battleground Call to Arms weekends are hidden.'); ?>
+                        <?php
+                        printf(
+                            ' ' . translate('home_event_calendar_stats', '(%1$d DBC rows, %2$d holidays loaded, %3$d dated spans, %4$d this month).'),
+                            $dbc_rows,
+                            $loaded,
+                            $occ_total,
+                            $occ_month
+                        );
+                        ?>
                         <?php if ($dbc_rows === 0): ?>
                             <?php echo ' '; echo translate('home_event_calendar_no_dbc_rows', 'Import holidays_dbc data into the site database (dbc_import.sql).'); ?>
                         <?php elseif ($loaded === 0): ?>
