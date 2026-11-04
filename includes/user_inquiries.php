@@ -445,6 +445,133 @@ function sahtout_admin_inquiry_award_tokens(mysqli $siteDb, int $inquiryId, int 
     return ['ok' => true, 'tokens_added' => $amount, 'new_balance' => $newBalance];
 }
 
+/**
+ * @return list<array{account_id: int, username: string, tokens: int}>
+ */
+function sahtout_admin_inquiry_account_options(mysqli $siteDb, int $limit = 3000): array
+{
+    $limit = max(1, min(5000, $limit));
+    $rows = [];
+    $sql = 'SELECT account_id, username, tokens FROM user_currencies ORDER BY username ASC LIMIT ' . (int) $limit;
+    $result = $siteDb->query($sql);
+    if (!$result) {
+        return $rows;
+    }
+    while ($row = $result->fetch_assoc()) {
+        $accountId = (int) ($row['account_id'] ?? 0);
+        $username = trim((string) ($row['username'] ?? ''));
+        if ($accountId <= 0 || $username === '') {
+            continue;
+        }
+        $rows[] = [
+            'account_id' => $accountId,
+            'username' => $username,
+            'tokens' => (int) ($row['tokens'] ?? 0),
+        ];
+    }
+    $result->free();
+
+    return $rows;
+}
+
+function sahtout_admin_inquiry_account_username(mysqli $siteDb, int $accountId): ?string
+{
+    if ($accountId <= 0) {
+        return null;
+    }
+    $stmt = $siteDb->prepare('SELECT username FROM user_currencies WHERE account_id = ? LIMIT 1');
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $accountId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return null;
+    }
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) {
+        return null;
+    }
+    $username = trim((string) ($row['username'] ?? ''));
+
+    return $username !== '' ? $username : null;
+}
+
+/**
+ * Create an inquiry on behalf of a player, optionally reply, grant tokens, and close in one step.
+ *
+ * @return array{ok: bool, message?: string, id?: int, inquiry_id?: int, tokens_added?: int}
+ */
+function sahtout_admin_create_user_inquiry_full(
+    mysqli $siteDb,
+    int $accountId,
+    string $subject,
+    string $message,
+    string $responderUsername,
+    string $responseText,
+    int $tokensToAdd,
+    bool $closeAfter
+): array {
+    $username = sahtout_admin_inquiry_account_username($siteDb, $accountId);
+    if ($username === null) {
+        return ['ok' => false, 'message' => 'invalid_account'];
+    }
+
+    $create = sahtout_user_inquiry_create($siteDb, $accountId, $username, $subject, $message);
+    if (!$create['ok']) {
+        return $create;
+    }
+
+    $inquiryId = (int) ($create['id'] ?? 0);
+    if ($inquiryId <= 0) {
+        return ['ok' => false, 'message' => 'db_error'];
+    }
+
+    $responseText = trim($responseText);
+    $tokensToAdd = max(0, min(9999999, $tokensToAdd));
+    $tokensAdded = 0;
+
+    if ($responseText !== '') {
+        $save = sahtout_admin_save_user_inquiry(
+            $siteDb,
+            $inquiryId,
+            $responseText,
+            $responderUsername,
+            'save',
+            $tokensToAdd
+        );
+        if (!$save['ok']) {
+            return array_merge($save, ['inquiry_id' => $inquiryId]);
+        }
+        if (!empty($save['tokens_added'])) {
+            $tokensAdded = (int) $save['tokens_added'];
+        }
+        $tokensToAdd = 0;
+    } elseif ($tokensToAdd > 0) {
+        $tok = sahtout_admin_inquiry_award_tokens($siteDb, $inquiryId, $tokensToAdd);
+        if (!$tok['ok']) {
+            return array_merge($tok, ['inquiry_id' => $inquiryId]);
+        }
+        $tokensAdded = $tokensToAdd;
+    }
+
+    if ($closeAfter) {
+        $close = sahtout_admin_save_user_inquiry($siteDb, $inquiryId, '', $responderUsername, 'close', 0);
+        if (!$close['ok']) {
+            return array_merge($close, ['inquiry_id' => $inquiryId]);
+        }
+    }
+
+    $result = ['ok' => true, 'id' => $inquiryId];
+    if ($tokensAdded > 0) {
+        $result['tokens_added'] = $tokensAdded;
+    }
+
+    return $result;
+}
+
 function sahtout_inquiry_status_label_key(string $status): string
 {
     return match ($status) {

@@ -13,7 +13,15 @@ require_once $project_root . 'includes/admin_pagination.php';
 require_once $project_root . 'includes/user_inquiries.php';
 
 $page_class = 'tickets';
-$servicesTab = (isset($_GET['tab']) && $_GET['tab'] === 'inquiries') ? 'inquiries' : 'tickets';
+$servicesTab = 'tickets';
+if (isset($_GET['tab'])) {
+    $tabRaw = (string) $_GET['tab'];
+    if ($tabRaw === 'inquiries') {
+        $servicesTab = 'inquiries';
+    } elseif ($tabRaw === 'inquiry_add') {
+        $servicesTab = 'inquiry_add';
+    }
+}
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -57,6 +65,67 @@ $gmCharacters = [];
 if (isset($auth_db, $char_db) && $auth_db instanceof mysqli && $char_db instanceof mysqli
     && !$auth_db->connect_error && !$char_db->connect_error) {
     $gmCharacters = sahtout_gm_level3_characters($auth_db, $char_db, DB_AUTH);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_inquiry') {
+    $csrf = (string) ($_POST['csrf_token'] ?? '');
+    $redirectParams = ['tab' => 'inquiry_add'];
+
+    if (!hash_equals((string) ($_SESSION['csrf_token'] ?? ''), $csrf)) {
+        $redirectParams['msg'] = 'inquiry_csrf';
+        $redirectParams['msg_type'] = 'danger';
+    } elseif (!isset($site_db) || $site_db->connect_error) {
+        $redirectParams['msg'] = 'inquiry_unavailable';
+        $redirectParams['msg_type'] = 'danger';
+    } else {
+        $accountId = (int) ($_POST['account_id'] ?? 0);
+        $subject = (string) ($_POST['subject'] ?? '');
+        $message = (string) ($_POST['message'] ?? '');
+        $responseText = (string) ($_POST['response_text'] ?? '');
+        $tokensToAdd = max(0, (int) ($_POST['tokens_to_add'] ?? 0));
+        $closeAfter = isset($_POST['close_inquiry']);
+        $responder = (string) ($_SESSION['username'] ?? '');
+
+        $result = sahtout_admin_create_user_inquiry_full(
+            $site_db,
+            $accountId,
+            $subject,
+            $message,
+            $responder,
+            $responseText,
+            $tokensToAdd,
+            $closeAfter
+        );
+
+        if (!$result['ok']) {
+            $redirectParams['msg'] = $result['message'] ?? 'inquiry_create_failed';
+            $redirectParams['msg_type'] = 'danger';
+            if (!empty($result['inquiry_id'])) {
+                $redirectParams['tab'] = 'inquiries';
+                $partialId = (int) $result['inquiry_id'];
+                $redirectParams['inquiry_edit'] = $partialId;
+                $redirectParams['inquiry_status'] = 'all';
+                $redirectParams['inquiry_search'] = (string) $partialId;
+                $redirectParams['inquiry_page'] = 1;
+            }
+        } else {
+            $redirectParams['tab'] = 'inquiries';
+            unset($redirectParams['msg_type']);
+            $redirectParams['msg'] = !empty($result['tokens_added'])
+                ? 'inquiry_created_tokens'
+                : 'inquiry_created';
+            $newId = (int) ($result['id'] ?? 0);
+            if ($newId > 0) {
+                $redirectParams['inquiry_edit'] = $newId;
+                $redirectParams['inquiry_status'] = 'all';
+                $redirectParams['inquiry_search'] = (string) $newId;
+                $redirectParams['inquiry_page'] = 1;
+            }
+        }
+    }
+
+    header('Location: ' . $base_path . 'admin/tickets?' . http_build_query(array_filter($redirectParams)));
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_inquiry') {
@@ -287,6 +356,12 @@ if (isset($_GET['msg'])) {
         'inquiry_unavailable' => translate('admin_inquiries_unavailable', 'The user_inquiries table is not available on the website database.'),
         'empty_response' => translate('admin_inquiries_empty_response', 'Enter a response before saving.'),
         'inquiry_saved_tokens' => translate('admin_inquiries_saved_tokens', 'Inquiry saved and tokens were added to the account.'),
+        'inquiry_created' => translate('admin_inquiries_created', 'Inquiry was created.'),
+        'inquiry_created_tokens' => translate('admin_inquiries_created_tokens', 'Inquiry was created and tokens were added to the account.'),
+        'inquiry_create_failed' => translate('admin_inquiries_create_failed', 'Could not create the inquiry.'),
+        'invalid_account' => translate('admin_inquiries_add_invalid_account', 'Select a valid website account.'),
+        'invalid_subject' => translate('contact_invalid_subject', 'Enter a subject (255 characters or fewer).'),
+        'invalid_message' => translate('contact_invalid_message', 'Enter a message (20,000 characters or fewer).'),
         'invalid_tokens' => translate('admin_inquiries_invalid_tokens', 'Enter a token amount between 1 and 9,999,999.'),
         'tokens_column_missing' => translate('admin_inquiries_tokens_column_missing', 'Run user_inquiries_tokens_awarded.sql on the website database to enable inquiry token grants.'),
         'token_award_failed' => translate('admin_inquiries_token_award_failed', 'The response was saved but tokens could not be added.'),
@@ -339,6 +414,11 @@ $inquiryTokenBalances = [];
 if (!empty($inquiryData['inquiries']) && isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
     $inquiryAccountIds = array_column($inquiryData['inquiries'], 'account_id');
     $inquiryTokenBalances = sahtout_account_token_balances($site_db, $inquiryAccountIds);
+}
+
+$inquiryAccountOptions = [];
+if ($servicesTab === 'inquiry_add' && isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error && $inquiryData['available']) {
+    $inquiryAccountOptions = sahtout_admin_inquiry_account_options($site_db);
 }
 
 $page_title = translate('admin_user_services_page_title', 'User Services');
@@ -402,6 +482,9 @@ $page_head = ob_get_clean();
                 </a>
                 <a class="tab-link whitespace-nowrap <?php echo $servicesTab === 'inquiries' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?tab=inquiries'); ?>">
                     <i class="fas fa-envelope mr-2"></i><?php echo translate('admin_user_services_tab_inquiries', 'User Inquiries'); ?>
+                </a>
+                <a class="tab-link whitespace-nowrap <?php echo $servicesTab === 'inquiry_add' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?tab=inquiry_add'); ?>">
+                    <i class="fas fa-user-plus mr-2"></i><?php echo translate('admin_user_services_tab_inquiry_add', 'Add User Inquiry'); ?>
                 </a>
             </div>
 
@@ -538,6 +621,7 @@ $page_head = ob_get_clean();
             </div>
 
             <?php include __DIR__ . '/user_inquiries_tab.inc.php'; ?>
+            <?php include __DIR__ . '/user_inquiries_add_tab.inc.php'; ?>
 
             </div>
         </div>
