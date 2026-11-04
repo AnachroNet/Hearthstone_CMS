@@ -609,6 +609,7 @@ $milestoneLabels = [
     'level' => translate('admin_rewards_type_level', 'Level'),
     'quest_count' => translate('admin_rewards_type_quest', 'Quests'),
     'dungeon' => translate('admin_rewards_type_dungeon', 'Dungeon'),
+    'character_stats' => translate('admin_rewards_type_character_stats', 'Character Stats'),
     'manual' => translate('admin_rewards_type_other', 'Other'),
 ];
 $statRewardsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_character_stat_rewards_table_exists($site_db);
@@ -1685,17 +1686,63 @@ ob_start();
         const typeSelect = document.getElementById('milestone_type');
         const valueWrap = document.getElementById('milestoneValueWrap');
         const dungeonWrap = document.getElementById('dungeonNameWrap');
+        const achFields = document.getElementById('achievementRewardFields');
+        const charStatsHint = document.getElementById('characterStatsAddHint');
+        const charStatsPanel = document.getElementById('character-stat-rewards-panel');
+        const jumpToCharStats = document.getElementById('jumpToCharacterStats');
+        const addForm = document.getElementById('addRewardForm');
         if (!typeSelect || !addBtn) return;
 
         let debounceTimer = null;
 
+        function scrollToCharacterStats() {
+            if (charStatsPanel) {
+                charStatsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                charStatsPanel.classList.add('ring-2', 'ring-[#c9a227]/50');
+                window.setTimeout(function () {
+                    charStatsPanel.classList.remove('ring-2', 'ring-[#c9a227]/50');
+                }, 2000);
+            }
+        }
+
         function syncTypeFields() {
             const t = typeSelect.value;
+            const isCharStats = t === 'character_stats';
             const needsValue = t === 'level' || t === 'quest_count';
-            valueWrap.classList.toggle('hidden', !needsValue);
-            dungeonWrap.classList.toggle('hidden', t !== 'dungeon');
+            if (valueWrap) {
+                valueWrap.classList.toggle('hidden', !needsValue || isCharStats);
+            }
+            if (dungeonWrap) {
+                dungeonWrap.classList.toggle('hidden', t !== 'dungeon' || isCharStats);
+            }
+            if (achFields) {
+                achFields.classList.toggle('hidden', isCharStats);
+            }
+            if (charStatsHint) {
+                charStatsHint.classList.toggle('hidden', !isCharStats);
+            }
+            if (isCharStats) {
+                addBtn.disabled = true;
+                scrollToCharacterStats();
+            } else if (achIdInput) {
+                addBtn.disabled = achIdInput.value === '0' || achIdInput.value === '';
+            }
         }
         typeSelect.addEventListener('change', syncTypeFields);
+        if (jumpToCharStats) {
+            jumpToCharStats.addEventListener('click', scrollToCharacterStats);
+        }
+        if (addForm) {
+            addForm.addEventListener('submit', function (e) {
+                if (typeSelect.value === 'character_stats') {
+                    e.preventDefault();
+                    scrollToCharacterStats();
+                }
+            });
+        }
+        if (window.location.hash === '#character-stats') {
+            typeSelect.value = 'character_stats';
+        }
         syncTypeFields();
 
         function setAchievement(id, title) {
