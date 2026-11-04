@@ -32,6 +32,45 @@ function sahtout_holiday_row_string(array $row, string $field): string
     return trim((string) (sahtout_holiday_row_value($row, $field) ?? ''));
 }
 
+/** @return array<string, int> */
+function sahtout_holiday_texture_to_id_map(): array
+{
+    return [
+        'Calendar_WinterVeil' => 141,
+        'Calendar_Noblegarden' => 181,
+        'Calendar_ChildrensWeek' => 201,
+        'Calendar_HallowsEnd' => 324,
+        'Calendar_LunarFestival' => 327,
+        'Calendar_LoveInTheAir' => 423,
+        'Calendar_Midsummer' => 341,
+        'Calendar_Brewfest' => 372,
+        'Calendar_DarkmoonFaireElwynn' => 374,
+        'Calendar_DarkmoonFaireMulgore' => 375,
+        'Calendar_DarkmoonFaireTerokkar' => 376,
+        'Calendar_PiratesDay' => 398,
+        'Calendar_HarvestFestival' => 321,
+        'Calendar_DayOfTheDead' => 409,
+        'Calendar_FishingExtravaganza' => 301,
+        'Calendar_WotLKLaunch' => 406,
+    ];
+}
+
+function sahtout_holiday_resolve_id(array $row): int
+{
+    $id = sahtout_holiday_row_int($row, 'ID');
+    if ($id > 0) {
+        return $id;
+    }
+    $tex = sahtout_holiday_row_string($row, 'TextureFilename');
+    if ($tex !== '') {
+        $map = sahtout_holiday_texture_to_id_map();
+
+        return $map[$tex] ?? 0;
+    }
+
+    return 0;
+}
+
 function sahtout_holiday_label_from_texture(string $texture): string
 {
     $texture = trim($texture);
@@ -210,7 +249,11 @@ function sahtout_holiday_calendar_load_holidays(?mysqli $siteDb): array
 
     $rows = [];
     while ($row = $res->fetch_assoc()) {
-        $id = sahtout_holiday_row_int($row, 'ID');
+        $id = sahtout_holiday_resolve_id($row);
+        if ($id <= 0) {
+            continue;
+        }
+        $row['resolved_holiday_id'] = $id;
         $filter = sahtout_holiday_row_int($row, 'CalendarFilterType');
         $flags = sahtout_holiday_row_int($row, 'Flags');
         if (!sahtout_holiday_calendar_should_show($id, $filter, $flags)) {
@@ -237,6 +280,121 @@ function sahtout_holiday_calendar_load_holidays(?mysqli $siteDb): array
     return $rows;
 }
 
+function sahtout_holiday_name_for_id(?mysqli $siteDb, int $holidayId, string $fallback): string
+{
+    if ($holidayId <= 0 || !$siteDb instanceof mysqli || $siteDb->connect_error) {
+        return $fallback;
+    }
+    static $cache = null;
+    if ($cache === null) {
+        $cache = [];
+        if (sahtout_holiday_calendar_tables_exist($siteDb)) {
+            $res = $siteDb->query(
+                'SELECT h.ID, hn.Name_Lang_enUS AS holiday_name
+                 FROM holidays_dbc h
+                 LEFT JOIN holidaynames_dbc hn ON hn.ID = h.HolidayNameID'
+            );
+            if ($res) {
+                while ($r = $res->fetch_assoc()) {
+                    $hid = sahtout_holiday_resolve_id($r);
+                    $label = sahtout_holiday_row_string($r, 'holiday_name');
+                    if ($hid > 0 && $label !== '') {
+                        $cache[$hid] = $label;
+                    }
+                }
+                $res->free();
+            }
+        }
+    }
+
+    return $cache[$holidayId] ?? $fallback;
+}
+
+function sahtout_holiday_game_event_table_exists(?mysqli $worldDb): bool
+{
+    if (!$worldDb instanceof mysqli || $worldDb->connect_error) {
+        return false;
+    }
+    $res = $worldDb->query("SHOW TABLES LIKE 'game_event'");
+    $ok = $res instanceof mysqli_result && $res->num_rows > 0;
+    $res?->free();
+
+    return $ok;
+}
+
+/**
+ * Build minimal holiday rows from acore_world.game_event when site DBC rows are missing or unusable.
+ *
+ * @return list<array<string, mixed>>
+ */
+function sahtout_holiday_calendar_stubs_from_game_events(?mysqli $worldDb, ?mysqli $siteDb): array
+{
+    if (!sahtout_holiday_game_event_table_exists($worldDb)) {
+        return [];
+    }
+
+    $res = $worldDb->query(
+        'SELECT holiday, MAX(length) AS length_minutes, MAX(description) AS description
+         FROM game_event
+         WHERE holiday > 0
+         GROUP BY holiday'
+    );
+    if (!$res) {
+        error_log('holiday_calendar game_event: ' . $worldDb->error);
+
+        return [];
+    }
+
+    $rows = [];
+    while ($row = $res->fetch_assoc()) {
+        $id = (int) ($row['holiday'] ?? 0);
+        if ($id <= 0 || !sahtout_holiday_calendar_should_show($id, -1, 1)) {
+            continue;
+        }
+        $lengthMinutes = (int) ($row['length_minutes'] ?? 0);
+        $desc = trim((string) ($row['description'] ?? ''));
+        $name = sahtout_holiday_name_for_id($siteDb, $id, $desc !== '' ? $desc : ('World event #' . $id));
+        $rows[] = [
+            'resolved_holiday_id' => $id,
+            'ID' => $id,
+            'Duration_1' => $lengthMinutes > 0 ? max(1, (int) round($lengthMinutes / 60)) : 432,
+            'game_event_length_minutes' => $lengthMinutes,
+            'holiday_name' => $name,
+            'holiday_description' => '',
+            'CalendarFilterType' => -1,
+            'Flags' => 1,
+        ];
+    }
+    $res->free();
+
+    return $rows;
+}
+
+/** @return array<int, int> holiday id => length minutes */
+function sahtout_holiday_game_event_lengths(?mysqli $worldDb): array
+{
+    if (!sahtout_holiday_game_event_table_exists($worldDb)) {
+        return [];
+    }
+    $res = $worldDb->query(
+        'SELECT holiday, MAX(length) AS length_minutes FROM game_event WHERE holiday > 0 GROUP BY holiday'
+    );
+    if (!$res) {
+        return [];
+    }
+    $out = [];
+    while ($row = $res->fetch_assoc()) {
+        $id = (int) ($row['holiday'] ?? 0);
+        $len = (int) ($row['length_minutes'] ?? 0);
+        if ($id > 0 && $len > 0) {
+            $out[$id] = $len;
+        }
+    }
+    $res->free();
+
+    return $out;
+}
+
 function sahtout_holiday_duration_hours(array $holidayRow, int $dateIndex): int
 {
     $dur = sahtout_holiday_row_int($holidayRow, 'Duration_' . $dateIndex);
@@ -247,12 +405,27 @@ function sahtout_holiday_duration_hours(array $holidayRow, int $dateIndex): int
     return max(24, sahtout_holiday_row_int($holidayRow, 'Duration_1'));
 }
 
+function sahtout_holiday_event_length_hours(array $holidayRow): int
+{
+    if (isset($holidayRow['game_event_length_minutes'])) {
+        $minutes = (int) $holidayRow['game_event_length_minutes'];
+        if ($minutes > 0) {
+            return max(1, (int) round($minutes / 60));
+        }
+    }
+
+    return sahtout_holiday_duration_hours($holidayRow, 1);
+}
+
 /**
  * @return list<array{start: string, end: string, name: string, description: string, holiday_id: int}>
  */
 function sahtout_holiday_occurrences_in_year(array $holidayRow, int $year): array
 {
-    $holidayId = sahtout_holiday_row_int($holidayRow, 'ID');
+    $holidayId = (int) ($holidayRow['resolved_holiday_id'] ?? 0);
+    if ($holidayId <= 0) {
+        $holidayId = sahtout_holiday_resolve_id($holidayRow);
+    }
     $name = trim((string) ($holidayRow['holiday_name'] ?? 'World event'));
     if ($name === '') {
         $name = 'World event';
@@ -309,9 +482,11 @@ function sahtout_holiday_occurrences_in_year(array $holidayRow, int $year): arra
             continue;
         }
         $start = sprintf('%04d-%02d-%02d', $occYear, $u['month'], $u['day']);
-        $hours = sahtout_holiday_duration_hours($holidayRow, $dateIdx);
+        $hours = $dateIdx === 1
+            ? sahtout_holiday_event_length_hours($holidayRow)
+            : sahtout_holiday_duration_hours($holidayRow, $dateIdx);
         try {
-            $endDt = (new DateTimeImmutable($start))->modify('+' . max(0, $hours - 1) . ' hours');
+            $endDt = (new DateTimeImmutable($start))->modify('+' . $hours . ' hours');
         } catch (Exception $e) {
             continue;
         }
@@ -329,9 +504,9 @@ function sahtout_holiday_occurrences_in_year(array $holidayRow, int $year): arra
 }
 
 /**
- * @return array{year: int, month: int, events_by_day: array<int, list<array>>, month_events: list<array>, holidays_enabled: bool}
+ * @return array{year: int, month: int, events_by_day: array<int, list<array>>, month_events: list<array>, holidays_enabled: bool, dbc_row_count: int, loaded_holiday_count: int, total_occurrences: int}
  */
-function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month): array
+function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month, ?mysqli $worldDb = null): array
 {
     $empty = [
         'year' => $year,
@@ -339,25 +514,61 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month):
         'events_by_day' => [],
         'month_events' => [],
         'holidays_enabled' => sahtout_holiday_calendar_tables_exist($siteDb),
+        'dbc_row_count' => 0,
+        'loaded_holiday_count' => 0,
+        'total_occurrences' => 0,
     ];
 
     if (!$empty['holidays_enabled']) {
         return $empty;
     }
 
+    $dbcRowCount = 0;
+    $countRes = $siteDb->query('SELECT COUNT(*) AS c FROM holidays_dbc');
+    if ($countRes instanceof mysqli_result) {
+        $dbcRowCount = (int) ($countRes->fetch_assoc()['c'] ?? 0);
+        $countRes->free();
+    }
+    $empty['dbc_row_count'] = $dbcRowCount;
+
     $holidays = sahtout_holiday_calendar_load_holidays($siteDb);
+    $eventLengths = sahtout_holiday_game_event_lengths($worldDb);
+    if ($holidays !== [] && $eventLengths !== []) {
+        foreach ($holidays as &$holidayRow) {
+            $hid = (int) ($holidayRow['resolved_holiday_id'] ?? sahtout_holiday_resolve_id($holidayRow));
+            if ($hid > 0 && isset($eventLengths[$hid])) {
+                $holidayRow['game_event_length_minutes'] = $eventLengths[$hid];
+            }
+        }
+        unset($holidayRow);
+    }
+
     if ($holidays === []) {
+        $holidays = sahtout_holiday_calendar_stubs_from_game_events($worldDb, $siteDb);
+    }
+
+    if ($holidays === []) {
+        error_log('holiday_calendar: no holidays from site DBC or game_event (dbc rows=' . $dbcRowCount . ')');
+
         return $empty;
     }
+
+    $empty['loaded_holiday_count'] = count($holidays);
 
     $all = [];
     foreach ([$year - 1, $year, $year + 1] as $y) {
         foreach ($holidays as $row) {
-            foreach (sahtout_holiday_occurrences_in_year($row, $y) as $occ) {
-                $all[] = $occ;
+            try {
+                foreach (sahtout_holiday_occurrences_in_year($row, $y) as $occ) {
+                    $all[] = $occ;
+                }
+            } catch (Throwable $e) {
+                error_log('holiday_calendar occurrence id '
+                    . (int) ($row['resolved_holiday_id'] ?? 0) . ': ' . $e->getMessage());
             }
         }
     }
+    $empty['total_occurrences'] = count($all);
 
     $monthStart = sprintf('%04d-%02d-01', $year, $month);
     $daysInMonth = (int) (new DateTimeImmutable($monthStart))->format('t');
@@ -380,7 +591,9 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month):
         while ($cursor <= $until) {
             if ((int) $cursor->format('n') === $month && (int) $cursor->format('Y') === $year) {
                 $d = (int) $cursor->format('j');
-                $eventsByDay[$d] ??= [];
+                if (!isset($eventsByDay[$d])) {
+                    $eventsByDay[$d] = [];
+                }
                 $eventsByDay[$d][] = $occ;
             }
             $cursor = $cursor->modify('+1 day');
@@ -392,7 +605,9 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month):
     });
 
     foreach ($eventsByDay as &$list) {
-        usort($list, static fn ($a, $b) => strcmp($a['name'], $b['name']));
+        usort($list, static function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
     }
     unset($list);
 
@@ -402,6 +617,9 @@ function sahtout_holiday_calendar_build(?mysqli $siteDb, int $year, int $month):
         'events_by_day' => $eventsByDay,
         'month_events' => $monthEvents,
         'holidays_enabled' => true,
+        'dbc_row_count' => $dbcRowCount,
+        'loaded_holiday_count' => count($holidays),
+        'total_occurrences' => count($all),
     ];
 }
 
@@ -462,8 +680,12 @@ function sahtout_holiday_calendar_shift_month(int $year, int $month, int $delta)
  *   month_label: string
  * }
  */
-function sahtout_holiday_calendar_for_home(?mysqli $siteDb, ?string $calParam, string $siteTimezone = ''): array
-{
+function sahtout_holiday_calendar_for_home(
+    ?mysqli $siteDb,
+    ?string $calParam,
+    string $siteTimezone = '',
+    ?mysqli $worldDb = null
+): array {
     [$year, $month] = sahtout_holiday_calendar_parse_month($calParam);
     $out = [
         'show' => false,
@@ -502,7 +724,7 @@ function sahtout_holiday_calendar_for_home(?mysqli $siteDb, ?string $calParam, s
         [$out['next_y'], $out['next_m']] = sahtout_holiday_calendar_shift_month($year, $month, 1);
         $out['month_label'] = (new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month)))->format('F Y');
 
-        $out['calendar'] = sahtout_holiday_calendar_build($siteDb, $year, $month);
+        $out['calendar'] = sahtout_holiday_calendar_build($siteDb, $year, $month, $worldDb);
     } catch (Throwable $e) {
         error_log('sahtout_holiday_calendar_for_home: ' . $e->getMessage());
         $out['calendar'] = sahtout_holiday_calendar_empty_month($year, $month);

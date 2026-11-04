@@ -324,7 +324,8 @@ if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error
 $home_cal = sahtout_holiday_calendar_for_home(
     isset($site_db) && $site_db instanceof mysqli ? $site_db : null,
     isset($_GET['cal']) ? (string) $_GET['cal'] : null,
-    isset($site_timezone) ? (string) $site_timezone : ''
+    isset($site_timezone) ? (string) $site_timezone : '',
+    isset($world_db) && $world_db instanceof mysqli ? $world_db : null
 );
 ?>
 
@@ -495,7 +496,22 @@ $home_cal = sahtout_holiday_calendar_for_home(
                     <p class="home-event-calendar-footnote mt-4 mb-0"><?php echo translate('home_event_calendar_empty', 'No world events fall in this month.'); ?></p>
                     <?php endif; ?>
 
-                    <p class="home-event-calendar-footnote mb-0"><?php echo translate('home_event_calendar_footnote', 'Dates follow WoW calendar rules (same as the in-game event schedule). Battleground Call to Arms weekends are hidden.'); ?></p>
+                    <?php
+                    $cal_meta = is_array($home_calendar) ? $home_calendar : [];
+                    $dbc_rows = (int) ($cal_meta['dbc_row_count'] ?? 0);
+                    $loaded = (int) ($cal_meta['loaded_holiday_count'] ?? 0);
+                    $occ_total = (int) ($cal_meta['total_occurrences'] ?? 0);
+                    ?>
+                    <p class="home-event-calendar-footnote mb-0">
+                        <?php echo translate('home_event_calendar_footnote', 'Dates follow WoW calendar rules (same as the in-game event schedule). Battleground Call to Arms weekends are hidden.'); ?>
+                        <?php if ($dbc_rows === 0): ?>
+                            <?php echo ' '; echo translate('home_event_calendar_no_dbc_rows', 'Import holidays_dbc data into the site database (dbc_import.sql).'); ?>
+                        <?php elseif ($loaded === 0): ?>
+                            <?php echo ' '; echo translate('home_event_calendar_no_loaded', 'Holiday rows exist but none could be loaded — check PHP error log.'); ?>
+                        <?php elseif ($occ_total === 0): ?>
+                            <?php echo ' '; echo translate('home_event_calendar_no_occurrences', 'Holidays loaded but no dated occurrences — check holiday_date_calculator / game_event.'); ?>
+                        <?php endif; ?>
+                    </p>
                 </section>
                 <?php endif; ?>
 
