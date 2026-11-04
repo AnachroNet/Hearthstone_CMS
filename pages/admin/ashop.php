@@ -598,7 +598,17 @@ try {
 
 $rewardsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_admin_achievement_rewards_table_exists($site_db);
 $catalogReady = $rewardsReady && sahtout_admin_achievement_catalog_table_exists($site_db);
-$allRewards = $rewardsReady ? sahtout_admin_fetch_achievement_rewards($site_db) : [];
+$rewards_per_page = 15;
+$reward_page = isset($_GET['reward_page']) ? max(1, (int) $_GET['reward_page']) : 1;
+$reward_total_items = $rewardsReady ? sahtout_admin_count_achievement_rewards($site_db) : 0;
+$reward_total_pages = max(1, (int) ceil($reward_total_items / $rewards_per_page));
+if ($reward_page > $reward_total_pages) {
+    $reward_page = $reward_total_pages;
+}
+$reward_offset = ($reward_page - 1) * $rewards_per_page;
+$allRewards = $rewardsReady
+    ? sahtout_admin_fetch_achievement_rewards($site_db, $rewards_per_page, $reward_offset)
+    : [];
 $rewardCreatureNames = $catalogReady
     ? sahtout_admin_creature_names_for_rewards(
         (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null,
@@ -620,7 +630,11 @@ $statTypeLabels = [
     'deaths' => translate('admin_stat_reward_type_deaths', 'Deaths'),
     'hours_played' => translate('admin_stat_reward_type_hours_played', 'Hours Played'),
 ];
-$rewardsFormAction = htmlspecialchars($base_path . 'admin/ashop?tab=rewards', ENT_QUOTES, 'UTF-8');
+$rewardsTabQuery = ['tab' => 'rewards'];
+if ($reward_page > 1) {
+    $rewardsTabQuery['reward_page'] = $reward_page;
+}
+$rewardsFormAction = htmlspecialchars($base_path . 'admin/ashop?' . http_build_query($rewardsTabQuery), ENT_QUOTES, 'UTF-8');
 $rewardsSearchUrl = htmlspecialchars($base_path . 'admin/achievement_search', ENT_QUOTES, 'UTF-8');
 $rewardsStatusFlash = sahtout_admin_shop_rewards_status_flash_from_get();
 $statStatusFlash = sahtout_admin_shop_stat_rewards_status_flash_from_get();
@@ -1351,7 +1365,6 @@ ob_start();
 
                     <div id="shop-rewards-tab" class="tab-content <?php echo $shop_tab === 'rewards' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
                         <?php include __DIR__ . '/ashop_rewards_tab.inc.php'; ?>
-                        <?php include __DIR__ . '/ashop_character_stat_rewards.inc.php'; ?>
                     </div>
 
                 </div>
@@ -1688,22 +1701,10 @@ ob_start();
         const dungeonWrap = document.getElementById('dungeonNameWrap');
         const achFields = document.getElementById('achievementRewardFields');
         const charStatsHint = document.getElementById('characterStatsAddHint');
-        const charStatsPanel = document.getElementById('character-stat-rewards-panel');
-        const jumpToCharStats = document.getElementById('jumpToCharacterStats');
         const addForm = document.getElementById('addRewardForm');
         if (!typeSelect || !addBtn) return;
 
         let debounceTimer = null;
-
-        function scrollToCharacterStats() {
-            if (charStatsPanel) {
-                charStatsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                charStatsPanel.classList.add('ring-2', 'ring-[#c9a227]/50');
-                window.setTimeout(function () {
-                    charStatsPanel.classList.remove('ring-2', 'ring-[#c9a227]/50');
-                }, 2000);
-            }
-        }
 
         function syncTypeFields() {
             const t = typeSelect.value;
@@ -1723,20 +1724,15 @@ ob_start();
             }
             if (isCharStats) {
                 addBtn.disabled = true;
-                scrollToCharacterStats();
             } else if (achIdInput) {
                 addBtn.disabled = achIdInput.value === '0' || achIdInput.value === '';
             }
         }
         typeSelect.addEventListener('change', syncTypeFields);
-        if (jumpToCharStats) {
-            jumpToCharStats.addEventListener('click', scrollToCharacterStats);
-        }
         if (addForm) {
             addForm.addEventListener('submit', function (e) {
                 if (typeSelect.value === 'character_stats') {
                     e.preventDefault();
-                    scrollToCharacterStats();
                 }
             });
         }

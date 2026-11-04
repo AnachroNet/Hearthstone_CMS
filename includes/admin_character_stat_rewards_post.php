@@ -4,6 +4,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_character_stat_rewards.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_shop_rewards_post.php';
 
 function sahtout_admin_shop_is_stat_rewards_post(): bool
 {
@@ -20,7 +21,6 @@ function sahtout_admin_shop_is_stat_rewards_post(): bool
  */
 function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $basePath): array
 {
-    $rewardsUrl = $basePath . 'admin/ashop?tab=rewards';
     if (!sahtout_character_stat_rewards_table_exists($siteDb)) {
         return [
             'redirect' => null,
@@ -53,7 +53,7 @@ function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $bas
             return ['redirect' => null, 'flash' => 'error:' . $msg];
         }
 
-        return ['redirect' => $rewardsUrl . '&stat_status=added', 'flash' => ''];
+        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['stat_status' => 'added']), 'flash' => ''];
     }
 
     if ($action === 'stat_update') {
@@ -68,7 +68,7 @@ function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $bas
             ];
         }
 
-        return ['redirect' => $rewardsUrl . '&stat_status=updated', 'flash' => ''];
+        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['stat_status' => 'updated']), 'flash' => ''];
     }
 
     if ($action === 'stat_delete') {
@@ -81,7 +81,7 @@ function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $bas
             ];
         }
 
-        return ['redirect' => $rewardsUrl . '&stat_status=deleted', 'flash' => ''];
+        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['stat_status' => 'deleted']), 'flash' => ''];
     }
 
     return ['redirect' => null, 'flash' => ''];

@@ -7,7 +7,7 @@ if (!defined('ALLOWED_ACCESS')) {
 /** @var string $rewardsFormAction */
 /** @var array<string, string> $statTypeLabels */
 ?>
-<div id="character-stat-rewards-panel" class="wow-panel p-4 md:p-6 lg:p-8 mt-6 scroll-mt-24">
+<div id="character-stat-rewards-panel" class="wow-panel p-4 md:p-6 lg:p-8 scroll-mt-24">
     <h2 class="section-title text-lg md:text-xl mb-2"><?php echo translate('admin_stat_rewards_heading', 'Character stat milestones'); ?></h2>
     <p class="text-gray-400 text-sm mb-6 max-w-3xl"><?php echo translate('admin_stat_rewards_help', 'Award shop tokens when any character on the account reaches a lifetime statistic. Values use the best character on the account (same sources as the armory lifetime panel). Grants run on login and while browsing the account area.'); ?></p>
 

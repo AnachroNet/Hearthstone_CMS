@@ -76,30 +76,55 @@ function sahtout_admin_achievement_catalog_row(mysqli $siteDb, int $achievementI
     return $row ?: null;
 }
 
+function sahtout_admin_count_achievement_rewards(mysqli $siteDb): int
+{
+    if (!sahtout_admin_achievement_rewards_table_exists($siteDb)) {
+        return 0;
+    }
+    $res = $siteDb->query('SELECT COUNT(*) AS c FROM achievement_token_rewards');
+    if (!$res) {
+        return 0;
+    }
+    $row = $res->fetch_assoc();
+    $res->free();
+
+    return (int) ($row['c'] ?? 0);
+}
+
 /**
  * @return list<array<string, mixed>>
  */
-function sahtout_admin_fetch_achievement_rewards(mysqli $siteDb): array
+function sahtout_admin_fetch_achievement_rewards(mysqli $siteDb, ?int $limit = null, int $offset = 0): array
 {
     if (!sahtout_admin_achievement_rewards_table_exists($siteDb)) {
         return [];
     }
 
     $joinCatalog = sahtout_admin_achievement_catalog_table_exists($siteDb);
+    $order = $joinCatalog
+        ? ' ORDER BY FIELD(r.milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
+                    COALESCE(r.milestone_value, 999999), COALESCE(c.title_enus, \'\'), r.achievement_id'
+        : ' ORDER BY FIELD(milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
+                    COALESCE(milestone_value, 999999), achievement_id';
+
     $sql = $joinCatalog
         ? 'SELECT r.achievement_id, r.tokens, r.milestone_type, r.milestone_value, r.instance_map_id,
                   r.dungeon_name, r.dungeon_min_level, r.dungeon_max_level, r.dungeon_target_level,
                   r.is_enabled, c.title_enus, c.description_enus, c.map_id AS catalog_map_id,
                   c.boss_creature_id, c.instance_map_id AS catalog_instance_map_id
            FROM achievement_token_rewards r
-           LEFT JOIN achievement_catalog c ON c.achievement_id = r.achievement_id
-           ORDER BY FIELD(r.milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
-                    COALESCE(r.milestone_value, 999999), COALESCE(c.title_enus, \'\'), r.achievement_id'
+           LEFT JOIN achievement_catalog c ON c.achievement_id = r.achievement_id'
         : 'SELECT achievement_id, tokens, milestone_type, milestone_value, instance_map_id,
                   dungeon_name, is_enabled
-           FROM achievement_token_rewards
-           ORDER BY FIELD(milestone_type, \'level\', \'quest_count\', \'dungeon\', \'manual\'),
-                    COALESCE(milestone_value, 999999), achievement_id';
+           FROM achievement_token_rewards';
+
+    $sql .= $order;
+
+    if ($limit !== null && $limit > 0) {
+        $offset = max(0, $offset);
+        $limit = max(1, $limit);
+        $sql .= ' LIMIT ' . $offset . ', ' . $limit;
+    }
 
     $res = $siteDb->query($sql);
     if (!$res) {

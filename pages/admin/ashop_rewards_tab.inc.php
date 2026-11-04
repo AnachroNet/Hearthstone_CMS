@@ -11,10 +11,16 @@ if (!defined('ALLOWED_ACCESS')) {
 /** @var list<array<string, mixed>> $allRewards */
 /** @var array<int, string> $rewardCreatureNames */
 /** @var array<string, string> $milestoneLabels */
+/** @var int $reward_page */
+/** @var int $reward_total_pages */
+/** @var int $reward_total_items */
+/** @var int $rewards_per_page */
 ?>
 <p class="text-gray-400 text-sm"><?php echo translate('admin_rewards_help', 'Link in-game achievements to website shop tokens. After import, set token amounts and enable each row. Login-time granting can be added later.'); ?></p>
 
 <?php echo $rewards_alert_html; ?>
+
+<?php include __DIR__ . '/ashop_character_stat_rewards.inc.php'; ?>
 
 <?php if (!$rewardsReady): ?>
     <div class="wow-panel p-4 md:p-6 lg:p-8 text-amber-300 border border-amber-500/30">
@@ -76,17 +82,31 @@ if (!defined('ALLOWED_ACCESS')) {
         </div>
 
         <p id="characterStatsAddHint" class="hidden text-gray-400 text-sm max-w-2xl">
-            <?php echo translate('admin_rewards_character_stats_hint', 'Character stat milestones use lifetime totals from the best character on each account (world kills, duels won, deaths, hours played). Add thresholds in the Character stat milestones section below.'); ?>
-            <button type="button" class="block mt-3 text-[#f2cf5b] hover:text-[#ffe08a] underline underline-offset-2" id="jumpToCharacterStats">
-                <?php echo translate('admin_rewards_character_stats_jump', 'Go to character stat milestones'); ?>
-            </button>
+            <?php echo translate('admin_rewards_character_stats_hint', 'Character stat milestones use lifetime totals from the best character on each account (world kills, duels won, deaths, hours played). Add thresholds in the Character stat milestones section above.'); ?>
         </p>
     </form>
 </div>
 
 <div class="wow-panel p-4 md:p-6 lg:p-8 overflow-x-auto">
-    <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_rewards_list', 'Configured rewards'); ?></h2>
-    <?php if ($allRewards === []): ?>
+    <div class="flex flex-wrap items-baseline justify-between gap-3 mb-4 md:mb-6">
+        <h2 class="section-title text-lg md:text-xl mb-0"><?php echo translate('admin_rewards_list', 'Configured rewards'); ?></h2>
+        <?php if ($reward_total_items > 0): ?>
+            <p class="text-sm text-gray-500">
+                <?php
+                $rewardRangeStart = ($reward_page - 1) * $rewards_per_page + 1;
+                $rewardRangeEnd = min($reward_total_items, $reward_page * $rewards_per_page);
+                echo translate(
+                    'admin_rewards_list_range',
+                    'Showing %1$d–%2$d of %3$d',
+                    $rewardRangeStart,
+                    $rewardRangeEnd,
+                    $reward_total_items
+                );
+                ?>
+            </p>
+        <?php endif; ?>
+    </div>
+    <?php if ($reward_total_items === 0): ?>
         <p class="text-gray-500"><?php echo translate('admin_rewards_empty', 'No reward rows yet. Run the DBC import or add one above.'); ?></p>
     <?php else: ?>
     <table class="wow-table">
@@ -133,6 +153,9 @@ if (!defined('ALLOWED_ACCESS')) {
                     <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="flex flex-wrap items-end gap-3 justify-end">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="action" value="update">
+                        <?php if ($reward_page > 1): ?>
+                            <input type="hidden" name="reward_page" value="<?php echo (int) $reward_page; ?>">
+                        <?php endif; ?>
                         <input type="hidden" name="achievement_id" value="<?php echo $achId; ?>">
                         <div class="w-28">
                             <label class="sr-only"><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></label>
@@ -156,6 +179,38 @@ if (!defined('ALLOWED_ACCESS')) {
             <?php endforeach; ?>
         </tbody>
     </table>
+
+    <?php if ($reward_total_pages > 1): ?>
+        <nav class="flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8" aria-label="<?php echo translate('admin_rewards_pagination_aria', 'Configured rewards page navigation'); ?>">
+            <?php
+            $rewardPageHref = static function (int $p) use ($base_path): string {
+                $q = ['tab' => 'rewards'];
+                if ($p > 1) {
+                    $q['reward_page'] = $p;
+                }
+
+                return $base_path . 'admin/ashop?' . http_build_query($q);
+            };
+            ?>
+            <?php if ($reward_page > 1): ?>
+                <a href="<?php echo htmlspecialchars($rewardPageHref($reward_page - 1), ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs">
+                    <i class="fas fa-chevron-left"></i> <?php echo translate('admin_shop_previous', 'Previous'); ?>
+                </a>
+            <?php endif; ?>
+            <?php for ($i = 1; $i <= $reward_total_pages; $i++): ?>
+                <?php if ($reward_page === $i): ?>
+                    <span class="btn-game btn-gold py-2 px-3 md:px-4 text-xs cursor-default"><?php echo $i; ?></span>
+                <?php else: ?>
+                    <a href="<?php echo htmlspecialchars($rewardPageHref($i), ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs"><?php echo $i; ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+            <?php if ($reward_page < $reward_total_pages): ?>
+                <a href="<?php echo htmlspecialchars($rewardPageHref($reward_page + 1), ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs">
+                    <?php echo translate('admin_shop_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
+                </a>
+            <?php endif; ?>
+        </nav>
+    <?php endif; ?>
     <?php endif; ?>
 </div>
 
