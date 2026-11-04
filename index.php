@@ -172,6 +172,7 @@ ob_start();
             margin-right: auto;
         }
         .home-hero-actions .btn-game,
+        .home-section-cta .btn-game,
         .home-hero-actions .social-btn {
             flex: 1 1 0;
             min-width: 0;
@@ -186,15 +187,22 @@ ob_start();
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .home-hero-actions .btn-game {
+        .home-hero-actions .btn-game,
+        .home-section-cta .btn-game {
             text-transform: uppercase;
         }
-        .home-hero-actions .btn-gold {
+        .home-section-cta .btn-game {
+            flex: none;
+            display: inline-flex;
+        }
+        .home-hero-actions .btn-gold,
+        .home-section-cta .btn-gold {
             animation: none;
         }
         @media (min-width: 640px) {
             .home-hero-actions { gap: 0.5rem; margin-top: 0.85rem; max-width: 28rem; }
             .home-hero-actions .btn-game,
+            .home-section-cta .btn-game,
             .home-hero-actions .social-btn {
                 padding: 7px 12px;
                 font-size: 11px;
@@ -202,27 +210,10 @@ ob_start();
             }
         }
 
-        .home-coming-events-cta {
+        .home-coming-events-cta,
+        .home-section-cta {
             margin-top: 1.25rem;
             text-align: center;
-        }
-
-        .home-gold-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1.2;
-            text-decoration: none;
-            color: #1a1200;
-            background: linear-gradient(to bottom, #f6d478, #c9a227);
-            border: 1px solid #8a6a14;
-            transition: filter 0.2s ease;
-        }
-        .home-gold-cta:hover {
-            filter: brightness(1.1);
         }
 
         .news-card {
@@ -468,8 +459,8 @@ if ($home_calendar_enabled) {
                         ?>
                     </div>
 
-                    <div class="home-coming-events-cta">
-                        <a href="<?php echo htmlspecialchars($base_path . 'events', ENT_QUOTES, 'UTF-8'); ?>" class="home-gold-cta">
+                    <div class="home-coming-events-cta home-section-cta">
+                        <a href="<?php echo htmlspecialchars($base_path . 'events', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold">
                             <?php echo translate('home_event_calendar_open_full', 'Event Calendar'); ?>
                         </a>
                     </div>
@@ -541,15 +532,17 @@ if ($home_calendar_enabled) {
                                 <?php echo translate('home_maintenance_none', 'No maintenance is scheduled at this time.'); ?>
                             </p>
                         <?php endif; ?>
+                        <div class="home-section-cta mt-0">
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <a href="<?php echo $base_path; ?>account?tab=tickets" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#1a1200] bg-gradient-to-b from-[#f6d478] to-[#c9a227] border border-[#8a6a14] hover:brightness-110 transition-all">
+                            <a href="<?php echo $base_path; ?>account?tab=tickets" class="btn-game btn-gold">
                                 <?php echo translate('home_support_cta_account', 'View My Support Tickets'); ?>
                             </a>
                         <?php else: ?>
-                            <a href="<?php echo $base_path; ?>login" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-[#f2cf5b] border border-[rgba(201,162,39,0.35)] bg-[rgba(242,207,82,0.08)] hover:bg-[rgba(242,207,82,0.15)] transition-all">
+                            <a href="<?php echo $base_path; ?>login" class="btn-game btn-gold">
                                 <?php echo translate('home_support_cta_login', 'Log in to view tickets'); ?>
                             </a>
                         <?php endif; ?>
+                        </div>
                     </div>
                 </section>
             </div>
