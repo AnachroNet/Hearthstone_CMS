@@ -119,7 +119,68 @@
     color: #1a1200;
     background: linear-gradient(180deg, #f6d478, #c9a227);
     border: none;
-    cursor: help;
+    cursor: default;
+}
+
+.home-event-calendar-list li.has-event-tooltip {
+    cursor: default;
+    border-radius: 2px;
+    padding: 0.15rem 0.25rem;
+    margin: -0.15rem -0.25rem;
+    transition: background 0.15s ease;
+}
+
+.home-event-calendar-list li.has-event-tooltip:hover {
+    background: rgba(242, 207, 91, 0.06);
+}
+
+/* Floating tooltip shell (matches pages/character.php item hover) */
+body > .item-tooltip.home-event-calendar-tooltip {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    max-width: 350px;
+    padding: 0;
+    pointer-events: none;
+    font-size: 0.8rem;
+    color: #d1d5db;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+body > .item-tooltip.home-event-calendar-tooltip .tooltip-container {
+    background: rgba(5, 7, 11, 0.96);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    padding: 12px;
+    width: min(320px, calc(100vw - 24px));
+    color: #d1d5db;
+    font-size: 12px;
+    font-family: 'Inter', Arial, sans-serif;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8);
+}
+
+body > .item-tooltip.home-event-calendar-tooltip .tooltip-container .item-name {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 0.25rem;
+}
+
+body > .item-tooltip.home-event-calendar-tooltip .tooltip-container .item-level {
+    color: #e0b802;
+    font-size: 12px;
+    margin-bottom: 0.35rem;
+}
+
+body > .item-tooltip.home-event-calendar-tooltip .tooltip-container .item-description {
+    color: #eee;
+    font-style: italic;
+    line-height: 1.45;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(201, 162, 39, 0.1);
 }
 
 @media (min-width: 640px) {

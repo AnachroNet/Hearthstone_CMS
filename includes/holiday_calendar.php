@@ -777,3 +777,53 @@ function sahtout_holiday_calendar_for_home(
 
     return $out;
 }
+
+/** Human-readable span for an event occurrence (calendar list + tooltips). */
+function sahtout_holiday_event_date_range(array $ev): string
+{
+    $start = (string) ($ev['start'] ?? '');
+    $end = (string) ($ev['end'] ?? '');
+    if ($start === '' || $end === '') {
+        return '';
+    }
+    if ($start === $end) {
+        return date('M j, Y', strtotime($start));
+    }
+
+    $startTs = strtotime($start);
+    $endTs = strtotime($end);
+    $startYear = (int) date('Y', $startTs);
+    $endYear = (int) date('Y', $endTs);
+    $left = date('M j', $startTs);
+    $right = date('M j', $endTs);
+    if ($endYear !== $startYear) {
+        $right .= ', ' . $endYear;
+    }
+
+    return $left . ' – ' . $right . ($startYear === $endYear ? ', ' . $startYear : '');
+}
+
+/**
+ * WoW-style tooltip HTML (same structure as item tooltips on the character page).
+ */
+function sahtout_holiday_event_tooltip_html(array $ev): string
+{
+    $name = htmlspecialchars(trim((string) ($ev['name'] ?? '')), ENT_QUOTES, 'UTF-8');
+    if ($name === '') {
+        $name = htmlspecialchars(translate('home_event_calendar_unknown', 'World event'), ENT_QUOTES, 'UTF-8');
+    }
+    $range = sahtout_holiday_event_date_range($ev);
+    $desc = trim((string) ($ev['description'] ?? ''));
+
+    $html = '<div class="tooltip-container">';
+    $html .= '<div class="item-name" style="color:#f2cf5b;">' . $name . '</div>';
+    if ($range !== '') {
+        $html .= '<div class="item-level">' . htmlspecialchars($range, ENT_QUOTES, 'UTF-8') . '</div>';
+    }
+    if ($desc !== '') {
+        $html .= '<div class="item-description">' . nl2br(htmlspecialchars($desc, ENT_QUOTES, 'UTF-8')) . '</div>';
+    }
+    $html .= '</div>';
+
+    return $html;
+}

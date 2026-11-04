@@ -447,9 +447,9 @@ $home_cal = sahtout_holiday_calendar_for_home(
                                         break;
                                     }
                                     $chips_shown++;
-                                    $tip = trim($ev['name'] . (isset($ev['description']) && $ev['description'] !== '' ? "\n" . $ev['description'] : ''));
+                                    $chip_tooltip = sahtout_holiday_event_tooltip_html($ev);
                                     ?>
-                                    <span class="home-event-calendar-chip" title="<?php echo htmlspecialchars($tip, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <span class="home-event-calendar-chip has-event-tooltip" data-tooltip="<?php echo htmlspecialchars($chip_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
                                         <?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 <?php endforeach; ?>
@@ -472,11 +472,10 @@ $home_cal = sahtout_holiday_calendar_for_home(
                                     continue;
                                 }
                                 $listed[$key] = true;
-                                $range = $ev['start'] === $ev['end']
-                                    ? date('M j', strtotime($ev['start']))
-                                    : date('M j', strtotime($ev['start'])) . ' – ' . date('M j', strtotime($ev['end']));
+                                $range = sahtout_holiday_event_date_range($ev);
+                                $list_tooltip = sahtout_holiday_event_tooltip_html($ev);
                                 ?>
-                                <li>
+                                <li class="has-event-tooltip" data-tooltip="<?php echo htmlspecialchars($list_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
                                     <strong><?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?></strong>
                                     <span class="dates"> · <?php echo htmlspecialchars($range, ENT_QUOTES, 'UTF-8'); ?></span>
                                     <?php if ($ev['description'] !== ''): ?>
@@ -522,6 +521,7 @@ $home_cal = sahtout_holiday_calendar_for_home(
                             <?php echo ' '; echo translate('home_event_calendar_no_occurrences', 'Holidays loaded but no dated occurrences — check holiday_date_calculator / game_event.'); ?>
                         <?php endif; ?>
                     </p>
+                    <script src="<?php echo htmlspecialchars($base_path . 'assets/js/home-event-calendar-tooltip.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
                 </section>
                 <?php endif; ?>
 
