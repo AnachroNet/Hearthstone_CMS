@@ -48,7 +48,6 @@ if (!defined('ALLOWED_ACCESS')) {
                     <option value="level"><?php echo htmlspecialchars($milestoneLabels['level']); ?></option>
                     <option value="quest_count"><?php echo htmlspecialchars($milestoneLabels['quest_count']); ?></option>
                     <option value="dungeon"><?php echo htmlspecialchars($milestoneLabels['dungeon']); ?></option>
-                    <option value="character_stats"><?php echo htmlspecialchars($milestoneLabels['character_stats']); ?></option>
                     <option value="other"><?php echo htmlspecialchars($milestoneLabels['manual']); ?></option>
                 </select>
             </div>
@@ -80,10 +79,6 @@ if (!defined('ALLOWED_ACCESS')) {
             <i class="fas fa-plus"></i> <?php echo translate('admin_rewards_create', 'Add reward row'); ?>
         </button>
         </div>
-
-        <p id="characterStatsAddHint" class="hidden text-gray-400 text-sm max-w-2xl">
-            <?php echo translate('admin_rewards_character_stats_hint', 'Character stat milestones use lifetime totals from the best character on each account (world kills, duels won, deaths, hours played). Add thresholds in the Character stat milestones section above.'); ?>
-        </p>
     </form>
 </div>
 
