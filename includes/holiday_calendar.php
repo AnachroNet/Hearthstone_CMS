@@ -11,23 +11,54 @@ function sahtout_holiday_calendar_tables_exist(?mysqli $siteDb): bool
     if (!$siteDb instanceof mysqli || $siteDb->connect_error) {
         return false;
     }
-    static $exists = null;
-    if ($exists !== null) {
-        return $exists;
-    }
-    $required = ['holidays_dbc', 'holidaynames_dbc', 'holidaydescriptions_dbc'];
-    foreach ($required as $table) {
-        $res = $siteDb->query("SHOW TABLES LIKE '" . $siteDb->real_escape_string($table) . "'");
-        if (!$res || $res->num_rows === 0) {
-            $exists = false;
 
-            return false;
-        }
-        $res->free();
+    $dbName = '';
+    $dbRes = $siteDb->query('SELECT DATABASE() AS db');
+    if ($dbRes instanceof mysqli_result) {
+        $row = $dbRes->fetch_assoc();
+        $dbName = trim((string) ($row['db'] ?? ''));
+        $dbRes->free();
     }
-    $exists = true;
+    if ($dbName === '') {
+        error_log('holiday_calendar: site DB has no DATABASE() selected');
 
-    return true;
+        return false;
+    }
+
+    $table = 'holidays_dbc';
+    $stmt = $siteDb->prepare(
+        'SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        error_log('holiday_calendar: information_schema probe failed: ' . $siteDb->error);
+        $fallback = $siteDb->query("SHOW TABLES LIKE 'holidays_dbc'");
+
+        return $fallback instanceof mysqli_result && $fallback->num_rows > 0;
+    }
+    $stmt->bind_param('ss', $dbName, $table);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $ok = $result instanceof mysqli_result && $result->num_rows > 0;
+    $result?->free();
+    $stmt->close();
+
+    if (!$ok) {
+        error_log('holiday_calendar: `' . $table . '` not found in schema `' . $dbName . '`');
+    }
+
+    return $ok;
+}
+
+/** @return array<string, mixed> */
+function sahtout_holiday_calendar_empty_month(int $year, int $month): array
+{
+    return [
+        'year' => $year,
+        'month' => $month,
+        'events_by_day' => [],
+        'month_events' => [],
+        'holidays_enabled' => true,
+    ];
 }
 
 function sahtout_holiday_calendar_timezone(string $siteTimezone): DateTimeZone
@@ -322,8 +353,16 @@ function sahtout_holiday_calendar_for_home(?mysqli $siteDb, ?string $calParam, s
     ];
 
     if (!$siteDb instanceof mysqli || $siteDb->connect_error) {
+        error_log('holiday_calendar: site DB connection unavailable for calendar');
+
         return $out;
     }
+
+    if (!sahtout_holiday_calendar_tables_exist($siteDb)) {
+        return $out;
+    }
+
+    $out['show'] = true;
 
     try {
         $tz = sahtout_holiday_calendar_timezone($siteTimezone);
@@ -335,14 +374,14 @@ function sahtout_holiday_calendar_for_home(?mysqli $siteDb, ?string $calParam, s
         [$out['next_y'], $out['next_m']] = sahtout_holiday_calendar_shift_month($year, $month, 1);
         $out['month_label'] = (new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month)))->format('F Y');
 
-        $calendar = sahtout_holiday_calendar_build($siteDb, $year, $month);
-        if (empty($calendar['holidays_enabled'])) {
-            return $out;
-        }
-        $out['calendar'] = $calendar;
-        $out['show'] = true;
+        $out['calendar'] = sahtout_holiday_calendar_build($siteDb, $year, $month);
     } catch (Throwable $e) {
         error_log('sahtout_holiday_calendar_for_home: ' . $e->getMessage());
+        $out['calendar'] = sahtout_holiday_calendar_empty_month($year, $month);
+    }
+
+    if (!is_array($out['calendar'])) {
+        $out['calendar'] = sahtout_holiday_calendar_empty_month($year, $month);
     }
 
     return $out;

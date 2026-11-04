@@ -382,9 +382,11 @@ $home_cal = sahtout_holiday_calendar_for_home(
                     </div>
                 </div>
 
-                <?php if (!empty($home_cal['show']) && is_array($home_cal['calendar'])): ?>
+                <?php if (!empty($home_cal['show'])): ?>
                 <?php
-                $home_calendar = $home_cal['calendar'];
+                $home_calendar = is_array($home_cal['calendar'] ?? null)
+                    ? $home_cal['calendar']
+                    : sahtout_holiday_calendar_empty_month($home_cal['year'], $home_cal['month']);
                 $home_cal_year = $home_cal['year'];
                 $home_cal_month = $home_cal['month'];
                 $home_cal_is_current_month = $home_cal['is_current_month'];
