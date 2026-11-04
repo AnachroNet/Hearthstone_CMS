@@ -269,28 +269,61 @@ function sahtout_soap_try_reload_commands(array $commands): array
 }
 
 /** @return array{ok: bool, configured: bool, failed: list<string>} */
+function sahtout_soap_reload_loot_tables(): array
+{
+    $bulk = sahtout_soap_try_reload_commands(['.reload all loot']);
+    if ($bulk['ok']) {
+        return $bulk;
+    }
+
+    return sahtout_soap_try_reload_commands([
+        '.reload gameobject_loot_template',
+        '.reload creature_loot_template',
+    ]);
+}
+
+/**
+ * AzerothCore has no `.reload item_template`; item rows are picked up on world restart.
+ * Quest, page_text, and loot tables can be hot-reloaded via SOAP.
+ *
+ * @return array{ok: bool, configured: bool, failed: list<string>}
+ */
+function sahtout_soap_merge_reload_results(array $first, array $second): array
+{
+    $configured = !empty($first['configured']) || !empty($second['configured']);
+    $failed = array_values(array_unique(array_merge($first['failed'] ?? [], $second['failed'] ?? [])));
+
+    return [
+        'ok' => !empty($first['ok']) && !empty($second['ok']),
+        'configured' => $configured,
+        'failed' => $failed,
+    ];
+}
+
 function sahtout_soap_reload_token_gift_publish(): array
 {
-    return sahtout_soap_try_reload_commands([
-        '.reload item_template',
+    $core = sahtout_soap_try_reload_commands([
         '.reload quest_template',
         '.reload page_text',
-        '.reload loot_template',
+        '.reload all item',
     ]);
+    $loot = sahtout_soap_reload_loot_tables();
+
+    return sahtout_soap_merge_reload_results($core, $loot);
 }
 
 /** @return array{ok: bool, configured: bool, failed: list<string>} */
 function sahtout_soap_reload_token_gift_loot(): array
 {
-    return sahtout_soap_try_reload_commands(['.reload loot_template']);
+    return sahtout_soap_reload_loot_tables();
 }
 
 /** @return array{ok: bool, configured: bool, failed: list<string>} */
 function sahtout_soap_reload_token_gift_content(): array
 {
     return sahtout_soap_try_reload_commands([
-        '.reload item_template',
         '.reload quest_template',
         '.reload page_text',
+        '.reload all item',
     ]);
 }

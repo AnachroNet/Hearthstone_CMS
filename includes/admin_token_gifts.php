@@ -238,10 +238,10 @@ function sahtout_admin_delete_token_gift(mysqli $siteDb, ?mysqli $worldDb, int $
                 );
             }
         }
-        $reload = sahtout_soap_try_reload_commands([
-            '.reload loot_template',
-            '.reload page_text',
-        ]);
+        $reload = sahtout_soap_merge_reload_results(
+            sahtout_soap_reload_loot_tables(),
+            sahtout_soap_try_reload_commands(['.reload page_text'])
+        );
     }
     $stmt = $siteDb->prepare('DELETE FROM token_gifts WHERE id = ?');
     if (!$stmt) {
