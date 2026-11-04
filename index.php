@@ -159,6 +159,45 @@ ob_start();
         .social-btn.discord   { background: linear-gradient(180deg,#7289ff,#4752c4); filter: drop-shadow(0 0 6px rgba(88,101,242,.3)); }
         .social-btn.discord:hover   { filter: drop-shadow(0 0 14px rgba(88,101,242,.55)); }
 
+        .home-hero-actions {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.85rem;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        .home-hero-actions::-webkit-scrollbar { display: none; }
+        .home-hero-actions .btn-game,
+        .home-hero-actions .social-btn {
+            flex-shrink: 0;
+            padding: 9px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            gap: 6px;
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+        }
+        .home-hero-actions .btn-game {
+            text-transform: uppercase;
+        }
+        .home-hero-actions .btn-gold {
+            animation: none;
+        }
+        @media (min-width: 640px) {
+            .home-hero-actions { gap: 0.65rem; margin-top: 1rem; }
+            .home-hero-actions .btn-game,
+            .home-hero-actions .social-btn {
+                padding: 9px 18px;
+                font-size: 13px;
+                gap: 8px;
+            }
+        }
+
         .news-card {
             display: block;
             position: relative;
@@ -348,38 +387,35 @@ $home_cal = sahtout_holiday_calendar_for_home(
                             <span class="wow-title text-3xl sm:text-4xl md:text-6xl lg:text-7xl"><?php echo $site_title_name; ?></span>
                         </h1>
 
+                        <div class="home-hero-actions">
+                            <?php if (!isset($_SESSION['user_id'])): ?>
+                                <a href="<?php echo htmlspecialchars($base_path . 'register', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                                    <?php echo translate('home_create_account', 'Create Account'); ?>
+                                </a>
+                            <?php else: ?>
+                                <a href="<?php echo htmlspecialchars($base_path . 'account', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold">
+                                    <svg class="w-3 h-3 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    <?php echo translate('home_my_account', 'My Account'); ?>
+                                </a>
+                            <?php endif; ?>
+                            <a href="<?php echo htmlspecialchars($base_path . 'download/', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <?php echo translate('home_download', 'Download'); ?>
+                            </a>
+                            <?php if (!empty($discord_join_url)): ?>
+                            <a href="<?php echo htmlspecialchars($discord_join_url, ENT_QUOTES, 'UTF-8'); ?>" class="social-btn discord" target="_blank" rel="noopener noreferrer" aria-label="<?php echo translate('discord_alt', 'Discord'); ?>">
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.08.22.17.33.26c.04.03.04.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/></svg>
+                                Discord
+                            </a>
+                            <?php endif; ?>
+                        </div>
+
                         <div class="flex items-center justify-center gap-3 mt-4 sm:mt-5">
                             <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,transparent,#c9a227);"></span>
                             <span class="text-[#f2cf5b] text-xs" style="text-shadow:0 0 10px rgba(242,207,82,.8);">◆</span>
                             <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,#c9a227,transparent);"></span>
                         </div>
-
-                        <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mt-4 sm:mt-6">
-                            <?php if (!isset($_SESSION['user_id'])): ?>
-                                <a href="<?php echo htmlspecialchars($base_path . 'register', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-sm sm:text-base px-4 sm:px-6">
-                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                                    <?php echo translate('home_create_account', 'Create Account'); ?>
-                                </a>
-                            <?php else: ?>
-                                <a href="<?php echo htmlspecialchars($base_path . 'account', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold text-sm sm:text-base px-4 sm:px-6">
-                                    <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                    <?php echo translate('home_my_account', 'My Account'); ?>
-                                </a>
-                            <?php endif; ?>
-                            <a href="<?php echo htmlspecialchars($base_path . 'download/', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron text-sm sm:text-base px-4 sm:px-6">
-                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                <?php echo translate('home_download', 'Download'); ?>
-                            </a>
-                        </div>
-
-                        <?php if (!empty($discord_join_url)): ?>
-                        <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-4 sm:mt-6">
-                            <a href="<?php echo htmlspecialchars($discord_join_url, ENT_QUOTES, 'UTF-8'); ?>" class="social-btn discord text-xs sm:text-sm px-3 sm:px-4" target="_blank" rel="noopener noreferrer" aria-label="<?php echo translate('discord_alt', 'Discord'); ?>">
-                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.27 5.33C17.94 4.71 16.5 4.26 15 4a.09.09 0 0 0-.07.03c-.18.33-.39.76-.53 1.09a16.09 16.09 0 0 0-4.8 0c-.14-.34-.35-.76-.54-1.09c-.01-.02-.04-.03-.07-.03c-1.5.26-2.93.71-4.27 1.33c-.01 0-.02.01-.03.02c-2.72 4.07-3.47 8.03-3.1 11.95c0 .02.01.04.03.05c1.8 1.32 3.53 2.12 5.24 2.65c.03.01.06 0 .07-.02c.4-.55.76-1.13 1.07-1.74c.02-.04 0-.08-.04-.09c-.57-.22-1.11-.48-1.64-.78c-.04-.02-.04-.08-.01-.11c.11-.08.22-.17.33-.25c.02-.02.05-.02.07-.01c3.44 1.57 7.15 1.57 10.55 0c.02-.01.05-.01.07.01c.11.08.22.17.33.26c.04.03.04.09-.01.11c-.52.31-1.07.56-1.64.78c-.04.01-.05.06-.04.09c.32.61.68 1.19 1.07 1.74c.03.01.06.02.09.01c1.72-.53 3.45-1.33 5.25-2.65c.02-.01.03-.03.03-.05c.44-4.53-.73-8.46-3.1-11.95c-.01-.01-.02-.02-.04-.02zM8.52 14.91c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12zm6.97 0c-1.03 0-1.89-.95-1.89-2.12s.84-2.12 1.89-2.12c1.06 0 1.9.96 1.89 2.12c0 1.17-.83 2.12-1.89 2.12z"/></svg>
-                                Discord
-                            </a>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
