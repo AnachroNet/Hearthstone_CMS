@@ -518,6 +518,8 @@ require_once $project_root . 'includes/header.php';
                 <i class="fas fa-mouse-pointer mr-2 text-[rgba(201,162,39,0.4)]"></i>
                 <?php echo translate('solo_pvp_footer', 'Click on any row to view character details.'); ?>
             </div>
+
+            <?php include_once $project_root . 'includes/armory_talent_calculator_cta.php'; ?>
         </div>
     </div>
 </div>

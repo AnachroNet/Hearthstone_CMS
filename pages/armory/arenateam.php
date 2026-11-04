@@ -467,6 +467,8 @@ require_once $project_root . 'includes/header.php';
                 </div>
 
             <?php endif; ?>
+
+            <?php include_once $project_root . 'includes/armory_talent_calculator_cta.php'; ?>
         </div>
     </div>
 </div>

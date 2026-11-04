@@ -11,6 +11,7 @@ return [
     'home_event_calendar_empty_upcoming' => 'No events are active or scheduled in the next 30 days.',
     'home_event_calendar_open_full' => 'Event Calendar',
     'nav_armory' => 'Armory',
+    'armory_talent_calculator_btn' => 'Talent Calculator',
     'nav_shop' => 'Shop',
     'nav_register' => 'Register',
     'nav_login' => 'Login',
