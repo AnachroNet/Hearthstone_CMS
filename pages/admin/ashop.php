@@ -18,7 +18,17 @@ require_once $project_root . 'includes/admin_achievement_rewards.php';
 require_once $project_root . 'includes/admin_shop_rewards_post.php';
 require_once $project_root . 'includes/admin_character_stat_rewards.php';
 require_once $project_root . 'includes/admin_character_stat_rewards_post.php';
+require_once $project_root . 'includes/admin_token_gifts_post.php';
+require_once $project_root . 'includes/token_gift_settings.php';
 require_once $project_root . 'includes/itemset_dbc.php';
+
+$ashopTokenGiftsLang = $project_root . 'languages/en/pages_admin_token_gifts.php';
+if (is_readable($ashopTokenGiftsLang)) {
+    $ashopTokenGiftsStrings = include $ashopTokenGiftsLang;
+    if (is_array($ashopTokenGiftsStrings)) {
+        $lang = array_merge($lang, $ashopTokenGiftsStrings);
+    }
+}
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -274,6 +284,21 @@ if (isset($_GET['status'])) {
     }
 }
 
+// Handle token gift form submissions (Rewards tab)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_token_gifts_post()) {
+    $tgPostResult = sahtout_admin_shop_token_gifts_handle_post(
+        $site_db,
+        (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null,
+        $base_path
+    );
+    if ($tgPostResult['redirect'] !== null) {
+        header('Location: ' . $tgPostResult['redirect']);
+        exit;
+    }
+    $rewards_flash = $tgPostResult['flash'];
+    $shop_tab = 'rewards';
+}
+
 // Handle character stat reward form submissions (Rewards tab)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_stat_rewards_post()) {
     $statPostResult = sahtout_admin_shop_stat_rewards_handle_post($site_db, $base_path);
@@ -299,7 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_rewards_post(
 }
 
 // Handle shop inventory form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post() && !sahtout_admin_shop_is_stat_rewards_post()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post() && !sahtout_admin_shop_is_stat_rewards_post() && !sahtout_admin_shop_is_token_gifts_post()) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_csrf_error', 'CSRF token validation failed.')));
         exit;
@@ -682,15 +707,21 @@ $statTypeLabels = [
 ];
 $rewards_subtab = 'configured';
 if ($shop_tab === 'rewards') {
-    $rewards_subtab = sahtout_admin_resolve_subtab(['configured', 'add', 'character'], 'configured');
+    $rewards_subtab = sahtout_admin_resolve_subtab(['configured', 'add', 'character', 'token_gifts'], 'configured');
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (sahtout_admin_shop_is_stat_rewards_post()) {
+        if (sahtout_admin_shop_is_token_gifts_post()) {
+            $rewards_subtab = 'token_gifts';
+        } elseif (sahtout_admin_shop_is_stat_rewards_post()) {
             $rewards_subtab = 'character';
         } elseif (sahtout_admin_shop_is_rewards_post()) {
             $rewards_subtab = ((string) ($_POST['action'] ?? '')) === 'add' ? 'add' : 'configured';
         }
     }
 }
+$tokenGiftsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_token_gifts_table_exists($site_db);
+$allTokenGifts = $tokenGiftsReady ? sahtout_admin_fetch_token_gifts($site_db) : [];
+$canPublishTokenGifts = sahtout_admin_can_publish_token_gifts();
+$tokenGiftChestLootIds = sahtout_token_gift_world_chest_loot_ids();
 $rewardsTabQuery = ['tab' => 'rewards', 'subtab' => $rewards_subtab];
 if ($reward_page > 1 && $rewards_subtab === 'configured') {
     $rewardsTabQuery['reward_page'] = $reward_page;
@@ -700,10 +731,14 @@ $rewardsSearchUrl = htmlspecialchars($base_path . 'admin/achievement_search', EN
 $itemsetLookupUrl = htmlspecialchars($base_path . 'admin/itemset_lookup', ENT_QUOTES, 'UTF-8');
 $rewardsStatusFlash = sahtout_admin_shop_rewards_status_flash_from_get();
 $statStatusFlash = sahtout_admin_shop_stat_rewards_status_flash_from_get();
-$primaryRewardsFlash = $rewards_flash !== '' ? $rewards_flash : ($rewardsStatusFlash !== '' ? $rewardsStatusFlash : $statStatusFlash);
+$tokenGiftStatusFlash = sahtout_admin_shop_token_gifts_status_flash_from_get();
+$primaryRewardsFlash = $rewards_flash !== '' ? $rewards_flash : ($rewardsStatusFlash !== '' ? $rewardsStatusFlash : ($statStatusFlash !== '' ? $statStatusFlash : $tokenGiftStatusFlash));
 $rewards_alert_html = sahtout_admin_shop_rewards_flash_html($primaryRewardsFlash);
 if ($statStatusFlash !== '' && $primaryRewardsFlash !== $statStatusFlash) {
     $rewards_alert_html .= sahtout_admin_shop_rewards_flash_html($statStatusFlash);
+}
+if ($tokenGiftStatusFlash !== '' && $primaryRewardsFlash !== $tokenGiftStatusFlash) {
+    $rewards_alert_html .= sahtout_admin_shop_rewards_flash_html($tokenGiftStatusFlash);
 }
 ?>
 <?php

@@ -5,6 +5,7 @@ if (!defined('ALLOWED_ACCESS')) {
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_achievement_rewards.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'character_stat_reward_sync.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_sync.php';
 
 function sahtout_achievement_token_grants_table_exists(mysqli $siteDb): bool
 {
@@ -221,23 +222,29 @@ function sahtout_maybe_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, 
     $_SESSION['achievement_rewards_sync_at'] = $now;
     $result = sahtout_sync_achievement_rewards($siteDb, $charDb, $accountId);
     $statResult = sahtout_sync_character_stat_rewards($siteDb, $charDb, $accountId);
+    $giftResult = sahtout_sync_token_gifts($siteDb, $charDb, $accountId);
 
-    $totalTokens = (int) ($result['tokens_added'] ?? 0) + (int) ($statResult['tokens_added'] ?? 0);
+    $totalTokens = (int) ($result['tokens_added'] ?? 0)
+        + (int) ($statResult['tokens_added'] ?? 0)
+        + (int) ($giftResult['tokens_added'] ?? 0);
     if ($totalTokens > 0) {
         $_SESSION['achievement_reward_notice'] = [
             'tokens_added' => $totalTokens,
             'granted' => $result['granted'] ?? [],
             'stat_granted' => $statResult['granted'] ?? [],
             'stat_tokens_added' => (int) ($statResult['tokens_added'] ?? 0),
+            'token_gift_granted' => $giftResult['granted'] ?? [],
+            'token_gift_tokens_added' => (int) ($giftResult['tokens_added'] ?? 0),
         ];
     }
 
     return [
-        'ok' => ($result['ok'] ?? false) && ($statResult['ok'] ?? false),
+        'ok' => ($result['ok'] ?? false) && ($statResult['ok'] ?? false) && ($giftResult['ok'] ?? false),
         'granted' => $result['granted'] ?? [],
         'tokens_added' => $totalTokens,
         'message' => $totalTokens > 0 ? 'granted' : ($result['message'] ?? 'none'),
         'stat_granted' => $statResult['granted'] ?? [],
+        'token_gift_granted' => $giftResult['granted'] ?? [],
     ];
 }
 
@@ -286,6 +293,15 @@ function sahtout_format_achievement_reward_notice(array $notice): string
         ]);
         if ($statText !== '') {
             $parts[] = $statText;
+        }
+    }
+
+    $giftGranted = $notice['token_gift_granted'] ?? [];
+    $giftTokens = (int) ($notice['token_gift_tokens_added'] ?? 0);
+    if ($giftTokens > 0 && $giftGranted !== []) {
+        $giftText = sahtout_format_token_gift_reward_notice($giftGranted, $giftTokens);
+        if ($giftText !== '') {
+            $parts[] = $giftText;
         }
     }
 

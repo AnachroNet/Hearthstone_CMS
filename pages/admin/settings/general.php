@@ -326,6 +326,51 @@ include $project_root . 'includes/header.php';
                                 </div>
                             </div>
 
+                            <!-- Shop / token gifts -->
+                            <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
+                                <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
+                                    <?php echo translate('label_shop_token_gifts', 'Token gift letters (shop)'); ?>
+                                </label>
+                                <label for="shop_token_gift_loot_ids" class="text-sm text-gray-300 block mb-1">
+                                    <?php echo translate('label_token_gift_loot_ids', 'Token Gift Loot IDs'); ?>
+                                </label>
+                                <input type="text"
+                                       name="shop_token_gift_loot_ids"
+                                       id="shop_token_gift_loot_ids"
+                                       class="w-full max-w-xl px-4 py-3 text-[0.95rem] text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none font-mono text-sm"
+                                       maxlength="500"
+                                       value="<?php echo htmlspecialchars(trim((string) ($sahtout_site_settings['shop.token_gift_loot_ids'] ?? '2276,2277,2278,2279,2280,2284'))); ?>">
+                                <div class="text-[#6a7a8a] text-xs mt-1 mb-3">
+                                    <?php echo translate('help_token_gift_loot_ids', 'Gameobject loot template Entry values (chest data1 / LootId) where published letter items may drop. Comma-separated.'); ?>
+                                </div>
+                                <div class="grid sm:grid-cols-2 gap-3 max-w-xl">
+                                    <div>
+                                        <label for="shop_token_gift_item_template_ref" class="text-xs text-gray-400 block mb-1">
+                                            <?php echo translate('label_token_gift_item_ref', 'Item clone reference (world entry)'); ?>
+                                        </label>
+                                        <input type="number" name="shop_token_gift_item_template_ref" id="shop_token_gift_item_template_ref" min="1" max="9999999"
+                                               class="w-full px-3 py-2 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm"
+                                               value="<?php echo (int) ($sahtout_site_settings['shop.token_gift_item_template_ref'] ?? 2223); ?>">
+                                    </div>
+                                    <div>
+                                        <label for="shop_token_gift_quest_template_ref" class="text-xs text-gray-400 block mb-1">
+                                            <?php echo translate('label_token_gift_quest_ref', 'Quest clone reference (world ID, 0 = auto)'); ?>
+                                        </label>
+                                        <input type="number" name="shop_token_gift_quest_template_ref" id="shop_token_gift_quest_template_ref" min="0" max="9999999"
+                                               class="w-full px-3 py-2 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm"
+                                               value="<?php echo (int) ($sahtout_site_settings['shop.token_gift_quest_template_ref'] ?? 123); ?>">
+                                    </div>
+                                    <div>
+                                        <label for="shop_token_gift_id_base" class="text-xs text-gray-400 block mb-1">
+                                            <?php echo translate('label_token_gift_id_base', 'Custom item/quest ID base'); ?>
+                                        </label>
+                                        <input type="number" name="shop_token_gift_id_base" id="shop_token_gift_id_base" min="100000" max="9999999"
+                                               class="w-full px-3 py-2 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm"
+                                               value="<?php echo (int) ($sahtout_site_settings['shop.token_gift_id_base'] ?? 9100000); ?>">
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Discord widget (home page) -->
                             <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
                                 <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">

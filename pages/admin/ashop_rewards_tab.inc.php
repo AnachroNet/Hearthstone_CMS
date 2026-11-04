@@ -17,6 +17,7 @@ if (!defined('ALLOWED_ACCESS')) {
 /** @var int $reward_total_items */
 /** @var int $rewards_per_page */
 /** @var string $rewards_subtab */
+/** @var bool $tokenGiftsReady */
 
 $rewardsSubtabPersist = ['tab' => 'rewards'];
 if ($reward_page > 1) {
@@ -27,6 +28,7 @@ sahtout_admin_render_subtab_nav(
         ['id' => 'configured', 'label' => translate('admin_rewards_subtab_configured', 'Configured Rewards'), 'icon' => 'fas fa-list'],
         ['id' => 'add', 'label' => translate('admin_rewards_subtab_add', 'Add Reward'), 'icon' => 'fas fa-plus'],
         ['id' => 'character', 'label' => translate('admin_rewards_subtab_character', 'Character Rewards'), 'icon' => 'fas fa-chart-line'],
+        ['id' => 'token_gifts', 'label' => translate('admin_rewards_subtab_token_gifts', 'Token Gifts'), 'icon' => 'fas fa-envelope'],
     ],
     $rewards_subtab,
     $base_path,
@@ -219,3 +221,7 @@ if (!$rewardsReady): ?>
 </div>
 
 <?php endif; ?>
+
+<div class="<?php echo sahtout_admin_subtab_panel_class('token_gifts', $rewards_subtab, 'space-y-4 md:space-y-6'); ?>">
+    <?php include __DIR__ . '/ashop_token_gifts_tab.inc.php'; ?>
+</div>
