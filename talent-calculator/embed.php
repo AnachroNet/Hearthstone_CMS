@@ -54,8 +54,11 @@ $esc_page_id = json_encode($tc_pageId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_Q
         }
         body.page-talent-calculator-embed .tc-embed-wrap {
             display: flex;
+            flex-direction: column;
             justify-content: center;
-            padding: 0.25rem 0 0.5rem;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 1.25rem 0.75rem 1.35rem;
         }
         body.page-talent-calculator-embed #replaceMeWithTalents {
             pointer-events: auto;
@@ -92,9 +95,12 @@ window.__tcMountId = 'replaceMeWithTalents';
 <script>
 (function () {
     function reportEmbedHeight() {
+        var wrap = document.querySelector('.tc-embed-wrap');
         var root = document.getElementById('replaceMeWithTalents');
         var h = 0;
-        if (root) {
+        if (wrap) {
+            h = Math.ceil(wrap.getBoundingClientRect().height);
+        } else if (root) {
             h = Math.ceil(root.getBoundingClientRect().height);
         }
         if (!h) {

@@ -256,3 +256,9 @@ body.page-talent-calculator #replaceMeWithTalents .tablebotleftleft {
     width: 4px;
     height: 40px;
 }
+
+/* Read-only iframe embed (character Talents tab) */
+body.page-talent-calculator-embed #tcTreeBlock {
+    padding-top: 0.5rem;
+    padding-bottom: 0.65rem;
+}
