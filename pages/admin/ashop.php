@@ -11,6 +11,7 @@ if (is_readable($ashopRewardsLang)) {
     }
 }
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/admin_table_alignment.php';
 require_once $project_root . 'includes/admin_achievement_rewards.php';
 require_once $project_root . 'includes/admin_shop_rewards_post.php';
 require_once $project_root . 'includes/admin_character_stat_rewards.php';
@@ -837,30 +838,7 @@ ob_start();
             background: rgba(30, 35, 45, 0.8);
         }
 
-        .wow-table th.align-right,
-        .wow-table td.align-right { text-align: right; }
-        .wow-table th.align-center,
-        .wow-table td.align-center { text-align: center; }
-        .wow-table th.col-num,
-        .wow-table td.col-num {
-            text-align: right;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-        }
-        .wow-table th.col-actions,
-        .wow-table td.actions-cell { text-align: right; vertical-align: middle; }
-        .wow-table .action-buttons {
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        .wow-table .action-buttons--stack {
-            flex-direction: column;
-            align-items: flex-end;
-            flex-wrap: nowrap;
-        }
+        <?php sahtout_admin_table_alignment_css(); ?>
 
         .category-badge {
             display: inline-block;
@@ -1275,13 +1253,13 @@ ob_start();
                             <table class="wow-table">
                                 <thead>
                                     <tr>
-                                        <th><?php echo translate('admin_shop_table_id', 'ID'); ?></th>
+                                        <th class="col-num"><?php echo translate('admin_shop_table_id', 'ID'); ?></th>
                                         <th><?php echo translate('admin_shop_table_category', 'Category'); ?></th>
                                         <th><?php echo translate('admin_shop_table_name', 'Name'); ?></th>
-                                        <th class="hidden sm:table-cell"><?php echo translate('admin_shop_table_tokens', 'Tokens'); ?></th>
-                                        <th class="hidden md:table-cell"><?php echo translate('admin_shop_table_stock', 'Stock'); ?></th>
-                                        <th class="hidden lg:table-cell"><?php echo translate('admin_shop_table_image', 'Image'); ?></th>
-                                        <th><?php echo translate('admin_shop_table_actions', 'Actions'); ?></th>
+                                        <th class="hidden sm:table-cell col-num"><?php echo translate('admin_shop_table_tokens', 'Tokens'); ?></th>
+                                        <th class="hidden md:table-cell col-num"><?php echo translate('admin_shop_table_stock', 'Stock'); ?></th>
+                                        <th class="hidden lg:table-cell align-center"><?php echo translate('admin_shop_table_image', 'Image'); ?></th>
+                                        <th class="col-actions align-right"><?php echo translate('admin_shop_table_actions', 'Actions'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1295,7 +1273,7 @@ ob_start();
                                     <?php else: ?>
                                         <?php foreach ($items as $row): ?>
                                             <tr>
-                                                <td class="text-sm md:text-base"><?php echo $row['item_id']; ?></td>
+                                                <td class="col-num text-sm md:text-base"><?php echo $row['item_id']; ?></td>
                                                 <td>
                                                     <span class="category-badge text-xs">
                                                         <?php echo translate('admin_shop_category_' . strtolower($row['category']), $row['category']); ?>
@@ -1313,17 +1291,17 @@ ob_start();
                                                         <br><small class="text-muted-wow"><?php echo translate('admin_shop_level_label', 'Level:') . ' +' . $row['level_boost']; ?></small>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td class="hidden sm:table-cell text-sm md:text-base"><?php echo $row['token_cost']; ?></td>
-                                                <td class="hidden md:table-cell text-sm md:text-base"><?php echo $row['stock'] ?? '∞'; ?></td>
-                                                <td class="hidden lg:table-cell">
+                                                <td class="hidden sm:table-cell col-num text-sm md:text-base"><?php echo $row['token_cost']; ?></td>
+                                                <td class="hidden md:table-cell col-num text-sm md:text-base"><?php echo $row['stock'] ?? '∞'; ?></td>
+                                                <td class="hidden lg:table-cell align-center">
                                                     <?php if ($row['image']): ?>
                                                         <img src="<?php echo htmlspecialchars($row['image']); ?>" alt="<?php echo translate('admin_shop_image_alt', 'Item Image'); ?>" class="max-w-[50px] max-h-[50px]">
                                                     <?php else: ?>
                                                         <span class="text-muted-wow text-xs"><?php echo translate('admin_shop_no_image', 'No Image'); ?></span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td>
-                                                    <div class="flex flex-wrap gap-1.5 md:gap-2">
+                                                <td class="actions-cell">
+                                                    <div class="action-buttons">
                                                         <button class="btn-game btn-edit-action text-xs py-1.5 px-2 md:px-3 edit-item" data-item='<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES); ?>'>
                                                             <i class="fas fa-edit"></i>
                                                             <span class="hidden sm:inline"><?php echo translate('admin_shop_edit_button', 'Edit'); ?></span>

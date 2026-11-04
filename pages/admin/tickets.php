@@ -437,13 +437,13 @@ $page_head = ob_get_clean();
                             <table class="table-dark min-w-[900px]">
                                 <thead>
                                     <tr>
-                                        <th><?php echo translate('admin_tickets_table_id', 'ID'); ?></th>
-                                        <th><?php echo translate('admin_tickets_table_status', 'Status'); ?></th>
+                                        <th class="col-num"><?php echo translate('admin_tickets_table_id', 'ID'); ?></th>
+                                        <th class="align-center"><?php echo translate('admin_tickets_table_status', 'Status'); ?></th>
                                         <th><?php echo translate('admin_tickets_table_character', 'Character'); ?></th>
                                         <th><?php echo translate('admin_tickets_table_account', 'Account'); ?></th>
                                         <th><?php echo translate('admin_tickets_assigned_to', 'Assigned To'); ?></th>
                                         <th><?php echo translate('admin_tickets_table_updated', 'Last updated'); ?></th>
-                                        <th><?php echo translate('admin_tickets_table_action', 'Action'); ?></th>
+                                        <th class="col-actions align-right"><?php echo translate('admin_tickets_table_action', 'Action'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -456,8 +456,8 @@ $page_head = ob_get_clean();
                                         }
                                     ?>
                                     <tr>
-                                        <td class="font-mono text-[#f2cf5b] whitespace-nowrap">#<?php echo (int) $ticket['id']; ?></td>
-                                        <td><?php echo sahtout_render_ticket_status_badge_html($ticket); ?></td>
+                                        <td class="col-num font-mono text-[#f2cf5b]">#<?php echo (int) $ticket['id']; ?></td>
+                                        <td class="align-center"><?php echo sahtout_render_ticket_status_badge_html($ticket); ?></td>
                                         <td>
                                             <?php if ($ticket['player_guid'] > 0): ?>
                                                 <a class="text-cyan-300 hover:text-white" href="<?php echo $base_path; ?>character?guid=<?php echo (int) $ticket['player_guid']; ?>&amp;return=<?php echo urlencode($listReturn); ?>">
@@ -481,8 +481,8 @@ $page_head = ob_get_clean();
                                         </td>
                                         <td class="text-gray-200"><?php echo htmlspecialchars($assignedLabel); ?></td>
                                         <td class="text-gray-400 text-xs whitespace-nowrap"><?php echo htmlspecialchars(sahtout_format_ticket_time($ticket['last_modified_time'])); ?></td>
-                                        <td>
-                                            <div class="flex flex-wrap gap-2">
+                                        <td class="actions-cell">
+                                            <div class="action-buttons">
                                                 <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="ticketModal-<?php echo (int) $ticket['id']; ?>">
                                                     <i class="fas fa-pen"></i> <?php echo translate('admin_tickets_update_button', 'Update'); ?>
                                                 </button>

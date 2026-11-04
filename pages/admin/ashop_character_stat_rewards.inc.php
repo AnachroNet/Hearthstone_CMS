@@ -51,7 +51,7 @@ if (!defined('ALLOWED_ACCESS')) {
                         <th><?php echo translate('admin_stat_rewards_col_type', 'Stat'); ?></th>
                         <th class="col-num"><?php echo translate('admin_stat_rewards_threshold', 'Threshold'); ?></th>
                         <th class="col-num"><?php echo translate('admin_stat_rewards_tokens', 'Tokens'); ?></th>
-                        <th><?php echo translate('admin_rewards_col_enabled', 'Enabled'); ?></th>
+                        <th class="align-center"><?php echo translate('admin_rewards_col_enabled', 'Enabled'); ?></th>
                         <th class="col-actions align-right"><?php echo translate('admin_rewards_col_actions', 'Actions'); ?></th>
                     </tr>
                 </thead>
@@ -74,8 +74,8 @@ if (!defined('ALLOWED_ACCESS')) {
                             <label class="sr-only" for="<?php echo htmlspecialchars($statUpdateFormId . '-tokens', ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('admin_stat_rewards_tokens', 'Tokens'); ?></label>
                             <input type="number" id="<?php echo htmlspecialchars($statUpdateFormId . '-tokens', ENT_QUOTES, 'UTF-8'); ?>" form="<?php echo htmlspecialchars($statUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" name="tokens" class="wow-input text-sm py-2 w-full max-w-[7rem] block" min="0" max="9999999" value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
                         </td>
-                        <td>
-                            <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer whitespace-nowrap">
+                        <td class="align-center">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-400 cursor-pointer whitespace-nowrap">
                                 <input type="checkbox" form="<?php echo htmlspecialchars($statUpdateFormId, ENT_QUOTES, 'UTF-8'); ?>" name="is_enabled" value="1" class="rounded border-gray-600 shrink-0" <?php echo $enabled ? 'checked' : ''; ?>>
                                 <?php echo translate('admin_rewards_enable_label', 'Enabled'); ?>
                             </label>

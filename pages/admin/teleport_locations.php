@@ -147,7 +147,7 @@ if ($flash !== '') {
                     <thead>
                         <tr>
                             <th><?php echo translate('admin_teleport_locations_col_name', 'Name'); ?></th>
-                            <th><?php echo translate('admin_teleport_locations_col_map', 'Map'); ?></th>
+                            <th class="col-num"><?php echo translate('admin_teleport_locations_col_map', 'Map'); ?></th>
                             <th><?php echo translate('admin_teleport_locations_col_coords', 'Coordinates'); ?></th>
                             <th class="col-num"><?php echo translate('admin_teleport_locations_col_sort', 'Order'); ?></th>
                             <th class="align-center"><?php echo translate('admin_teleport_locations_col_status', 'Status'); ?></th>
@@ -159,7 +159,7 @@ if ($flash !== '') {
                         <?php foreach ($allLocations as $row): ?>
                         <tr>
                             <td class="font-semibold text-white"><?php echo htmlspecialchars($row['name']); ?></td>
-                            <td><?php echo (int) $row['map']; ?></td>
+                            <td class="col-num"><?php echo (int) $row['map']; ?></td>
                             <td class="text-xs text-gray-400 font-mono">
                                 <?php echo number_format($row['position_x'], 2); ?>,
                                 <?php echo number_format($row['position_y'], 2); ?>,

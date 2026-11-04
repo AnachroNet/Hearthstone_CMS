@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_comp_item_ui.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
+require_once $project_root . 'includes/admin_table_alignment.php';
 
 $page_class = 'characters';
 
@@ -516,6 +517,7 @@ ob_start();
         .table-dark tr:hover td {
             background: rgba(30, 35, 45, 0.8);
         }
+        <?php sahtout_admin_table_alignment_css(); ?>
 
         .modal-backdrop {
             background: rgba(0, 0, 0, 0.85);
@@ -675,15 +677,15 @@ $page_head = ob_get_clean();
                             <table class="w-full table-dark">
                                 <thead>
                                     <tr>
-                                        <th><?php echo translate('admin_chars_table_char_id', 'ID'); ?></th>
+                                        <th class="col-num"><?php echo translate('admin_chars_table_char_id', 'ID'); ?></th>
                                         <th><?php echo translate('admin_chars_table_name', 'Name'); ?></th>
                                         <th class="hidden md:table-cell"><?php echo translate('admin_chars_table_username', 'Username'); ?></th>
-                                        <th><?php echo translate('admin_chars_table_race', 'Race'); ?></th>
-                                        <th><?php echo translate('admin_chars_table_class', 'Class'); ?></th>
+                                        <th class="align-center"><?php echo translate('admin_chars_table_race', 'Race'); ?></th>
+                                        <th class="align-center"><?php echo translate('admin_chars_table_class', 'Class'); ?></th>
                                         <th class="hidden lg:table-cell"><?php echo translate('admin_chars_table_map', 'Map'); ?></th>
-                                        <th><?php echo translate('admin_chars_table_level', 'Level'); ?></th>
-                                        <th><?php echo translate('admin_chars_table_online', 'Online'); ?></th>
-                                        <th><?php echo translate('admin_chars_table_action', 'Action'); ?></th>
+                                        <th class="col-num"><?php echo translate('admin_chars_table_level', 'Level'); ?></th>
+                                        <th class="align-center"><?php echo translate('admin_chars_table_online', 'Online'); ?></th>
+                                        <th class="col-actions align-right"><?php echo translate('admin_chars_table_action', 'Action'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -697,22 +699,24 @@ $page_head = ob_get_clean();
                                     <?php else: ?>
                                         <?php foreach ($characters as $char): ?>
                                             <tr>
-                                                <td class="text-sm md:text-base"><?php echo htmlspecialchars($char['guid']); ?></td>
+                                                <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($char['guid']); ?></td>
                                                 <td>
                                                     <a href="<?php echo $base_path; ?>character?guid=<?php echo (int) $char['guid']; ?>&amp;return=<?php echo urlencode($chars_list_return_url); ?>" class="char-name-link text-sm md:text-base">
                                                         <?php echo htmlspecialchars($char['name']); ?>
                                                     </a>
                                                 </td>
                                                 <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($char['username']); ?></td>
-                                                <td><?php echo getRaceIcon($char['race'], $char['gender']); ?></td>
-                                                <td><?php echo getClassIcon($char['class']); ?></td>
+                                                <td class="align-center"><?php echo getRaceIcon($char['race'], $char['gender']); ?></td>
+                                                <td class="align-center"><?php echo getClassIcon($char['class']); ?></td>
                                                 <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo htmlspecialchars(isset($map_names[$char['map']]) ? $map_names[$char['map']] : $char['map']); ?></td>
-                                                <td class="text-sm md:text-base"><?php echo htmlspecialchars($char['level']); ?></td>
-                                                <td><?php echo getOnlineStatus($char['online']); ?></td>
-                                                <td>
+                                                <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($char['level']); ?></td>
+                                                <td class="align-center"><?php echo getOnlineStatus($char['online']); ?></td>
+                                                <td class="actions-cell">
+                                                    <div class="action-buttons">
                                                     <button class="btn-iron btn-iron-sm" onclick="openModal('manageModal-<?php echo $char['guid']; ?>')">
                                                         <i class="fas fa-cog"></i> <?php echo translate('admin_chars_manage_button', 'Manage'); ?>
                                                     </button>
+                                                    </div>
                                                 </td>
                                             </tr>
 

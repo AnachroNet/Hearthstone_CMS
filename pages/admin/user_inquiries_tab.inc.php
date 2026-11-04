@@ -38,12 +38,12 @@ if (!defined('ALLOWED_ACCESS')) {
                     <table class="table-dark min-w-[800px]">
                         <thead>
                             <tr>
-                                <th><?php echo translate('admin_inquiries_col_id', 'ID'); ?></th>
+                                <th class="col-num"><?php echo translate('admin_inquiries_col_id', 'ID'); ?></th>
                                 <th><?php echo translate('admin_inquiries_col_account', 'Account'); ?></th>
                                 <th><?php echo translate('admin_inquiries_col_subject', 'Subject'); ?></th>
-                                <th><?php echo translate('admin_inquiries_col_status', 'Status'); ?></th>
+                                <th class="align-center"><?php echo translate('admin_inquiries_col_status', 'Status'); ?></th>
                                 <th><?php echo translate('admin_inquiries_col_created', 'Submitted'); ?></th>
-                                <th><?php echo translate('admin_inquiries_col_actions', 'Actions'); ?></th>
+                                <th class="col-actions align-right"><?php echo translate('admin_inquiries_col_actions', 'Actions'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -55,15 +55,17 @@ if (!defined('ALLOWED_ACCESS')) {
                                 $statusClass = sahtout_inquiry_status_css_class($status);
                                 ?>
                                 <tr>
-                                    <td>#<?php echo $inqId; ?></td>
+                                    <td class="col-num">#<?php echo $inqId; ?></td>
                                     <td><?php echo htmlspecialchars((string) $inq['account_username']); ?></td>
                                     <td class="max-w-[16rem] truncate" title="<?php echo htmlspecialchars((string) $inq['subject']); ?>"><?php echo htmlspecialchars((string) $inq['subject']); ?></td>
-                                    <td><span class="text-xs px-2 py-0.5 rounded border <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars(translate($statusKey, ucfirst($status))); ?></span></td>
+                                    <td class="align-center"><span class="text-xs px-2 py-0.5 rounded border <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars(translate($statusKey, ucfirst($status))); ?></span></td>
                                     <td class="whitespace-nowrap text-sm text-gray-400"><?php echo htmlspecialchars(sahtout_format_inquiry_time($inq['created_at'])); ?></td>
-                                    <td>
+                                    <td class="actions-cell">
+                                        <div class="action-buttons">
                                         <button type="button" class="btn-gold text-xs py-1 px-3 open-inquiry-modal-btn" data-modal="inquiryModal-<?php echo $inqId; ?>">
                                             <?php echo translate('admin_inquiries_view', 'View / reply'); ?>
                                         </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

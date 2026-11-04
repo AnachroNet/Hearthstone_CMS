@@ -7,6 +7,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
 require_once $project_root . 'includes/breaking_news.php';
 require_once $project_root . 'includes/news_helpers.php';
+require_once $project_root . 'includes/admin_table_alignment.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -481,24 +482,7 @@ ob_start();
             background: rgba(30, 35, 45, 0.8);
         }
 
-        .wow-table th.align-right,
-        .wow-table td.align-right { text-align: right; }
-        .wow-table th.align-center,
-        .wow-table td.align-center { text-align: center; }
-        .wow-table th.col-actions,
-        .wow-table td.actions-cell { text-align: right; vertical-align: middle; }
-        .wow-table .action-buttons {
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        .wow-table .action-buttons--stack {
-            flex-direction: column;
-            align-items: flex-end;
-            flex-wrap: nowrap;
-        }
+        <?php sahtout_admin_table_alignment_css(); ?>
 
         .category-badge {
             display: inline-block;
@@ -726,7 +710,7 @@ ob_start();
                                             <th><?php echo translate('admin_maintenance_col_message', 'Message'); ?></th>
                                             <th class="hidden md:table-cell"><?php echo translate('admin_maintenance_col_from', 'From'); ?></th>
                                             <th class="hidden md:table-cell"><?php echo translate('admin_maintenance_col_until', 'Until'); ?></th>
-                                            <th><?php echo translate('admin_maintenance_col_status', 'Status'); ?></th>
+                                            <th class="align-center"><?php echo translate('admin_maintenance_col_status', 'Status'); ?></th>
                                             <th class="hidden sm:table-cell"><?php echo translate('admin_maintenance_col_posted_by', 'Posted by'); ?></th>
                                             <th class="col-actions align-right"><?php echo translate('admin_news_table_actions', 'Actions'); ?></th>
                                         </tr>
@@ -745,7 +729,7 @@ ob_start();
                                                 <td class="max-w-xs"><?php echo htmlspecialchars((string) ($ann['message'] ?? '')); ?></td>
                                                 <td class="hidden md:table-cell whitespace-nowrap"><?php echo htmlspecialchars((string) ($ann['visible_from'] ?? '')); ?></td>
                                                 <td class="hidden md:table-cell whitespace-nowrap"><?php echo htmlspecialchars((string) ($ann['visible_until'] ?? '')); ?></td>
-                                                <td><?php echo htmlspecialchars($statusLabel); ?></td>
+                                                <td class="align-center"><?php echo htmlspecialchars($statusLabel); ?></td>
                                                 <td class="hidden sm:table-cell"><?php echo htmlspecialchars((string) ($ann['posted_by'] ?? '')); ?></td>
                                                 <td class="actions-cell">
                                                     <form method="POST" class="inline" onsubmit="return confirm(<?php echo json_encode(translate('admin_maintenance_delete_confirm', 'Delete this announcement?')); ?>);">
@@ -909,7 +893,7 @@ ob_start();
                             <table class="wow-table">
                                 <thead>
                                     <tr>
-                                        <th class="hidden sm:table-cell"><?php echo translate('admin_news_table_image', 'Image'); ?></th>
+                                        <th class="hidden sm:table-cell align-center"><?php echo translate('admin_news_table_image', 'Image'); ?></th>
                                         <th><?php echo translate('admin_news_table_title', 'Title'); ?></th>
                                         <th class="hidden md:table-cell"><?php echo translate('admin_news_table_category', 'Category'); ?></th>
                                         <th class="hidden lg:table-cell"><?php echo translate('admin_news_table_posted_by', 'Posted By'); ?></th>
@@ -933,7 +917,7 @@ ob_start();
                                             $colors = $category_colors[$category] ?? $category_colors['other'];
                                             ?>
                                             <tr>
-                                                <td class="hidden sm:table-cell">
+                                                <td class="hidden sm:table-cell align-center">
                                                     <img src="<?php echo htmlspecialchars(adminNewsImageSrc($news['image_url'] ?? $default_image_url)); ?>" alt="<?php echo htmlspecialchars($news['title']); ?>" class="news-thumb">
                                                 </td>
                                                 <td class="font-semibold text-white text-sm md:text-base">

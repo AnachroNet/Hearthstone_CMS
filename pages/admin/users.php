@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/playerbot_accounts.php';
 require_once $project_root . 'includes/account_admin_actions.php';
+require_once $project_root . 'includes/admin_table_alignment.php';
 
 $page_class = 'users';
 define('DB_AUTH', $db_auth_name);
@@ -638,15 +639,7 @@ ob_start();
             background: rgba(22, 25, 32, 0.6);
             vertical-align: middle;
         }
-        .table-dark td.actions-cell {
-            white-space: nowrap;
-        }
-        .table-dark .action-buttons {
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            align-items: center;
-        }
+        <?php sahtout_admin_table_alignment_css(); ?>
         .table-dark tr:hover td {
             background: rgba(30, 35, 45, 0.8);
         }
@@ -859,14 +852,14 @@ ob_start();
                                 <table class="w-full table-dark">
                                     <thead>
                                         <tr>
-                                            <th><?php echo translate('admin_users_table_account_id', 'ID'); ?></th>
+                                            <th class="col-num"><?php echo translate('admin_users_table_account_id', 'ID'); ?></th>
                                             <th><?php echo translate('admin_users_table_username', 'Username'); ?></th>
                                             <th class="hidden md:table-cell"><?php echo translate('admin_users_table_email', 'Email'); ?></th>
-                                            <th><?php echo translate('admin_users_table_avatar', 'Avatar'); ?></th>
-                                            <th><?php echo translate('admin_users_table_tokens', 'Tokens'); ?></th>
+                                            <th class="align-center"><?php echo translate('admin_users_table_avatar', 'Avatar'); ?></th>
+                                            <th class="col-num"><?php echo translate('admin_users_table_tokens', 'Tokens'); ?></th>
                                             <th><?php echo translate('admin_users_table_role', 'Role'); ?></th>
                                             <th class="hidden lg:table-cell"><?php echo translate('admin_users_table_last_updated', 'Updated'); ?></th>
-                                            <th><?php echo translate('admin_users_table_action', 'Action'); ?></th>
+                                            <th class="col-actions align-right"><?php echo translate('admin_users_table_action', 'Action'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -880,13 +873,13 @@ ob_start();
                                         <?php else: ?>
                                             <?php while ($user = $users_result->fetch_assoc()): ?>
                                                 <tr id="user-<?php echo $user['account_id']; ?>">
-                                                    <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['account_id']); ?></td>
+                                                    <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($user['account_id']); ?></td>
                                                     <td class="font-semibold text-white text-sm md:text-base"><?php echo htmlspecialchars($user['username']); ?></td>
                                                     <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($user['email'] ?? translate('admin_users_email_not_set', 'Not set')); ?></td>
-                                                    <td>
+                                                    <td class="align-center">
                                                         <img src="<?php echo $base_path . 'img/accountimg/profile_pics/' . (!empty($user['avatar']) ? htmlspecialchars($user['avatar']) : 'user.jpg'); ?>" class="avatar-img" alt="<?php echo translate('admin_users_avatar_alt', 'Avatar'); ?>">
                                                     </td>
-                                                    <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
+                                                    <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                     <td><span class="status-<?php echo htmlspecialchars($user['role']); ?> text-sm md:text-base"><?php echo ucfirst(translate('admin_users_role_' . $user['role'], ucfirst($user['role']))); ?></span></td>
                                                     <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $user['last_updated'] ? date('M j, Y', strtotime($user['last_updated'])) : translate('admin_users_never', 'Never'); ?></td>
                                                     <td class="actions-cell">
@@ -942,22 +935,21 @@ ob_start();
                                 <table class="w-full table-dark">
                                     <thead>
                                         <tr>
-                                            <th><?php echo translate('admin_users_table_account_id', 'ID'); ?></th>
+                                            <th class="col-num"><?php echo translate('admin_users_table_account_id', 'ID'); ?></th>
                                             <th><?php echo translate('admin_users_table_username', 'Username'); ?></th>
-                                            <th class="hidden md:table-cell"><?php echo translate('admin_users_table_email', 'Email'); ?></th>
                                             <th class="hidden lg:table-cell"><?php echo translate('admin_users_table_join_date', 'Joined'); ?></th>
                                             <th class="hidden xl:table-cell"><?php echo translate('admin_users_table_last_login', 'Last Login'); ?></th>
-                                            <th><?php echo translate('admin_users_table_online', 'Online'); ?></th>
-                                            <th><?php echo translate('admin_users_table_ban_status', 'Status'); ?></th>
-                                            <th><?php echo translate('admin_users_table_gm_level', 'GM Level'); ?></th>
-                                            <th><?php echo translate('admin_users_table_characters', 'Chars'); ?></th>
-                                            <th><?php echo translate('admin_users_table_action', 'Action'); ?></th>
+                                            <th class="align-center"><?php echo translate('admin_users_table_online', 'Online'); ?></th>
+                                            <th class="align-center"><?php echo translate('admin_users_table_ban_status', 'Status'); ?></th>
+                                            <th class="col-num"><?php echo translate('admin_users_table_gm_level', 'GM Level'); ?></th>
+                                            <th class="align-center"><?php echo translate('admin_users_table_characters', 'Chars'); ?></th>
+                                            <th class="col-actions align-right"><?php echo translate('admin_users_table_action', 'Action'); ?></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php if (empty($accounts)): ?>
                                             <tr>
-                                                <td colspan="10" class="text-center text-gray-400 py-6 md:py-8">
+                                                <td colspan="9" class="text-center text-gray-400 py-6 md:py-8">
                                                     <i class="fas fa-database text-2xl md:text-3xl text-gray-600 block mb-2"></i>
                                                     <?php echo translate('admin_users_no_accounts_found', 'No accounts found.'); ?>
                                                 </td>
@@ -965,15 +957,14 @@ ob_start();
                                         <?php else: ?>
                                             <?php foreach ($accounts as $account): ?>
                                                 <tr>
-                                                    <td class="text-sm md:text-base"><?php echo htmlspecialchars($account['id']); ?></td>
+                                                    <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($account['id']); ?></td>
                                                     <td class="font-semibold text-white text-sm md:text-base"><?php echo htmlspecialchars($account['username']); ?></td>
-                                                    <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($account['email'] ?? translate('admin_users_email_not_set', 'Not set')); ?></td>
                                                     <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $account['joindate'] ? date('M j, Y', strtotime($account['joindate'])) : translate('admin_users_na', 'N/A'); ?></td>
                                                     <td class="hidden xl:table-cell text-sm text-gray-400"><?php echo $account['last_login'] ? date('M j, Y', strtotime($account['last_login'])) : translate('admin_users_never', 'Never'); ?></td>
-                                                    <td><?php echo getOnlineStatus($account['online']); ?></td>
-                                                    <td><?php echo getAccountStatus($account['banInfo'] ?? [], $account['locked'] ?? 0); ?></td>
-                                                    <td><?php echo getGMLevel($account['gmlevel'] ?? null); ?></td>
-                                                    <td>
+                                                    <td class="align-center"><?php echo getOnlineStatus($account['online']); ?></td>
+                                                    <td class="align-center"><?php echo getAccountStatus($account['banInfo'] ?? [], $account['locked'] ?? 0); ?></td>
+                                                    <td class="col-num"><?php echo getGMLevel($account['gmlevel'] ?? null); ?></td>
+                                                    <td class="align-center">
                                                         <?php if (!empty($account['characters'])): ?>
                                                             <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="charsModal-<?php echo $account['id']; ?>">
                                                                 <i class="fas fa-users"></i> <?php echo count($account['characters']); ?>

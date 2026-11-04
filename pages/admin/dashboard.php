@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/playerbot_accounts.php';
 require_once $project_root . 'includes/account_gm_tickets.php';
+require_once $project_root . 'includes/admin_table_alignment.php';
 
 $page_class = 'dashboard';
 define('DB_AUTH', $db_auth_name);
@@ -319,6 +320,7 @@ ob_start();
         .table-dark tr:hover td {
             background: rgba(30, 35, 45, 0.8);
         }
+        <?php sahtout_admin_table_alignment_css(); ?>
 
         .realm-wrapper {
             font-size: 1.05rem !important;
@@ -586,10 +588,10 @@ ob_start();
                                     <tr>
                                         <th><?php echo translate('admin_dashboard_table_username', 'Username'); ?></th>
                                         <th class="hidden md:table-cell"><?php echo translate('admin_dashboard_table_email', 'Email'); ?></th>
-                                        <th><?php echo translate('admin_dashboard_table_tokens', 'Tokens'); ?></th>
+                                        <th class="col-num"><?php echo translate('admin_dashboard_table_tokens', 'Tokens'); ?></th>
                                         <th><?php echo translate('admin_dashboard_table_role', 'Role'); ?></th>
-                                        <th class="hidden lg:table-cell"><?php echo translate('admin_dashboard_table_online', 'Online'); ?></th>
-                                        <th class="hidden xl:table-cell"><?php echo translate('admin_dashboard_table_ban_status', 'Ban Status'); ?></th>
+                                        <th class="hidden lg:table-cell align-center"><?php echo translate('admin_dashboard_table_online', 'Online'); ?></th>
+                                        <th class="hidden xl:table-cell align-center"><?php echo translate('admin_dashboard_table_ban_status', 'Ban Status'); ?></th>
                                         <th class="hidden 2xl:table-cell"><?php echo translate('admin_dashboard_table_last_updated', 'Updated'); ?></th>
                                     </tr>
                                 </thead>
@@ -606,10 +608,10 @@ ob_start();
                                             <tr>
                                                 <td class="font-semibold text-white text-sm md:text-base"><?php echo htmlspecialchars($user['username']); ?></td>
                                                 <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($user['email'] ?? translate('admin_dashboard_email_not_set', 'Not set')); ?></td>
-                                                <td class="text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
+                                                <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                 <td><span class="status-<?php echo htmlspecialchars($user['role']); ?> text-sm md:text-base"><?php echo ucfirst(translate('admin_dashboard_role_' . $user['role'], ucfirst($user['role']))); ?></span></td>
-                                                <td class="hidden lg:table-cell"><?php echo getOnlineStatus($user['online'] ?? 0); ?></td>
-                                                <td class="hidden xl:table-cell text-sm"><?php echo getAccountStatus($user['locked'] ?? 0, $user['banInfo'] ?? []); ?></td>
+                                                <td class="hidden lg:table-cell align-center"><?php echo getOnlineStatus($user['online'] ?? 0); ?></td>
+                                                <td class="hidden xl:table-cell align-center text-sm"><?php echo getAccountStatus($user['locked'] ?? 0, $user['banInfo'] ?? []); ?></td>
                                                 <td class="hidden 2xl:table-cell text-sm text-gray-400"><?php echo $user['last_updated'] ? date('M j, Y', strtotime($user['last_updated'])) : translate('admin_dashboard_never', 'Never'); ?></td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -630,12 +632,12 @@ ob_start();
                             <table class="w-full table-dark">
                                 <thead>
                                     <tr>
-                                        <th><?php echo translate('admin_dashboard_table_account_id', 'ID'); ?></th>
+                                        <th class="col-num"><?php echo translate('admin_dashboard_table_account_id', 'ID'); ?></th>
                                         <th><?php echo translate('admin_dashboard_table_username', 'Username'); ?></th>
                                         <th class="hidden md:table-cell"><?php echo translate('admin_dashboard_table_ban_reason', 'Reason'); ?></th>
                                         <th class="hidden sm:table-cell"><?php echo translate('admin_dashboard_table_ban_date', 'Ban Date'); ?></th>
                                         <th class="hidden lg:table-cell"><?php echo translate('admin_dashboard_table_unban_date', 'Unban Date'); ?></th>
-                                        <th><?php echo translate('admin_dashboard_table_action', 'Action'); ?></th>
+                                        <th class="col-actions align-right"><?php echo translate('admin_dashboard_table_action', 'Action'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -649,15 +651,17 @@ ob_start();
                                     <?php else: ?>
                                         <?php while ($ban = $bans_result->fetch_assoc()): ?>
                                             <tr>
-                                                <td class="text-sm md:text-base"><?php echo htmlspecialchars($ban['id']); ?></td>
+                                                <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($ban['id']); ?></td>
                                                 <td class="font-semibold text-white text-sm md:text-base"><?php echo htmlspecialchars($ban['username']); ?></td>
                                                 <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($ban['banreason'] ?? translate('admin_dashboard_no_reason_provided', 'No reason provided')); ?></td>
                                                 <td class="hidden sm:table-cell text-sm text-gray-400"><?php echo $ban['bandate'] ? date('M j, Y', strtotime($ban['bandate'])) : translate('admin_dashboard_na', 'N/A'); ?></td>
                                                 <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo $ban['unbandate'] ? date('M j, Y', strtotime($ban['unbandate'])) : translate('admin_dashboard_permanent', 'Permanent'); ?></td>
-                                                <td>
+                                                <td class="actions-cell">
+                                                    <div class="action-buttons">
                                                     <a href="<?php echo $base_path; ?>admin/users#user-<?php echo $ban['id']; ?>" class="btn-iron text-xs py-1.5 px-2 md:py-2 md:px-3">
                                                         <i class="fas fa-user-cog"></i> <span class="hidden sm:inline"><?php echo translate('admin_dashboard_manage_button', 'Manage'); ?></span>
                                                     </a>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         <?php endwhile; ?>
