@@ -49,14 +49,14 @@ ob_start();
             -webkit-backdrop-filter: blur(8px);
             border: 1px solid rgba(201,162,39,.22);
             border-radius: 0;
-            padding: 1.75rem 1.25rem;
+            padding: 2.5rem 2.5rem;
             box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(0,0,0,.25);
             position: relative;
         }
 
-        @media (min-width: 640px) {
+        @media (max-width: 767px) {
             .events-content .glass-container {
-                padding: 2rem 2rem;
+                padding: 1.5rem 0.75rem;
             }
         }
 
@@ -125,8 +125,8 @@ $page_head = ob_get_clean();
 include $project_root . 'includes/header.php';
 ?>
 
-<div class="events-content min-h-screen flex items-start justify-center px-4 md:px-8 py-6 md:py-10">
-    <div class="container mx-auto w-full max-w-4xl px-2 sm:px-4">
+<div class="events-content min-h-screen flex items-start justify-center px-4 md:px-8 py-8">
+    <div class="container mx-auto max-w-7xl px-2 sm:px-4">
         <?php if (empty($event_cal['show'])): ?>
             <div class="glass-container text-center text-gray-300">
                 <?php echo translate('events_calendar_unavailable', 'The event calendar is not available yet. Import holiday DBC data into the site database.'); ?>
