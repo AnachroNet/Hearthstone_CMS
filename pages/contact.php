@@ -84,6 +84,40 @@ ob_start();
             box-shadow: 0 0 0 1px rgba(242,207,82,.25);
         }
         textarea.contact-input { min-height: 10rem; resize: vertical; }
+
+        .contact-content .wow-title {
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            background: linear-gradient(180deg, #fff7d6 0%, #f2cf5b 35%, #c9a227 62%, #8a6a14 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.9));
+            letter-spacing: 0.02em;
+        }
+
+        .contact-content .btn-gold {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            transition: transform 0.2s ease, filter 0.2s ease;
+            background: linear-gradient(180deg, #f6d478 0%, #c9a227 48%, #8a6a14 100%) !important;
+            color: #1a1200 !important;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), inset 0 -8px 14px rgba(0, 0, 0, 0.25);
+            border: none;
+            cursor: pointer;
+        }
+        .contact-content .btn-gold:hover {
+            transform: translateY(-2px) scale(1.02);
+            filter: drop-shadow(0 0 12px rgba(242, 207, 82, 0.5));
+        }
 </style>
 <?php
 $page_head = ob_get_clean();

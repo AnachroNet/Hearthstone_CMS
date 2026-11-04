@@ -13,7 +13,7 @@ return [
     'home_support_title' => 'Maintenance Status',
     'home_support_desc' => 'Click the ? (Help) icon on the in-game action bar (with Quest Log, Talents, and the rest) to contact staff. Log in here to view status and replies.',
     'home_support_cta_login' => 'Log in to view tickets',
-    'home_support_cta_account' => 'View My Support Tickets',
+    'home_support_cta_account' => 'View My Support Requests',
     'home_realm_status_error' => 'Error: Realm status unavailable.',
     'home_server_status' => 'Server Status',
     'home_breaking_news_aria' => 'Breaking news',

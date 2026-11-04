@@ -535,7 +535,7 @@ if ($home_calendar_enabled) {
                         <div class="home-section-cta mt-0">
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <a href="<?php echo $base_path; ?>account?tab=tickets" class="btn-game btn-gold">
-                                <?php echo translate('home_support_cta_account', 'View My Support Tickets'); ?>
+                                <?php echo translate('home_support_cta_account', 'View My Support Requests'); ?>
                             </a>
                         <?php else: ?>
                             <a href="<?php echo $base_path; ?>login" class="btn-game btn-gold">
