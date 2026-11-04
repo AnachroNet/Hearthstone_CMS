@@ -140,7 +140,7 @@ for (var printTreeID = 0; printTreeID < numberOfTrees; printTreeID++) {
 
 						//massiveReplaceString += '<div style = "width: 300px; height: 1px;"></div>';							
 
-						if (variableIsSite)	{
+						if (variableIsSite && !window.__tcEmbedReadOnly)	{
 						//description next
 							massiveReplaceString += '<table border = "0" cellpadding = "0" cellspacing = "0" width = "100%" height = "0"><tr><td width = "50%"><br><span style = "color: #1eff00; font-size: 12px;">'+ textLeftClick +'</span></td><td width = "50%" align = "right"><br><span style = "color: #ff4040; font-size: 12px;">'+ textRightClick +'</span></td></tr></table>';	
 					}
@@ -150,7 +150,11 @@ for (var printTreeID = 0; printTreeID < numberOfTrees; printTreeID++) {
 						/*if (is_ie4up)
 							massiveReplaceString += '<div style = "z-index: 99999; position: relative; cursor:pointer;"><div style = "top: -2px; left: -2px; position: absolute;"><img src = "'+ pixelGif +'" width = "50" height = "50" border = "0" onDblClick = "rankTopOnClick('+ i +');" onClick = "rankTopOnClick('+ i +');" onMouseOver = "unhideTalent('+ i +');" onMouseOut = "hideTalent('+ i +');" onContextMenu = "rankTopOnRightClick('+ i +'); return false;" /></div></div>';
 						else*/
-						massiveReplaceString += '<div style = "z-index: 99999; position: relative; cursor:pointer;"><div style = "top: -2px; left: -2px; position: absolute;"><img src = "'+ pixelGif +'" width = "50" height = "50" border = "0" onClick = "rankTopOnClick('+ i +');" onMouseOver = "unhideTalent('+ i +');" onMouseOut = "hideTalent('+ i +');" onContextMenu = "rankTopOnRightClick('+ i +'); return false;" /></div></div>';
+						var tcPointerStyle = window.__tcEmbedReadOnly ? 'cursor:default;' : 'cursor:pointer;';
+						var tcPixelEvents = window.__tcEmbedReadOnly
+							? ' onMouseOver = "unhideTalent('+ i +');" onMouseOut = "hideTalent('+ i +');" '
+							: ' onClick = "rankTopOnClick('+ i +');" onMouseOver = "unhideTalent('+ i +');" onMouseOut = "hideTalent('+ i +');" onContextMenu = "rankTopOnRightClick('+ i +'); return false;" ';
+						massiveReplaceString += '<div style = "z-index: 99999; position: relative; '+ tcPointerStyle +'"><div style = "top: -2px; left: -2px; position: absolute;"><img src = "'+ pixelGif +'" width = "50" height = "50" border = "0"'+ tcPixelEvents +' /></div></div>';
 						
 						massiveReplaceString += '<div style = "z-index: 50; position: relative;"><div style = "top: -2px; left: -2px; position: absolute;"><img src = "'+ imgPath +'/images/talents/'+ imgDir +'icon-over-grey.png" border = "0" /></div></div>';
 

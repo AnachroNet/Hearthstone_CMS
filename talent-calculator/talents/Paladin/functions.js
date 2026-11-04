@@ -272,6 +272,9 @@ function checkRequiredTalent(talentID) {
 
 function rankTopOnClick(talentID) {
 	
+	if (window.__tcEmbedReadOnly)
+		return false;
+
 	if (!variableIsSite)
 		return false;
 	
@@ -351,6 +354,9 @@ function changeCopyURL(){
 }
 
 function rankTopOnRightClick(talentID) {
+
+	if (window.__tcEmbedReadOnly)
+		return false;
 
 	if (!variableIsSite)
 		return false;

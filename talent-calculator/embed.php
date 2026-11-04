@@ -58,7 +58,11 @@ $esc_page_id = json_encode($tc_pageId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_Q
             padding: 0.25rem 0 0.5rem;
         }
         body.page-talent-calculator-embed #replaceMeWithTalents {
-            pointer-events: none;
+            pointer-events: auto;
+        }
+        body.page-talent-calculator-embed #talentMouseOver0,
+        body.page-talent-calculator-embed [id^="talentMouseOver"] {
+            z-index: 200000;
         }
     </style>
 </head>
