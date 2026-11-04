@@ -1697,6 +1697,7 @@ ob_start();
         const addBtn = document.getElementById('addRewardBtn');
         const typeSelect = document.getElementById('milestone_type');
         const valueWrap = document.getElementById('milestoneValueWrap');
+        const typeWrap = document.getElementById('milestoneTypeWrap');
         const dungeonWrap = document.getElementById('dungeonNameWrap');
         if (!typeSelect || !addBtn) return;
 
@@ -1707,6 +1708,9 @@ ob_start();
             const needsValue = t === 'level' || t === 'quest_count';
             if (valueWrap) {
                 valueWrap.classList.toggle('hidden', !needsValue);
+            }
+            if (typeWrap) {
+                typeWrap.classList.toggle('md:col-span-2', !needsValue);
             }
             if (dungeonWrap) {
                 dungeonWrap.classList.toggle('hidden', t !== 'dungeon');

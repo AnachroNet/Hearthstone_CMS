@@ -41,8 +41,9 @@ if (!defined('ALLOWED_ACCESS')) {
         <input type="hidden" name="action" value="add">
         <input type="hidden" name="achievement_id" id="achievement_id" value="0">
 
+        <div id="achievementRewardFields" class="space-y-4">
         <div class="grid md:grid-cols-2 gap-4">
-            <div>
+            <div id="milestoneTypeWrap">
                 <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="milestone_type"><?php echo translate('admin_rewards_col_type', 'Milestone type'); ?></label>
                 <select name="milestone_type" id="milestone_type" class="wow-input" required>
                     <option value="level"><?php echo htmlspecialchars($milestoneLabels['level']); ?></option>
@@ -51,10 +52,6 @@ if (!defined('ALLOWED_ACCESS')) {
                     <option value="other"><?php echo htmlspecialchars($milestoneLabels['manual']); ?></option>
                 </select>
             </div>
-        </div>
-
-        <div id="achievementRewardFields" class="space-y-4">
-        <div class="grid md:grid-cols-2 gap-4">
             <div id="milestoneValueWrap">
                 <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="milestone_value"><?php echo translate('admin_rewards_milestone_value', 'Level or quest count'); ?></label>
                 <input type="number" min="1" max="999999" name="milestone_value" id="milestone_value" class="wow-input" placeholder="80">
