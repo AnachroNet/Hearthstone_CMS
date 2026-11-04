@@ -18,6 +18,7 @@ require_once $project_root . 'includes/admin_achievement_rewards.php';
 require_once $project_root . 'includes/admin_shop_rewards_post.php';
 require_once $project_root . 'includes/admin_character_stat_rewards.php';
 require_once $project_root . 'includes/admin_character_stat_rewards_post.php';
+require_once $project_root . 'includes/itemset_dbc.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -106,6 +107,10 @@ if ($stmt->execute()) {
     }
 }
 $stmt->close();
+
+$itemset_dbc_db = sahtout_itemset_dbc_db();
+$itemset_dbc_ready = $itemset_dbc_db !== null;
+$itemset_dbc_options = $itemset_dbc_ready ? sahtout_itemset_dbc_admin_options($itemset_dbc_db) : [];
 
 // CSRF token is generated centrally in includes/session.php
 
@@ -354,14 +359,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                         exit;
                     }
 
-                    $sql = "SELECT COUNT(*) FROM site_items WHERE itemset = ?";
-                    $stmt = $site_db->prepare($sql);
-                    $stmt->bind_param("i", $itemset_id);
-                    $stmt->execute();
-                    $stmt->bind_result($count);
-                    $stmt->fetch();
-                    $stmt->close();
-                    if ($count == 0) {
+                    $itemsetValid = false;
+                    if ($itemset_dbc_ready && $itemset_dbc_db instanceof mysqli) {
+                        $itemsetValid = sahtout_itemset_dbc_is_valid($itemset_dbc_db, $itemset_id);
+                    } else {
+                        $sql = "SELECT COUNT(*) FROM site_items WHERE itemset = ?";
+                        $stmt = $site_db->prepare($sql);
+                        $stmt->bind_param("i", $itemset_id);
+                        $stmt->execute();
+                        $stmt->bind_result($count);
+                        $stmt->fetch();
+                        $stmt->close();
+                        $itemsetValid = ((int) $count) > 0;
+                    }
+                    if (!$itemsetValid) {
                         header('Location: ' . $ashop_build_inventory_url($base_path, $page, $category_filter, $search_query, 'edit', 'error', translate('admin_shop_invalid_itemset_id', 'Invalid item set ID')));
                         exit;
                     }
@@ -685,6 +696,7 @@ if ($reward_page > 1 && $rewards_subtab === 'configured') {
 }
 $rewardsFormAction = htmlspecialchars($base_path . 'admin/ashop?' . http_build_query($rewardsTabQuery), ENT_QUOTES, 'UTF-8');
 $rewardsSearchUrl = htmlspecialchars($base_path . 'admin/achievement_search', ENT_QUOTES, 'UTF-8');
+$itemsetLookupUrl = htmlspecialchars($base_path . 'admin/itemset_lookup', ENT_QUOTES, 'UTF-8');
 $rewardsStatusFlash = sahtout_admin_shop_rewards_status_flash_from_get();
 $statStatusFlash = sahtout_admin_shop_stat_rewards_status_flash_from_get();
 $primaryRewardsFlash = $rewards_flash !== '' ? $rewards_flash : ($rewardsStatusFlash !== '' ? $rewardsStatusFlash : $statStatusFlash);
@@ -1349,10 +1361,24 @@ ob_start();
                                     </select>
                                 </div>
 
-                                <!-- Itemset ID -->
+                                <!-- Item set (DBC catalog or manual ID) -->
                                 <div class="field-group" id="itemset-group">
-                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_itemset_id', 'Item Set ID'); ?></label>
-                                    <input type="number" name="itemset_id" id="itemset_id" class="wow-input" min="1" placeholder="<?php echo translate('admin_shop_placeholder_itemset_id', 'Enter AzerothCore itemset ID'); ?>">
+                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="itemset_id"><?php echo translate('admin_shop_label_itemset', 'Item Set'); ?></label>
+                                    <?php if ($itemset_dbc_ready): ?>
+                                        <input type="search" id="itemset_filter" class="wow-input mb-2" autocomplete="off" placeholder="<?php echo translate('admin_shop_placeholder_itemset_filter', 'Filter sets by name or ID…'); ?>">
+                                        <select name="itemset_id" id="itemset_id" class="wow-select">
+                                            <option value=""><?php echo translate('admin_shop_select_itemset', 'Select item set'); ?></option>
+                                            <?php foreach ($itemset_dbc_options as $opt): ?>
+                                                <option value="<?php echo (int) $opt['id']; ?>" data-label="<?php echo htmlspecialchars(strtolower($opt['name'] . ' ' . $opt['id']), ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <?php echo htmlspecialchars('#' . $opt['id'] . ' — ' . $opt['name'] . ' (' . (int) $opt['item_count'] . ' ' . translate('admin_shop_itemset_pieces', 'pieces') . ')', ENT_QUOTES, 'UTF-8'); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <p class="text-xs text-gray-500 mt-1"><?php echo translate('admin_shop_itemset_dbc_hint', 'Sets and piece list come from itemset_dbc (world database).'); ?></p>
+                                    <?php else: ?>
+                                        <input type="number" name="itemset_id" id="itemset_id" class="wow-input" min="1" placeholder="<?php echo translate('admin_shop_placeholder_itemset_id', 'Enter AzerothCore itemset ID'); ?>">
+                                        <p class="text-xs text-gray-500 mt-1"><?php echo translate('admin_shop_itemset_fallback_hint', 'itemset_dbc was not found; preview uses site_items grouped by itemset.'); ?></p>
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Gold Amount -->
@@ -1502,9 +1528,13 @@ ob_start();
             const entrySelect = document.getElementById('entry');
             const isItemSelect = document.getElementById('is_item');
             const itemsetInput = document.getElementById('itemset_id');
+            const itemsetFilterInput = document.getElementById('itemset_filter');
             const itemsetPreviewEmpty = document.getElementById('itemset_preview_empty');
             const itemsetPreviewList = document.getElementById('itemset_preview_list');
             const itemsetPreviewData = <?php echo json_encode($site_itemsets, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+            const itemsetUseDbcLookup = <?php echo $itemset_dbc_ready ? 'true' : 'false'; ?>;
+            const itemsetLookupUrl = <?php echo json_encode($itemsetLookupUrl); ?>;
+            let itemsetPreviewRequest = 0;
 
             // Field groups configuration
             const fieldGroups = {
@@ -1518,10 +1548,25 @@ ob_start();
                 'itemset-preview-group': ['Set']
             };
 
+            function paintItemsetPreviewList(setItems) {
+                itemsetPreviewList.innerHTML = '';
+                if (!setItems || setItems.length === 0) {
+                    itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_empty', 'No items were found for this item set ID.')); ?>;
+                    itemsetPreviewEmpty.classList.remove('hidden');
+                    return;
+                }
+                itemsetPreviewEmpty.classList.add('hidden');
+                setItems.forEach(item => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${item.entry} - ${item.name}`;
+                    itemsetPreviewList.appendChild(listItem);
+                });
+            }
+
             function renderItemsetPreview() {
                 const category = categorySelect.value;
                 const isSet = category === 'Set';
-                const rawSetId = itemsetInput.value.trim();
+                const rawSetId = itemsetInput ? itemsetInput.value.trim() : '';
 
                 itemsetPreviewList.innerHTML = '';
 
@@ -1532,23 +1577,66 @@ ob_start();
                 }
 
                 if (!rawSetId) {
-                    itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_hint', 'Enter an item set ID to preview its items.')); ?>;
+                    itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_hint', 'Select or enter an item set to preview its items.')); ?>;
                     itemsetPreviewEmpty.classList.remove('hidden');
+                    return;
+                }
+
+                if (itemsetUseDbcLookup) {
+                    const reqId = ++itemsetPreviewRequest;
+                    itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_loading', 'Loading set items…')); ?>;
+                    itemsetPreviewEmpty.classList.remove('hidden');
+                    fetch(itemsetLookupUrl + '?id=' + encodeURIComponent(rawSetId), { credentials: 'same-origin' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (reqId !== itemsetPreviewRequest) {
+                                return;
+                            }
+                            if (!data.ok || !data.set || !data.set.items) {
+                                paintItemsetPreviewList([]);
+                                return;
+                            }
+                            paintItemsetPreviewList(data.set.items);
+                        })
+                        .catch(() => {
+                            if (reqId !== itemsetPreviewRequest) {
+                                return;
+                            }
+                            paintItemsetPreviewList([]);
+                        });
                     return;
                 }
 
                 const setItems = itemsetPreviewData[rawSetId] || [];
-                if (setItems.length === 0) {
-                    itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_empty', 'No items were found for this item set ID.')); ?>;
-                    itemsetPreviewEmpty.classList.remove('hidden');
+                paintItemsetPreviewList(setItems);
+            }
+
+            function ensureItemsetOption(setId) {
+                if (!itemsetUseDbcLookup || !itemsetInput || itemsetInput.tagName !== 'SELECT') {
                     return;
                 }
+                const idStr = String(setId);
+                if (!idStr || itemsetInput.querySelector('option[value="' + idStr.replace(/"/g, '\\"') + '"]')) {
+                    return;
+                }
+                const opt = document.createElement('option');
+                opt.value = idStr;
+                opt.textContent = '#' + idStr + ' — ' + <?php echo json_encode(translate('admin_shop_itemset_unknown', 'Unknown set')); ?>;
+                itemsetInput.appendChild(opt);
+            }
 
-                itemsetPreviewEmpty.classList.add('hidden');
-                setItems.forEach(item => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `${item.entry} - ${item.name}`;
-                    itemsetPreviewList.appendChild(listItem);
+            function filterItemsetOptions() {
+                if (!itemsetFilterInput || !itemsetInput || itemsetInput.tagName !== 'SELECT') {
+                    return;
+                }
+                const needle = itemsetFilterInput.value.trim().toLowerCase();
+                Array.from(itemsetInput.options).forEach((opt, idx) => {
+                    if (idx === 0 && opt.value === '') {
+                        opt.hidden = false;
+                        return;
+                    }
+                    const label = opt.getAttribute('data-label') || opt.textContent.toLowerCase();
+                    opt.hidden = needle !== '' && !label.includes(needle);
                 });
             }
 
@@ -1617,7 +1705,13 @@ ob_start();
 
             // Handle category change
             categorySelect.addEventListener('change', updateFormFields);
-            itemsetInput.addEventListener('input', renderItemsetPreview);
+            if (itemsetInput) {
+                itemsetInput.addEventListener('input', renderItemsetPreview);
+                itemsetInput.addEventListener('change', renderItemsetPreview);
+            }
+            if (itemsetFilterInput) {
+                itemsetFilterInput.addEventListener('input', filterItemsetOptions);
+            }
 
             // Image upload area
             if (uploadArea && imageInput) {
@@ -1695,6 +1789,9 @@ ob_start();
                     document.getElementById('level_boost').value = item.level_boost || '';
                     document.getElementById('at_login_flags').value = item.at_login_flags || 0;
                     document.getElementById('is_item').value = item.is_item || 0;
+                    if (item.itemset_id) {
+                        ensureItemsetOption(item.itemset_id);
+                    }
                     document.getElementById('itemset_id').value = item.itemset_id || '';
                     existingImageInput.value = item.image || '';
                     
