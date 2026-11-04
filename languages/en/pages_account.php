@@ -61,6 +61,8 @@ return [
     'placeholder_new_password' => 'Enter new password',
     'placeholder_confirm_password' => 'Confirm new password',
     'select_city_placeholder' => 'Select a city',
+    'select_teleport_destination' => 'Select destination',
+    'teleport_locations_empty' => 'No teleport destinations are available right now.',
 
     // Buttons and actions
     'button_admin_panel' => 'Admin Panel',

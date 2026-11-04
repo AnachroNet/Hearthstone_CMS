@@ -12,6 +12,7 @@ $posZVal = $row ? $row['position_z'] : '';
 $orientVal = $row ? $row['orientation'] : 0;
 $sortVal = $row ? (int) $row['sort_order'] : 0;
 $activeChecked = $row ? ($row['is_active'] ? 'checked' : '') : 'checked';
+$gmOnlyChecked = $row && !empty($row['is_gm_only']) ? 'checked' : '';
 ?>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
@@ -48,7 +49,11 @@ $activeChecked = $row ? ($row['is_active'] ? 'checked' : '') : 'checked';
     </div>
     <label class="flex items-center gap-2 text-sm text-gray-300 pb-2">
         <input type="checkbox" name="is_active" value="1" <?php echo $activeChecked; ?>>
-        <?php echo translate('admin_teleport_locations_label_active', 'Active (shown in Character Management)'); ?>
+        <?php echo translate('admin_teleport_locations_label_active', 'Active (shown in teleport dropdowns)'); ?>
+    </label>
+    <label class="flex items-center gap-2 text-sm text-gray-300 pb-2">
+        <input type="checkbox" name="is_gm_only" value="1" <?php echo $gmOnlyChecked; ?>>
+        <?php echo translate('admin_teleport_locations_label_gm_only', 'GM only (website moderators and administrators)'); ?>
     </label>
 </div>
 <p class="text-xs text-gray-500"><?php echo translate('admin_teleport_locations_coords_tip', 'Tip: Use .gps in-game to capture coordinates for custom destinations.'); ?></p>

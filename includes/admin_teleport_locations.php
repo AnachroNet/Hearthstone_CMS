@@ -16,19 +16,33 @@ function sahtout_admin_teleport_locations_table_exists(mysqli $siteDb): bool
     return $exists;
 }
 
+function sahtout_account_can_see_gm_teleport_locations(): bool
+{
+    $role = (string) ($_SESSION['role'] ?? 'player');
+
+    return in_array($role, ['admin', 'moderator'], true);
+}
+
 /**
  * @return list<array<string, mixed>>
  */
-function sahtout_fetch_admin_teleport_locations(mysqli $siteDb, bool $activeOnly = true): array
+function sahtout_fetch_admin_teleport_locations(mysqli $siteDb, bool $activeOnly = true, bool $includeGmOnly = true): array
 {
     if (!sahtout_admin_teleport_locations_table_exists($siteDb)) {
         return [];
     }
 
-    $sql = 'SELECT id, name, map, position_x, position_y, position_z, orientation, sort_order, is_active
+    $sql = 'SELECT id, name, map, position_x, position_y, position_z, orientation, sort_order, is_active, is_gm_only
             FROM admin_teleport_locations';
+    $conditions = [];
     if ($activeOnly) {
-        $sql .= ' WHERE is_active = 1';
+        $conditions[] = 'is_active = 1';
+    }
+    if (!$includeGmOnly) {
+        $conditions[] = 'is_gm_only = 0';
+    }
+    if ($conditions !== []) {
+        $sql .= ' WHERE ' . implode(' AND ', $conditions);
     }
     $sql .= ' ORDER BY sort_order ASC, id ASC';
 
@@ -62,19 +76,23 @@ function sahtout_normalize_admin_teleport_location_row(array $row): array
         'orientation' => (float) ($row['orientation'] ?? 0),
         'sort_order' => (int) ($row['sort_order'] ?? 0),
         'is_active' => (int) ($row['is_active'] ?? 0) === 1,
+        'is_gm_only' => (int) ($row['is_gm_only'] ?? 0) === 1,
     ];
 }
 
-function sahtout_admin_teleport_location_by_id(mysqli $siteDb, int $id, bool $activeOnly = true): ?array
+function sahtout_admin_teleport_location_by_id(mysqli $siteDb, int $id, bool $activeOnly = true, bool $includeGmOnly = true): ?array
 {
     if ($id <= 0 || !sahtout_admin_teleport_locations_table_exists($siteDb)) {
         return null;
     }
 
-    $sql = 'SELECT id, name, map, position_x, position_y, position_z, orientation, sort_order, is_active
+    $sql = 'SELECT id, name, map, position_x, position_y, position_z, orientation, sort_order, is_active, is_gm_only
             FROM admin_teleport_locations WHERE id = ?';
     if ($activeOnly) {
         $sql .= ' AND is_active = 1';
+    }
+    if (!$includeGmOnly) {
+        $sql .= ' AND is_gm_only = 0';
     }
 
     $stmt = $siteDb->prepare($sql);

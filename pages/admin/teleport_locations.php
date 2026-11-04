@@ -46,15 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
         $orientation = (float) ($_POST['orientation'] ?? 0);
         $sortOrder = (int) ($_POST['sort_order'] ?? 0);
         $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $isGmOnly = isset($_POST['is_gm_only']) ? 1 : 0;
 
         if ($name === '' || ($posX == 0.0 && $posY == 0.0)) {
             $flash = 'error:' . translate('admin_teleport_locations_validation', 'Name and non-zero X/Y coordinates are required.');
         } elseif ($action === 'add') {
             $stmt = $site_db->prepare(
-                'INSERT INTO admin_teleport_locations (name, map, position_x, position_y, position_z, orientation, sort_order, is_active)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO admin_teleport_locations (name, map, position_x, position_y, position_z, orientation, sort_order, is_active, is_gm_only)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
-            $stmt->bind_param('siddddii', $name, $map, $posX, $posY, $posZ, $orientation, $sortOrder, $isActive);
+            $stmt->bind_param('siddddiii', $name, $map, $posX, $posY, $posZ, $orientation, $sortOrder, $isActive, $isGmOnly);
             $ok = $stmt->execute();
             $stmt->close();
             if ($ok) {
@@ -66,9 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id > 0) {
                 $stmt = $site_db->prepare(
-                    'UPDATE admin_teleport_locations SET name = ?, map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ?, sort_order = ?, is_active = ? WHERE id = ?'
+                    'UPDATE admin_teleport_locations SET name = ?, map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ?, sort_order = ?, is_active = ?, is_gm_only = ? WHERE id = ?'
                 );
-                $stmt->bind_param('siddddiii', $name, $map, $posX, $posY, $posZ, $orientation, $sortOrder, $isActive, $id);
+                $stmt->bind_param('siddddiiii', $name, $map, $posX, $posY, $posZ, $orientation, $sortOrder, $isActive, $isGmOnly, $id);
                 $ok = $stmt->execute();
                 $stmt->close();
                 if ($ok) {
@@ -193,6 +194,7 @@ if ($flash !== '') {
                             <th><?php echo translate('admin_teleport_locations_col_coords', 'Coordinates'); ?></th>
                             <th><?php echo translate('admin_teleport_locations_col_sort', 'Order'); ?></th>
                             <th><?php echo translate('admin_teleport_locations_col_status', 'Status'); ?></th>
+                            <th><?php echo translate('admin_teleport_locations_col_visibility', 'Visibility'); ?></th>
                             <th class="text-right"><?php echo translate('admin_teleport_locations_col_actions', 'Actions'); ?></th>
                         </tr>
                     </thead>
@@ -212,6 +214,13 @@ if ($flash !== '') {
                                     <span class="badge-active"><?php echo translate('admin_teleport_locations_status_active', 'Active'); ?></span>
                                 <?php else: ?>
                                     <span class="badge-inactive"><?php echo translate('admin_teleport_locations_status_hidden', 'Hidden'); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($row['is_gm_only'])): ?>
+                                    <span class="text-amber-300/90 text-xs"><?php echo translate('admin_teleport_locations_visibility_gm', 'GM only'); ?></span>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-xs"><?php echo translate('admin_teleport_locations_visibility_all', 'All players'); ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>

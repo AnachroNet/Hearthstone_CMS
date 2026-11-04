@@ -9,6 +9,7 @@ require_once $project_root . 'languages/language.php'; // Include language file 
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/account_gm_tickets.php';
 require_once $project_root . 'includes/achievement_reward_sync.php';
+require_once $project_root . 'includes/admin_teleport_locations.php';
 
 // Early session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -24,6 +25,8 @@ $error = '';
 $characters = [];
 $activityLog = [];
 $teleport_cooldowns = [];
+$account_teleport_locations = [];
+$account_teleport_locations_ready = false;
 $currencies = ['tokens' => 0, 'avatar' => NULL];
 $available_avatars = [];
 $gm_tickets_view = ['available' => false, 'tickets' => [], 'open_count' => 0, 'message' => null];
@@ -297,14 +300,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Handle character teleport - fires ONLY when the teleport trigger, a valid
-    // guid and a destination are all explicitly present in the POST payload.
+    // guid and a location id are all explicitly present in the POST payload.
     if (isset($_POST['teleport_character'])
-        && isset($_POST['guid'], $_POST['destination'])
+        && isset($_POST['guid'], $_POST['teleport_location_id'])
         && $_POST['guid'] !== ''
-        && $_POST['destination'] !== ''
+        && $_POST['teleport_location_id'] !== ''
         && filter_var($_POST['guid'], FILTER_VALIDATE_INT) !== false) {
         $guid = (int) filter_var($_POST['guid'], FILTER_VALIDATE_INT);
-        $destination = filter_var($_POST['destination']);
+        $locationId = (int) filter_var($_POST['teleport_location_id'], FILTER_VALIDATE_INT);
         
         try {
             if (!$guid) {
@@ -360,18 +363,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception(sprintf(translate('error_teleport_cooldown', 'Teleport on cooldown. Please wait %s minute%s'), $minutes, $minutes > 1 ? 's' : ''));
             }
 
-            $teleportData = [
-                'shattrath' => ['map' => 530, 'x' => -1832.9, 'y' => 5370.1, 'z' => -12.4, 'o' => 2.0],
-                'dalaran' => ['map' => 571, 'x' => 5804.2, 'y' => 624.8, 'z' => 647.8, 'o' => 3.1]
-            ];
-            
-            if (!isset($teleportData[$destination])) {
+            if (!$locationId || !isset($site_db) || !($site_db instanceof mysqli)) {
                 throw new Exception(translate('error_invalid_destination', 'Invalid teleport destination'));
             }
-            
-            $data = $teleportData[$destination];
+
+            $includeGmTeleports = sahtout_account_can_see_gm_teleport_locations();
+            $loc = sahtout_admin_teleport_location_by_id($site_db, $locationId, true, $includeGmTeleports);
+            if ($loc === null) {
+                throw new Exception(translate('error_invalid_destination', 'Invalid teleport destination'));
+            }
+
             $stmt_teleport = $char_db->prepare("UPDATE characters SET map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ? WHERE guid = ?");
-            $stmt_teleport->bind_param('iddddi', $data['map'], $data['x'], $data['y'], $data['z'], $data['o'], $guid);
+            $stmt_teleport->bind_param(
+                'iddddi',
+                $loc['map'],
+                $loc['position_x'],
+                $loc['position_y'],
+                $loc['position_z'],
+                $loc['orientation'],
+                $guid
+            );
             if (!$stmt_teleport->execute()) {
                 throw new Exception(translate('error_teleporting_character', 'Error teleporting character'));
             }
@@ -391,12 +402,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Log action
             $stmt_log = $site_db->prepare("INSERT INTO website_activity_log (account_id, character_name, action, timestamp, details) VALUES (?, ?, ?, UNIX_TIMESTAMP(), ?)");
             $action = translate('action_teleport', 'Teleport');
-            $details = sprintf(translate('teleport_details', 'To %s'), ucfirst($destination));
+            $details = sprintf(translate('teleport_details', 'To %s'), $loc['name']);
             $stmt_log->bind_param('isss', $_SESSION['user_id'], $character_name, $action, $details);
             $stmt_log->execute();
             $stmt_log->close();
 
-            $_SESSION['message'] = sprintf(translate('message_character_teleported', 'Character teleported to %s!'), ucfirst($destination));
+            $_SESSION['message'] = sprintf(translate('message_character_teleported', 'Character teleported to %s!'), $loc['name']);
             header("Location: {$base_path}account");
             exit();
         } catch (Exception $e) {
@@ -500,6 +511,17 @@ if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_erro
             $teleport_cooldowns[$row['character_guid']] = $row['teleport_timestamp'];
         }
         $stmt->close();
+    }
+
+    if (isset($site_db) && $site_db instanceof mysqli) {
+        $account_teleport_locations_ready = sahtout_admin_teleport_locations_table_exists($site_db);
+        if ($account_teleport_locations_ready) {
+            $account_teleport_locations = sahtout_fetch_admin_teleport_locations(
+                $site_db,
+                true,
+                sahtout_account_can_see_gm_teleport_locations()
+            );
+        }
     }
 
     // Get activity log
@@ -1560,14 +1582,16 @@ include_once $project_root . 'includes/header.php';
                                     $minutes = ceil($cooldown_remaining / 60);
                                     ?>
                                     
+                                    <?php if ($account_teleport_locations_ready && $account_teleport_locations !== []): ?>
                                     <form method="post" class="mt-3 teleport-form">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                         <input type="hidden" name="guid" value="<?php echo $char['guid']; ?>">
                                         <div class="flex flex-wrap gap-2">
-                                            <select class="flex-1 min-w-25 px-3 py-1.5 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.2)] text-gray-200 text-sm focus:border-[#f2cf5b] focus:outline-none" name="destination" required>
-                                                <option value=""><?php echo translate('select_city_placeholder', 'Select city'); ?></option>
-                                                <option value="shattrath"><?php echo translate('city_shattrath', 'Shattrath'); ?></option>
-                                                <option value="dalaran"><?php echo translate('city_dalaran', 'Dalaran'); ?></option>
+                                            <select class="flex-1 min-w-25 px-3 py-1.5 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.2)] text-gray-200 text-sm focus:border-[#f2cf5b] focus:outline-none" name="teleport_location_id" required>
+                                                <option value=""><?php echo translate('select_teleport_destination', 'Select destination'); ?></option>
+                                                <?php foreach ($account_teleport_locations as $teleportLoc): ?>
+                                                    <option value="<?php echo (int) $teleportLoc['id']; ?>"><?php echo htmlspecialchars($teleportLoc['name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                                <?php endforeach; ?>
                                             </select>
                                             <button class="px-4 py-1.5 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 text-sm font-semibold whitespace-nowrap cursor-pointer shadow-sm hover:border-[#f2cf5b]" type="submit" name="teleport_character" <?php echo $is_on_cooldown ? 'disabled' : ''; ?>>
                                                 <span class="teleport-btn-idle"><i class="fa-solid fa-arrow-right mr-1"></i><?php echo translate('button_teleport', 'Teleport'); ?></span><span class="teleport-btn-busy"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i><?php echo translate('button_teleporting', 'Teleporting...'); ?></span>
@@ -1580,6 +1604,9 @@ include_once $project_root . 'includes/header.php';
                                             </p>
                                         <?php endif; ?>
                                     </form>
+                                    <?php elseif ($account_teleport_locations_ready): ?>
+                                        <p class="mt-3 text-xs text-gray-500"><?php echo translate('teleport_locations_empty', 'No teleport destinations are available right now.'); ?></p>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -1995,7 +2022,7 @@ include_once $project_root . 'includes/header.php';
                 }
 
                 // Check HTML5 validity (e.g. dropdown selection required)
-                const select = form.querySelector('select[name="destination"]');
+                const select = form.querySelector('select[name="teleport_location_id"]');
                 if (select && !select.value) {
                     return; // let native select validation handle the error message
                 }
