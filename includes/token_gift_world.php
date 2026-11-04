@@ -328,7 +328,7 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
         'RewardTitle' => 0,
         'RewardTalents' => 0,
         'RewardArenaPoints' => 0,
-        'AllowableRaces' => -1,
+        'AllowableRaces' => 0,
         'Unknown0' => 1,
     ];
 
