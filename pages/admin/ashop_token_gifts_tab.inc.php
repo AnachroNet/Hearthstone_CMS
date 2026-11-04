@@ -79,7 +79,7 @@ if (!defined('ALLOWED_ACCESS')) {
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
                         <input type="hidden" name="gift_id" value="<?php echo $gid; ?>">
                         <div class="md:col-span-2 flex flex-wrap items-center gap-3 justify-between">
-                            <span class="text-sm text-gray-500">#<?php echo $gid; ?>
+                            <span class="text-sm text-[#f2cf5b] font-['Cinzel'] tracking-wide drop-shadow-[0_0_10px_rgba(201,162,39,.25)]">#<?php echo $gid; ?>
                                 <?php if ($published): ?>
                                     · <?php echo translate('admin_token_gifts_status_published', 'Published'); ?>
                                     · <?php echo translate('admin_token_gifts_item_quest', 'Item %1$d / Quest %2$d', (int) ($row['item_entry'] ?? 0), (int) ($row['quest_id'] ?? 0)); ?>
