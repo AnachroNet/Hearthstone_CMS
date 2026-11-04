@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/playerbot_accounts.php';
 require_once $project_root . 'includes/account_admin_actions.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
+require_once $project_root . 'includes/admin_pagination.php';
 
 $page_class = 'users';
 define('DB_AUTH', $db_auth_name);
@@ -485,6 +486,15 @@ function admin_users_render_lifecycle_modal(int $accountId, string $username, in
     <?php
 }
 
+$adminUsersListQuery = array_filter([
+    'search_username' => $search_username !== '' ? $search_username : null,
+    'search_email' => $search_email !== '' ? $search_email : null,
+    'role_filter' => $role_filter !== '' ? $role_filter : null,
+    'ban_filter' => $ban_filter !== '' ? $ban_filter : null,
+    'gmlevel_filter' => $gmlevel_filter !== '' ? $gmlevel_filter : null,
+    'sort_id' => $sort_id !== '' ? $sort_id : null,
+], static fn ($v) => $v !== null && $v !== '');
+
 function getGMLevel($gmlevel) {
     if (is_null($gmlevel)) {
         return '<span class="text-gray-400">' . translate('admin_users_gmlevel_player', 'Player') . '</span>';
@@ -900,27 +910,19 @@ ob_start();
                                 </table>
                             </div>
                             <!-- Pagination -->
-                            <?php if ($total_website_pages > 1): ?>
-                                <nav class="flex justify-center gap-2 mt-6 md:mt-8 flex-wrap">
-                                    <?php if ($website_page > 1): ?>
-                                        <a href="<?php echo $base_path; ?>admin/users?tab=website&website_page=<?php echo $website_page - 1; ?><?php echo $search_username ? '&search_username=' . urlencode($search_username) : ''; ?><?php echo $search_email ? '&search_email=' . urlencode($search_email) : ''; ?><?php echo $role_filter ? '&role_filter=' . urlencode($role_filter) : ''; ?><?php echo $ban_filter ? '&ban_filter=' . urlencode($ban_filter) : ''; ?><?php echo $gmlevel_filter ? '&gmlevel_filter=' . urlencode($gmlevel_filter) : ''; ?><?php echo $sort_id ? '&sort_id=' . urlencode($sort_id) : ''; ?>" class="btn-iron btn-iron-sm">
-                                            <i class="fas fa-chevron-left"></i> <?php echo translate('admin_users_previous', 'Previous'); ?>
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php for ($i = 1; $i <= $total_website_pages; $i++): ?>
-                                        <?php if ($i === $website_page): ?>
-                                            <span class="btn-gold btn-iron-sm cursor-default"><?php echo $i; ?></span>
-                                        <?php else: ?>
-                                            <a href="<?php echo $base_path; ?>admin/users?tab=website&website_page=<?php echo $i; ?><?php echo $search_username ? '&search_username=' . urlencode($search_username) : ''; ?><?php echo $search_email ? '&search_email=' . urlencode($search_email) : ''; ?><?php echo $role_filter ? '&role_filter=' . urlencode($role_filter) : ''; ?><?php echo $ban_filter ? '&ban_filter=' . urlencode($ban_filter) : ''; ?><?php echo $gmlevel_filter ? '&gmlevel_filter=' . urlencode($gmlevel_filter) : ''; ?><?php echo $sort_id ? '&sort_id=' . urlencode($sort_id) : ''; ?>" class="btn-iron btn-iron-sm"><?php echo $i; ?></a>
-                                        <?php endif; ?>
-                                    <?php endfor; ?>
-                                    <?php if ($website_page < $total_website_pages): ?>
-                                        <a href="<?php echo $base_path; ?>admin/users?tab=website&website_page=<?php echo $website_page + 1; ?><?php echo $search_username ? '&search_username=' . urlencode($search_username) : ''; ?><?php echo $search_email ? '&search_email=' . urlencode($search_email) : ''; ?><?php echo $role_filter ? '&role_filter=' . urlencode($role_filter) : ''; ?><?php echo $ban_filter ? '&ban_filter=' . urlencode($ban_filter) : ''; ?><?php echo $gmlevel_filter ? '&gmlevel_filter=' . urlencode($gmlevel_filter) : ''; ?><?php echo $sort_id ? '&sort_id=' . urlencode($sort_id) : ''; ?>" class="btn-iron btn-iron-sm">
-                                            <?php echo translate('admin_users_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </nav>
-                            <?php endif; ?>
+                            <?php
+                            sahtout_admin_render_pagination_nav([
+                                'current_page' => $website_page,
+                                'total_pages' => (int) $total_website_pages,
+                                'base_path' => $base_path,
+                                'route' => 'admin/users',
+                                'page_param' => 'website_page',
+                                'query' => array_merge(['tab' => 'website'], $adminUsersListQuery),
+                                'aria_label' => translate('admin_users_pagination_aria', 'User pagination'),
+                                'prev_label' => translate('admin_users_previous', 'Previous'),
+                                'next_label' => translate('admin_users_next', 'Next'),
+                            ]);
+                            ?>
                         </div>
                     </div>
 
@@ -990,27 +992,19 @@ ob_start();
                                 </table>
                             </div>
                             <!-- Pagination -->
-                            <?php if ($total_ingame_pages > 1): ?>
-                                <nav class="flex justify-center gap-2 mt-6 md:mt-8 flex-wrap">
-                                    <?php if ($ingame_page > 1): ?>
-                                        <a href="<?php echo $base_path; ?>admin/users?tab=ingame&ingame_page=<?php echo $ingame_page - 1; ?><?php echo $search_username ? '&search_username=' . urlencode($search_username) : ''; ?><?php echo $search_email ? '&search_email=' . urlencode($search_email) : ''; ?><?php echo $role_filter ? '&role_filter=' . urlencode($role_filter) : ''; ?><?php echo $ban_filter ? '&ban_filter=' . urlencode($ban_filter) : ''; ?><?php echo $gmlevel_filter ? '&gmlevel_filter=' . urlencode($gmlevel_filter) : ''; ?><?php echo $sort_id ? '&sort_id=' . urlencode($sort_id) : ''; ?>" class="btn-iron btn-iron-sm">
-                                            <i class="fas fa-chevron-left"></i> <?php echo translate('admin_users_previous', 'Previous'); ?>
-                                        </a>
-                                    <?php endif; ?>
-                                    <?php for ($i = 1; $i <= $total_ingame_pages; $i++): ?>
-                                        <?php if ($i === $ingame_page): ?>
-                                            <span class="btn-gold btn-iron-sm cursor-default"><?php echo $i; ?></span>
-                                        <?php else: ?>
-                                            <a href="<?php echo $base_path; ?>admin/users?tab=ingame&ingame_page=<?php echo $i; ?><?php echo $search_username ? '&search_username=' . urlencode($search_username) : ''; ?><?php echo $search_email ? '&search_email=' . urlencode($search_email) : ''; ?><?php echo $role_filter ? '&role_filter=' . urlencode($role_filter) : ''; ?><?php echo $ban_filter ? '&ban_filter=' . urlencode($ban_filter) : ''; ?><?php echo $gmlevel_filter ? '&gmlevel_filter=' . urlencode($gmlevel_filter) : ''; ?><?php echo $sort_id ? '&sort_id=' . urlencode($sort_id) : ''; ?>" class="btn-iron btn-iron-sm"><?php echo $i; ?></a>
-                                        <?php endif; ?>
-                                    <?php endfor; ?>
-                                    <?php if ($ingame_page < $total_ingame_pages): ?>
-                                        <a href="<?php echo $base_path; ?>admin/users?tab=ingame&ingame_page=<?php echo $ingame_page + 1; ?><?php echo $search_username ? '&search_username=' . urlencode($search_username) : ''; ?><?php echo $search_email ? '&search_email=' . urlencode($search_email) : ''; ?><?php echo $role_filter ? '&role_filter=' . urlencode($role_filter) : ''; ?><?php echo $ban_filter ? '&ban_filter=' . urlencode($ban_filter) : ''; ?><?php echo $gmlevel_filter ? '&gmlevel_filter=' . urlencode($gmlevel_filter) : ''; ?><?php echo $sort_id ? '&sort_id=' . urlencode($sort_id) : ''; ?>" class="btn-iron btn-iron-sm">
-                                            <?php echo translate('admin_users_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    <?php endif; ?>
-                                </nav>
-                            <?php endif; ?>
+                            <?php
+                            sahtout_admin_render_pagination_nav([
+                                'current_page' => $ingame_page,
+                                'total_pages' => (int) $total_ingame_pages,
+                                'base_path' => $base_path,
+                                'route' => 'admin/users',
+                                'page_param' => 'ingame_page',
+                                'query' => array_merge(['tab' => 'ingame'], $adminUsersListQuery),
+                                'aria_label' => translate('admin_users_pagination_aria', 'User pagination'),
+                                'prev_label' => translate('admin_users_previous', 'Previous'),
+                                'next_label' => translate('admin_users_next', 'Next'),
+                            ]);
+                            ?>
                         </div>
                     </div>
                 </div>

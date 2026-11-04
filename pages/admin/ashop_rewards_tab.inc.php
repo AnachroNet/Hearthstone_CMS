@@ -175,37 +175,21 @@ if (!defined('ALLOWED_ACCESS')) {
         </tbody>
     </table>
 
-    <?php if ($reward_total_pages > 1): ?>
-        <nav class="flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8" aria-label="<?php echo translate('admin_rewards_pagination_aria', 'Configured rewards page navigation'); ?>">
-            <?php
-            $rewardPageHref = static function (int $p) use ($base_path): string {
-                $q = ['tab' => 'rewards'];
-                if ($p > 1) {
-                    $q['reward_page'] = $p;
-                }
-
-                return $base_path . 'admin/ashop?' . http_build_query($q);
-            };
-            ?>
-            <?php if ($reward_page > 1): ?>
-                <a href="<?php echo htmlspecialchars($rewardPageHref($reward_page - 1), ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs">
-                    <i class="fas fa-chevron-left"></i> <?php echo translate('admin_shop_previous', 'Previous'); ?>
-                </a>
-            <?php endif; ?>
-            <?php for ($i = 1; $i <= $reward_total_pages; $i++): ?>
-                <?php if ($reward_page === $i): ?>
-                    <span class="btn-game btn-gold py-2 px-3 md:px-4 text-xs cursor-default"><?php echo $i; ?></span>
-                <?php else: ?>
-                    <a href="<?php echo htmlspecialchars($rewardPageHref($i), ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs"><?php echo $i; ?></a>
-                <?php endif; ?>
-            <?php endfor; ?>
-            <?php if ($reward_page < $reward_total_pages): ?>
-                <a href="<?php echo htmlspecialchars($rewardPageHref($reward_page + 1), ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs">
-                    <?php echo translate('admin_shop_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
-                </a>
-            <?php endif; ?>
-        </nav>
-    <?php endif; ?>
+    <?php
+    sahtout_admin_render_pagination_nav([
+        'current_page' => $reward_page,
+        'total_pages' => (int) $reward_total_pages,
+        'base_path' => $base_path,
+        'route' => 'admin/ashop',
+        'page_param' => 'reward_page',
+        'query' => ['tab' => 'rewards'],
+        'theme' => 'game',
+        'aria_label' => translate('admin_rewards_pagination_aria', 'Configured rewards page navigation'),
+        'prev_label' => translate('admin_shop_previous', 'Previous'),
+        'next_label' => translate('admin_shop_next', 'Next'),
+        'nav_class' => 'flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8',
+    ]);
+    ?>
     <?php endif; ?>
 </div>
 

@@ -9,6 +9,7 @@ require_once $project_root . 'includes/account_gm_tickets.php';
 require_once $project_root . 'includes/admin_ticket_compensation.php';
 require_once $project_root . 'includes/admin_comp_item_ui.php';
 require_once $project_root . 'includes/admin_page_styles.php';
+require_once $project_root . 'includes/admin_pagination.php';
 require_once $project_root . 'includes/user_inquiries.php';
 
 $page_class = 'tickets';
@@ -506,31 +507,30 @@ $page_head = ob_get_clean();
                         </div>
 
                         <?php if ($ticketData['total'] > $perPage): ?>
-                            <nav class="flex flex-wrap items-center justify-between gap-3 mt-6 text-sm text-gray-400" aria-label="<?php echo translate('admin_tickets_pagination', 'Ticket pagination'); ?>">
-                                <span>
+                            <div class="flex flex-wrap items-center justify-between gap-3 mt-6">
+                                <span class="text-sm text-gray-400">
                                     <?php echo translate('admin_tickets_showing', 'Showing'); ?>
                                     <?php echo (int) (($page - 1) * $perPage + 1); ?>–<?php echo (int) min($page * $perPage, $ticketData['total']); ?>
                                     <?php echo translate('admin_tickets_of', 'of'); ?> <?php echo (int) $ticketData['total']; ?>
                                 </span>
-                                <div class="flex gap-2">
-                                    <?php
-                                    $queryBase = array_filter([
+                                <?php
+                                sahtout_admin_render_pagination_nav([
+                                    'current_page' => $page,
+                                    'total_pages' => (int) $totalPages,
+                                    'base_path' => $base_path,
+                                    'route' => 'admin/tickets',
+                                    'query' => array_filter([
                                         'tab' => 'tickets',
                                         'status' => $statusFilter !== 'open' ? $statusFilter : null,
                                         'search' => $search !== '' ? $search : null,
-                                    ]);
-                                    if ($page > 1):
-                                        $prevQ = $queryBase + ['page' => $page - 1];
-                                    ?>
-                                        <a class="px-3 py-1 border border-[rgba(201,162,39,.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,.08)]" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?' . http_build_query($prevQ)); ?>">&larr;</a>
-                                    <?php endif; ?>
-                                    <?php if ($page < $totalPages):
-                                        $nextQ = $queryBase + ['page' => $page + 1];
-                                    ?>
-                                        <a class="px-3 py-1 border border-[rgba(201,162,39,.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,.08)]" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?' . http_build_query($nextQ)); ?>">&rarr;</a>
-                                    <?php endif; ?>
-                                </div>
-                            </nav>
+                                    ]),
+                                    'aria_label' => translate('admin_tickets_pagination', 'Ticket pagination'),
+                                    'prev_label' => translate('admin_pagination_previous', 'Previous'),
+                                    'next_label' => translate('admin_pagination_next', 'Next'),
+                                    'nav_class' => 'flex justify-center gap-2 flex-wrap',
+                                ]);
+                                ?>
+                            </div>
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>

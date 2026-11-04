@@ -12,6 +12,7 @@ if (is_readable($ashopRewardsLang)) {
 }
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
+require_once $project_root . 'includes/admin_pagination.php';
 require_once $project_root . 'includes/admin_achievement_rewards.php';
 require_once $project_root . 'includes/admin_shop_rewards_post.php';
 require_once $project_root . 'includes/admin_character_stat_rewards.php';
@@ -1337,30 +1338,24 @@ ob_start();
                             </table>
                         </div>
 
-                        <!-- Pagination -->
-                        <?php if ($total_pages > 1): ?>
-                            <nav class="flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8" aria-label="<?php echo translate('admin_shop_pagination_aria', 'Page navigation'); ?>">
-                                <?php if ($page > 1): ?>
-                                    <a href="<?php echo $base_path; ?>admin/ashop?page=<?php echo $page - 1; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs">
-                                        <i class="fas fa-chevron-left"></i> <?php echo translate('admin_shop_previous', 'Previous'); ?>
-                                    </a>
-                                <?php endif; ?>
-                                
-                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <?php if ($page === $i): ?>
-                                        <span class="btn-game btn-gold py-2 px-3 md:px-4 text-xs cursor-default"><?php echo $i; ?></span>
-                                    <?php else: ?>
-                                        <a href="<?php echo $base_path; ?>admin/ashop?page=<?php echo $i; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs"><?php echo $i; ?></a>
-                                    <?php endif; ?>
-                                <?php endfor; ?>
-                                
-                                <?php if ($page < $total_pages): ?>
-                                    <a href="<?php echo $base_path; ?>admin/ashop?page=<?php echo $page + 1; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" class="btn-game btn-iron py-2 px-3 md:px-4 text-xs">
-                                        <?php echo translate('admin_shop_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                <?php endif; ?>
-                            </nav>
-                        <?php endif; ?>
+                        <?php
+                        sahtout_admin_render_pagination_nav([
+                            'current_page' => $page,
+                            'total_pages' => (int) $total_pages,
+                            'base_path' => $base_path,
+                            'route' => 'admin/ashop',
+                            'query' => array_filter([
+                                'tab' => 'inventory',
+                                'category' => $category_filter !== '' ? $category_filter : null,
+                                'search' => $search_query !== '' ? $search_query : null,
+                            ]),
+                            'theme' => 'game',
+                            'aria_label' => translate('admin_shop_pagination_aria', 'Page navigation'),
+                            'prev_label' => translate('admin_shop_previous', 'Previous'),
+                            'next_label' => translate('admin_shop_next', 'Next'),
+                            'nav_class' => 'flex justify-center gap-1.5 md:gap-2 flex-wrap mt-6 md:mt-8',
+                        ]);
+                        ?>
                     </div>
 
                     </div><!-- /shop-inventory-tab -->

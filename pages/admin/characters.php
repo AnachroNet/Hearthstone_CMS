@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_comp_item_ui.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
+require_once $project_root . 'includes/admin_pagination.php';
 
 $page_class = 'characters';
 
@@ -834,34 +835,25 @@ $page_head = ob_get_clean();
                             </table>
                         </div>
 
-                        <!-- Pagination -->
-                        <?php if ($total_pages > 1): ?>
-                            <nav class="flex justify-center gap-2 mt-6 md:mt-8 flex-wrap">
-                                <?php if ($page > 1): ?>
-                                    <a href="<?php echo $base_path; ?>admin/characters?page=<?php echo $page - 1; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" class="btn-iron btn-iron-sm">
-                                        <i class="fas fa-chevron-left"></i> <?php echo translate('admin_chars_previous', 'Previous'); ?>
-                                    </a>
-                                <?php endif; ?>
-                                
-                                <?php
-                                $start_page = max(1, $page - 2);
-                                $end_page = min($total_pages, $page + 2);
-                                for ($i = $start_page; $i <= $end_page; $i++):
-                                ?>
-                                    <?php if ($i === $page): ?>
-                                        <span class="btn-gold btn-iron-sm cursor-default"><?php echo $i; ?></span>
-                                    <?php else: ?>
-                                        <a href="<?php echo $base_path; ?>admin/characters?page=<?php echo $i; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" class="btn-iron btn-iron-sm"><?php echo $i; ?></a>
-                                    <?php endif; ?>
-                                <?php endfor; ?>
-                                
-                                <?php if ($page < $total_pages): ?>
-                                    <a href="<?php echo $base_path; ?>admin/characters?page=<?php echo $page + 1; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" class="btn-iron btn-iron-sm">
-                                        <?php echo translate('admin_chars_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                <?php endif; ?>
-                            </nav>
-                        <?php endif; ?>
+                        <?php
+                        sahtout_admin_render_pagination_nav([
+                            'current_page' => $page,
+                            'total_pages' => (int) $total_pages,
+                            'base_path' => $base_path,
+                            'route' => 'admin/characters',
+                            'query' => [
+                                'search_char_name' => $search_char_name,
+                                'search_username' => $search_username,
+                                'online_filter' => $online_filter,
+                                'min_level' => $min_level,
+                                'max_level' => $max_level,
+                                'sort_id' => $sort_id,
+                            ],
+                            'aria_label' => translate('admin_chars_pagination_aria', 'Character pagination'),
+                            'prev_label' => translate('admin_chars_previous', 'Previous'),
+                            'next_label' => translate('admin_chars_next', 'Next'),
+                        ]);
+                        ?>
                     </div>
                 </div>
             </div>

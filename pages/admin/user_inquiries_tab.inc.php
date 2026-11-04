@@ -73,31 +73,23 @@ if (!defined('ALLOWED_ACCESS')) {
                     </table>
                 </div>
 
-                <?php if ($inquiryTotalPages > 1): ?>
-                    <div class="flex justify-center gap-2 mt-6">
-                        <?php
-                        $prevQ = array_filter([
-                            'tab' => 'inquiries',
-                            'inquiry_status' => $inquiryStatusFilter !== 'pending' ? $inquiryStatusFilter : null,
-                            'inquiry_search' => $inquirySearch !== '' ? $inquirySearch : null,
-                            'inquiry_page' => $inquiryPage > 1 ? $inquiryPage - 1 : null,
-                        ]);
-                        $nextQ = array_filter([
-                            'tab' => 'inquiries',
-                            'inquiry_status' => $inquiryStatusFilter !== 'pending' ? $inquiryStatusFilter : null,
-                            'inquiry_search' => $inquirySearch !== '' ? $inquirySearch : null,
-                            'inquiry_page' => $inquiryPage < $inquiryTotalPages ? $inquiryPage + 1 : null,
-                        ]);
-                        ?>
-                        <?php if ($inquiryPage > 1): ?>
-                            <a class="px-3 py-1 border border-[rgba(201,162,39,.3)] text-[#f2cf5b]" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?' . http_build_query($prevQ)); ?>">&larr;</a>
-                        <?php endif; ?>
-                        <span class="px-3 py-1 text-gray-400 text-sm"><?php echo (int) $inquiryPage; ?> / <?php echo (int) $inquiryTotalPages; ?></span>
-                        <?php if ($inquiryPage < $inquiryTotalPages): ?>
-                            <a class="px-3 py-1 border border-[rgba(201,162,39,.3)] text-[#f2cf5b]" href="<?php echo htmlspecialchars($base_path . 'admin/tickets?' . http_build_query($nextQ)); ?>">&rarr;</a>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+                <?php
+                sahtout_admin_render_pagination_nav([
+                    'current_page' => $inquiryPage,
+                    'total_pages' => (int) $inquiryTotalPages,
+                    'base_path' => $base_path,
+                    'route' => 'admin/tickets',
+                    'page_param' => 'inquiry_page',
+                    'query' => array_filter([
+                        'tab' => 'inquiries',
+                        'inquiry_status' => $inquiryStatusFilter !== 'pending' ? $inquiryStatusFilter : null,
+                        'inquiry_search' => $inquirySearch !== '' ? $inquirySearch : null,
+                    ]),
+                    'aria_label' => translate('admin_inquiries_pagination_aria', 'Inquiry pagination'),
+                    'prev_label' => translate('admin_pagination_previous', 'Previous'),
+                    'next_label' => translate('admin_pagination_next', 'Next'),
+                ]);
+                ?>
             <?php endif; ?>
         </div>
     <?php endif; ?>

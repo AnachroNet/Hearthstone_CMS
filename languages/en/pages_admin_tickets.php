@@ -153,4 +153,5 @@ return [
     'admin_inquiries_tokens_column_missing' => 'Run user_inquiries_tokens_awarded.sql on the website database to enable inquiry token grants.',
     'admin_inquiries_token_award_failed' => 'The response was saved but tokens could not be added.',
     'admin_inquiries_no_account' => 'No website currency record exists for this account.',
+    'admin_inquiries_pagination_aria' => 'Inquiry pagination',
 ];

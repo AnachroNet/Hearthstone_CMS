@@ -8,6 +8,7 @@ require_once $project_root . 'includes/maintenance_announcements.php';
 require_once $project_root . 'includes/breaking_news.php';
 require_once $project_root . 'includes/news_helpers.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
+require_once $project_root . 'includes/admin_pagination.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -1040,30 +1041,18 @@ ob_start();
                             </table>
                         </div>
 
-                        <!-- Pagination -->
-                        <?php if ($total_pages > 1): ?>
-                            <nav class="flex justify-center gap-2 mt-6 md:mt-8 flex-wrap" aria-label="<?php echo translate('admin_news_pagination_aria', 'News pagination'); ?>">
-                                <?php if ($page > 1): ?>
-                                    <a href="<?php echo $base_path; ?>admin/anews?page=<?php echo $page - 1; ?>" class="btn-game btn-iron py-2 px-4 text-xs">
-                                        <i class="fas fa-chevron-left"></i> <?php echo translate('admin_news_previous', 'Previous'); ?>
-                                    </a>
-                                <?php endif; ?>
-                                
-                                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                                    <?php if ($page === $i): ?>
-                                        <span class="btn-game btn-gold py-2 px-4 text-xs cursor-default"><?php echo $i; ?></span>
-                                    <?php else: ?>
-                                        <a href="<?php echo $base_path; ?>admin/anews?page=<?php echo $i; ?>" class="btn-game btn-iron py-2 px-4 text-xs"><?php echo $i; ?></a>
-                                    <?php endif; ?>
-                                <?php endfor; ?>
-                                
-                                <?php if ($page < $total_pages): ?>
-                                    <a href="<?php echo $base_path; ?>admin/anews?page=<?php echo $page + 1; ?>" class="btn-game btn-iron py-2 px-4 text-xs">
-                                        <?php echo translate('admin_news_next', 'Next'); ?> <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                <?php endif; ?>
-                            </nav>
-                        <?php endif; ?>
+                        <?php
+                        sahtout_admin_render_pagination_nav([
+                            'current_page' => $page,
+                            'total_pages' => (int) $total_pages,
+                            'base_path' => $base_path,
+                            'route' => 'admin/anews',
+                            'theme' => 'game',
+                            'aria_label' => translate('admin_news_pagination_aria', 'News pagination'),
+                            'prev_label' => translate('admin_news_previous', 'Previous'),
+                            'next_label' => translate('admin_news_next', 'Next'),
+                        ]);
+                        ?>
                     </div>
                 </div>
             </div>
