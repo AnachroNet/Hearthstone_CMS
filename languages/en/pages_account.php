@@ -47,6 +47,7 @@ return [
     'account_achievement_untitled' => 'Achievement #%d',
     'account_achievement_and_more' => '…and %d more.',
     'label_level' => 'Level',
+    'char_hours_played' => '%d Hrs',
     'label_gold' => 'Gold',
     'label_select_city' => 'Select a city',
     'label_current_password' => 'Current Password',

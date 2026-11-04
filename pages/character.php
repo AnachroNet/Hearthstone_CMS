@@ -5,6 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/item_tooltip.php';
 require_once $project_root . 'includes/character_talents.php';
+require_once $project_root . 'includes/character_lifetime_stats.php';
 $page_class = 'character';
 require_once $project_root . 'includes/config.settings.php';
 $page_title = $site_title_name . ' ' . translate('page_title', 'Character Equipment');
@@ -125,6 +126,8 @@ ob_start();
 
     /* Stats */
     .vitals { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+    .vitals-lifetime .vital b { font-size: 1.1rem; }
+    .vitals-lifetime .vital.playtime b { font-size: .78rem; line-height: 1.35; font-family: 'Inter', sans-serif; font-weight: 700; color: #fff; }
     .vital { background: var(--card); border: 1px solid var(--gold-line); padding: .7rem .5rem; text-align: center; }
     .vital b { display: block; font-family: 'Cinzel', serif; font-size: 1.35rem; color: #fff; line-height: 1.15; }
     .vital span { font-size: .72rem; color: var(--muted); }
@@ -358,6 +361,10 @@ require_once $project_root . 'includes/header.php';
                 }
             }
             $character = null; $items = []; $arena_by_type = []; $stats = null; $total_kills = 0; $error = ''; $warnings = [];
+            $lifetime_totaltime = 0;
+            $lifetime_npc_kills = 0;
+            $lifetime_deaths = 0;
+            $lifetime_duels_won = 0;
             $talent_view = null;
 
             // Prepared query -> all rows. Throws on any failure so each section can fail on its own.
@@ -392,10 +399,11 @@ require_once $project_root . 'includes/header.php';
             } else {
                 // Character: the only fatal query
                 try {
-                    $rows = $query($char_db, "SELECT guid, name, race, class, level, totalKills, gender FROM characters WHERE guid = ?", 'i', [$guid]);
+                    $rows = $query($char_db, "SELECT guid, name, race, class, level, totalKills, gender, totaltime FROM characters WHERE guid = ?", 'i', [$guid]);
                     if ($rows) {
                         $character = $rows[0];
                         $total_kills = (int)($character['totalKills'] ?? 0);
+                        $lifetime_totaltime = (int)($character['totaltime'] ?? 0);
                     } else {
                         $error = str_replace('{guid}', $guid, translate('error_character_not_found', 'Character not found for GUID {guid}.'));
                     }
@@ -406,6 +414,16 @@ require_once $project_root . 'includes/header.php';
             }
 
             if (!$error) {
+                try {
+                    $achievementCounters = sahtout_character_achievement_counters($char_db, $guid);
+                    $lifetime_npc_kills = (int) ($achievementCounters[SAHTOUT_CRITERIA_NPC_KILLS] ?? 0);
+                    $lifetime_deaths = (int) ($achievementCounters[SAHTOUT_CRITERIA_TOTAL_DEATHS] ?? 0);
+                    $lifetime_duels_won = (int) ($achievementCounters[SAHTOUT_CRITERIA_DUELS_WON] ?? 0);
+                } catch (Throwable $e) {
+                    error_log('[character.php] lifetime stats query: ' . $e->getMessage());
+                    $warnings[] = translate('warn_lifetime_stats_unavailable', 'Lifetime statistics are temporarily unavailable.');
+                }
+
                 // Stats (optional)
                 try {
                     $rows = $query($char_db, "SELECT maxhealth, maxpower1, maxpower2, maxpower3, maxpower4, maxpower5, maxpower6, maxpower7, strength, agility, stamina, intellect, spirit, armor, resHoly, resFire, resNature, resFrost, resShadow, resArcane, blockPct, dodgePct, parryPct, critPct, rangedCritPct, spellCritPct, attackPower, rangedAttackPower, spellPower, resilience FROM character_stats WHERE guid = ?", 'i', [$guid]);
@@ -620,6 +638,15 @@ if ($ilvl > 0) {
 
             <!-- Stats Tab -->
             <div id="stats-tab" class="tab-content active mt-6" role="tabpanel" aria-labelledby="tab-stats" tabindex="0">
+                <?php if ($character): ?>
+                    <div class="vitals vitals-lifetime">
+                        <div class="vital"><b><?= (int) $character['level'] ?></b><span><?= translate('level_label', 'Level') ?></span></div>
+                        <div class="vital"><b><?= number_format($lifetime_npc_kills) ?></b><span><?= translate('stat_creatures_killed', 'Creatures Killed') ?></span></div>
+                        <div class="vital"><b><?= number_format($lifetime_deaths) ?></b><span><?= translate('stat_deaths', 'Deaths') ?></span></div>
+                        <div class="vital"><b><?= number_format($lifetime_duels_won) ?></b><span><?= translate('stat_duels_won', 'Duels Won') ?></span></div>
+                        <div class="vital playtime"><b><?= htmlspecialchars(sahtout_format_playtime_dhm($lifetime_totaltime), ENT_QUOTES, 'UTF-8') ?></b><span><?= translate('stat_time_played', 'Time Played') ?></span></div>
+                    </div>
+                <?php endif; ?>
                 <?php if ($stats):
                     // Primary resource per class. FIX: hunters use Mana in WotLK (Focus is pet-only).
                     $classPowerMap = [1 => 1, 2 => 0, 3 => 0, 4 => 3, 5 => 0, 6 => 6, 7 => 0, 8 => 0, 9 => 0, 11 => 0];
@@ -749,6 +776,8 @@ $map = [
                         <?php endif; ?>
                     </div>
                     <p class="stats-note"><?= translate('stats_note', 'Main stats come from the last saved character state (updated on logout). Gear ratings add up base item stats only: gems, enchants, buffs and talents are not included, and % values are estimates for level 80.') ?></p>
+                <?php elseif ($character): ?>
+                    <div class="text-center py-6 text-gray-400"><?= translate('stats_none', 'No Stats Available') ?></div>
                 <?php else: ?>
                     <div class="text-center py-8 text-gray-400"><?= translate('stats_none', 'No Stats Available') ?></div>
                 <?php endif; ?>

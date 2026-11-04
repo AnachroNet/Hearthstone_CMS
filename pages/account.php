@@ -10,6 +10,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/account_gm_tickets.php';
 require_once $project_root . 'includes/achievement_reward_sync.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
+require_once $project_root . 'includes/character_lifetime_stats.php';
 
 // Early session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -492,7 +493,7 @@ if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_erro
 
     // Get characters
     if (!empty($accountInfo)) {
-        $stmt = $char_db->prepare("SELECT guid, name, race, class, gender, level, money, online FROM characters WHERE account = ?");
+        $stmt = $char_db->prepare("SELECT guid, name, race, class, gender, level, money, online, totaltime FROM characters WHERE account = ?");
         $stmt->bind_param('i', $_SESSION['user_id']);
         $stmt->execute();
         $characters = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -1570,6 +1571,7 @@ include_once $project_root . 'includes/header.php';
                                     <div class="flex flex-wrap items-center gap-3 mt-2 text-sm">
                                         <span class="text-gray-300"><?php echo getClassIcon($char['class']); ?> <?php echo translate('label_level', 'Level'); ?> <?php echo $char['level']; ?></span>
                                         <span class="text-[#f2cf5b]"><?php echo number_format($char['money'] / 10000, 2); ?>g</span>
+                                        <span class="text-gray-400"><?php echo htmlspecialchars(sprintf(translate('char_hours_played', '%d Hrs'), sahtout_playtime_hours_rounded((int) ($char['totaltime'] ?? 0))), ENT_QUOTES, 'UTF-8'); ?></span>
                                         <span><?php echo getOnlineStatus($char['online']); ?></span>
                                     </div>
                                     
