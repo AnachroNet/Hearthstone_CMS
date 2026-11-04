@@ -163,24 +163,28 @@ ob_start();
             display: flex;
             flex-wrap: nowrap;
             justify-content: center;
-            align-items: center;
+            align-items: stretch;
             gap: 0.5rem;
             margin-top: 0.85rem;
-            max-width: 100%;
-            overflow-x: auto;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            max-width: min(100%, 32rem);
+            margin-left: auto;
+            margin-right: auto;
         }
-        .home-hero-actions::-webkit-scrollbar { display: none; }
         .home-hero-actions .btn-game,
         .home-hero-actions .social-btn {
-            flex-shrink: 0;
-            padding: 9px 14px;
-            font-size: 12px;
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+            padding: 9px 10px;
+            font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.03em;
             gap: 6px;
             clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .home-hero-actions .btn-game {
             text-transform: uppercase;
@@ -189,10 +193,10 @@ ob_start();
             animation: none;
         }
         @media (min-width: 640px) {
-            .home-hero-actions { gap: 0.65rem; margin-top: 1rem; }
+            .home-hero-actions { gap: 0.65rem; margin-top: 1rem; max-width: 36rem; }
             .home-hero-actions .btn-game,
             .home-hero-actions .social-btn {
-                padding: 9px 18px;
+                padding: 9px 14px;
                 font-size: 13px;
                 gap: 8px;
             }
@@ -387,6 +391,12 @@ $home_cal = sahtout_holiday_calendar_for_home(
                             <span class="wow-title text-3xl sm:text-4xl md:text-6xl lg:text-7xl"><?php echo $site_title_name; ?></span>
                         </h1>
 
+                        <div class="flex items-center justify-center gap-3 mt-4 sm:mt-5">
+                            <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,transparent,#c9a227);"></span>
+                            <span class="text-[#f2cf5b] text-xs" style="text-shadow:0 0 10px rgba(242,207,82,.8);">◆</span>
+                            <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,#c9a227,transparent);"></span>
+                        </div>
+
                         <div class="home-hero-actions">
                             <?php if (!isset($_SESSION['user_id'])): ?>
                                 <a href="<?php echo htmlspecialchars($base_path . 'register', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-gold">
@@ -409,12 +419,6 @@ $home_cal = sahtout_holiday_calendar_for_home(
                                 Discord
                             </a>
                             <?php endif; ?>
-                        </div>
-
-                        <div class="flex items-center justify-center gap-3 mt-4 sm:mt-5">
-                            <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,transparent,#c9a227);"></span>
-                            <span class="text-[#f2cf5b] text-xs" style="text-shadow:0 0 10px rgba(242,207,82,.8);">◆</span>
-                            <span class="h-px w-12 md:w-28" style="background:linear-gradient(90deg,#c9a227,transparent);"></span>
                         </div>
                     </div>
                 </div>
