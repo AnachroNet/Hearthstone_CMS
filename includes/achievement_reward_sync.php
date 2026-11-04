@@ -4,6 +4,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_achievement_rewards.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'character_stat_reward_sync.php';
 
 function sahtout_achievement_token_grants_table_exists(mysqli $siteDb): bool
 {
@@ -219,15 +220,25 @@ function sahtout_maybe_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, 
 
     $_SESSION['achievement_rewards_sync_at'] = $now;
     $result = sahtout_sync_achievement_rewards($siteDb, $charDb, $accountId);
+    $statResult = sahtout_sync_character_stat_rewards($siteDb, $charDb, $accountId);
 
-    if ($result['tokens_added'] > 0) {
+    $totalTokens = (int) ($result['tokens_added'] ?? 0) + (int) ($statResult['tokens_added'] ?? 0);
+    if ($totalTokens > 0) {
         $_SESSION['achievement_reward_notice'] = [
-            'tokens_added' => $result['tokens_added'],
-            'granted' => $result['granted'],
+            'tokens_added' => $totalTokens,
+            'granted' => $result['granted'] ?? [],
+            'stat_granted' => $statResult['granted'] ?? [],
+            'stat_tokens_added' => (int) ($statResult['tokens_added'] ?? 0),
         ];
     }
 
-    return $result;
+    return [
+        'ok' => ($result['ok'] ?? false) && ($statResult['ok'] ?? false),
+        'granted' => $result['granted'] ?? [],
+        'tokens_added' => $totalTokens,
+        'message' => $totalTokens > 0 ? 'granted' : ($result['message'] ?? 'none'),
+        'stat_granted' => $statResult['granted'] ?? [],
+    ];
 }
 
 /**
@@ -236,30 +247,47 @@ function sahtout_maybe_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, 
 function sahtout_format_achievement_reward_notice(array $notice): string
 {
     $tokens = (int) ($notice['tokens_added'] ?? 0);
-    $granted = $notice['granted'] ?? [];
-    if ($tokens <= 0 || $granted === []) {
+    if ($tokens <= 0) {
         return '';
     }
 
-    $count = count($granted);
-    $summary = translate(
-        'account_achievement_tokens_awarded',
-        'You received %s shop tokens for %d achievement reward(s).',
-        number_format($tokens),
-        $count
-    );
+    $parts = [];
+    $granted = $notice['granted'] ?? [];
+    if ($granted !== []) {
+        $count = count($granted);
+        $summary = translate(
+            'account_achievement_tokens_awarded',
+            'You received %s shop tokens for %d achievement reward(s).',
+            number_format(array_sum(array_map(static fn ($row) => (int) ($row['tokens'] ?? 0), $granted))),
+            $count
+        );
 
-    $details = [];
-    foreach (array_slice($granted, 0, 5) as $row) {
-        $title = trim((string) ($row['title'] ?? ''));
-        if ($title === '') {
-            $title = translate('account_achievement_untitled', 'Achievement #%d', (int) $row['achievement_id']);
+        $details = [];
+        foreach (array_slice($granted, 0, 5) as $row) {
+            $title = trim((string) ($row['title'] ?? ''));
+            if ($title === '') {
+                $title = translate('account_achievement_untitled', 'Achievement #%d', (int) $row['achievement_id']);
+            }
+            $details[] = $title . ' (+' . number_format((int) $row['tokens']) . ')';
         }
-        $details[] = $title . ' (+' . number_format((int) $row['tokens']) . ')';
-    }
-    if ($count > 5) {
-        $details[] = translate('account_achievement_and_more', '…and %d more.', $count - 5);
+        if ($count > 5) {
+            $details[] = translate('account_achievement_and_more', '…and %d more.', $count - 5);
+        }
+
+        $parts[] = trim($summary . ' ' . implode(' ', $details));
     }
 
-    return $summary . ' ' . implode(' ', $details);
+    $statGranted = $notice['stat_granted'] ?? [];
+    $statTokens = (int) ($notice['stat_tokens_added'] ?? 0);
+    if ($statTokens > 0 && $statGranted !== []) {
+        $statText = sahtout_format_character_stat_reward_notice([
+            'tokens_added' => $statTokens,
+            'granted' => $statGranted,
+        ]);
+        if ($statText !== '') {
+            $parts[] = $statText;
+        }
+    }
+
+    return implode(' ', $parts);
 }

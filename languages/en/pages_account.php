@@ -46,6 +46,7 @@ return [
     'account_achievement_tokens_awarded' => 'You received %s shop tokens for %d achievement reward(s).',
     'account_achievement_untitled' => 'Achievement #%d',
     'account_achievement_and_more' => '…and %d more.',
+    'account_stat_tokens_awarded' => 'You received %s shop tokens for %d character milestone(s).',
     'label_level' => 'Level',
     'char_hours_played' => '%d Hrs',
     'label_gold' => 'Gold',

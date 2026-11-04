@@ -3,9 +3,18 @@ define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
+$ashopRewardsLang = $project_root . 'languages/en/pages_admin_rewards.php';
+if (is_readable($ashopRewardsLang)) {
+    $ashopRewardsStrings = include $ashopRewardsLang;
+    if (is_array($ashopRewardsStrings)) {
+        $lang = array_merge($lang, $ashopRewardsStrings);
+    }
+}
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_achievement_rewards.php';
 require_once $project_root . 'includes/admin_shop_rewards_post.php';
+require_once $project_root . 'includes/admin_character_stat_rewards.php';
+require_once $project_root . 'includes/admin_character_stat_rewards_post.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -221,6 +230,17 @@ if (isset($_GET['status'])) {
     }
 }
 
+// Handle character stat reward form submissions (Rewards tab)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_stat_rewards_post()) {
+    $statPostResult = sahtout_admin_shop_stat_rewards_handle_post($site_db, $base_path);
+    if ($statPostResult['redirect'] !== null) {
+        header('Location: ' . $statPostResult['redirect']);
+        exit;
+    }
+    $rewards_flash = $statPostResult['flash'];
+    $shop_tab = 'rewards';
+}
+
 // Handle achievement reward form submissions (Rewards tab)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_rewards_post()) {
     $rewardsReadyPost = isset($site_db) && $site_db instanceof mysqli && sahtout_admin_achievement_rewards_table_exists($site_db);
@@ -235,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_rewards_post(
 }
 
 // Handle shop inventory form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post()) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post() && !sahtout_admin_shop_is_stat_rewards_post()) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_csrf_error', 'CSRF token validation failed.')));
         exit;
@@ -591,12 +611,23 @@ $milestoneLabels = [
     'dungeon' => translate('admin_rewards_type_dungeon', 'Dungeon'),
     'manual' => translate('admin_rewards_type_other', 'Other'),
 ];
+$statRewardsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_character_stat_rewards_table_exists($site_db);
+$allStatRewards = $statRewardsReady ? sahtout_admin_fetch_character_stat_rewards($site_db) : [];
+$statTypeLabels = [
+    'world_kills' => translate('admin_stat_reward_type_world_kills', 'World Kills'),
+    'duels_won' => translate('admin_stat_reward_type_duels_won', 'Duels Won'),
+    'deaths' => translate('admin_stat_reward_type_deaths', 'Deaths'),
+    'hours_played' => translate('admin_stat_reward_type_hours_played', 'Hours Played'),
+];
 $rewardsFormAction = htmlspecialchars($base_path . 'admin/ashop?tab=rewards', ENT_QUOTES, 'UTF-8');
 $rewardsSearchUrl = htmlspecialchars($base_path . 'admin/achievement_search', ENT_QUOTES, 'UTF-8');
 $rewardsStatusFlash = sahtout_admin_shop_rewards_status_flash_from_get();
-$rewards_alert_html = sahtout_admin_shop_rewards_flash_html(
-    $rewards_flash !== '' ? $rewards_flash : $rewardsStatusFlash
-);
+$statStatusFlash = sahtout_admin_shop_stat_rewards_status_flash_from_get();
+$primaryRewardsFlash = $rewards_flash !== '' ? $rewards_flash : ($rewardsStatusFlash !== '' ? $rewardsStatusFlash : $statStatusFlash);
+$rewards_alert_html = sahtout_admin_shop_rewards_flash_html($primaryRewardsFlash);
+if ($statStatusFlash !== '' && $primaryRewardsFlash !== $statStatusFlash) {
+    $rewards_alert_html .= sahtout_admin_shop_rewards_flash_html($statStatusFlash);
+}
 ?>
 <?php
 $page_title = translate('admin_shop_page_title', 'Shop Management');
@@ -1319,6 +1350,7 @@ ob_start();
 
                     <div id="shop-rewards-tab" class="tab-content <?php echo $shop_tab === 'rewards' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
                         <?php include __DIR__ . '/ashop_rewards_tab.inc.php'; ?>
+                        <?php include __DIR__ . '/ashop_character_stat_rewards.inc.php'; ?>
                     </div>
 
                 </div>

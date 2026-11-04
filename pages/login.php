@@ -556,10 +556,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         $char_db,
                                         (int) $account['id']
                                     );
-                                    if ($rewardSync['tokens_added'] > 0) {
+                                    $statSync = sahtout_sync_character_stat_rewards(
+                                        $site_db,
+                                        $char_db,
+                                        (int) $account['id']
+                                    );
+                                    $totalRewardTokens = (int) ($rewardSync['tokens_added'] ?? 0)
+                                        + (int) ($statSync['tokens_added'] ?? 0);
+                                    if ($totalRewardTokens > 0) {
                                         $_SESSION['achievement_reward_notice'] = [
-                                            'tokens_added' => $rewardSync['tokens_added'],
-                                            'granted' => $rewardSync['granted'],
+                                            'tokens_added' => $totalRewardTokens,
+                                            'granted' => $rewardSync['granted'] ?? [],
+                                            'stat_granted' => $statSync['granted'] ?? [],
+                                            'stat_tokens_added' => (int) ($statSync['tokens_added'] ?? 0),
                                         ];
                                     }
                                 }
