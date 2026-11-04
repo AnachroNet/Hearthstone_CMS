@@ -16,36 +16,36 @@ $gmOnlyChecked = $row && !empty($row['is_gm_only']) ? 'checked' : '';
 ?>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_teleport_locations_label_name', 'Display name'); ?></label>
-        <input type="text" name="name" class="wow-input" maxlength="128" required value="<?php echo $nameVal; ?>">
+        <label class="form-label"><?php echo translate('admin_teleport_locations_label_name', 'Display name'); ?></label>
+        <input type="text" name="name" class="input-dark" maxlength="128" required value="<?php echo $nameVal; ?>">
     </div>
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_teleport_locations_label_map', 'Map ID'); ?></label>
-        <input type="number" name="map" class="wow-input" min="0" max="65535" required value="<?php echo $mapVal; ?>">
+        <label class="form-label"><?php echo translate('admin_teleport_locations_label_map', 'Map ID'); ?></label>
+        <input type="number" name="map" class="input-dark" min="0" max="65535" required value="<?php echo $mapVal; ?>">
     </div>
 </div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1">X</label>
-        <input type="number" step="any" name="position_x" class="wow-input" required value="<?php echo htmlspecialchars((string) $posXVal); ?>">
+        <label class="form-label">X</label>
+        <input type="number" step="any" name="position_x" class="input-dark" required value="<?php echo htmlspecialchars((string) $posXVal); ?>">
     </div>
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1">Y</label>
-        <input type="number" step="any" name="position_y" class="wow-input" required value="<?php echo htmlspecialchars((string) $posYVal); ?>">
+        <label class="form-label">Y</label>
+        <input type="number" step="any" name="position_y" class="input-dark" required value="<?php echo htmlspecialchars((string) $posYVal); ?>">
     </div>
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1">Z</label>
-        <input type="number" step="any" name="position_z" class="wow-input" value="<?php echo htmlspecialchars((string) $posZVal); ?>">
+        <label class="form-label">Z</label>
+        <input type="number" step="any" name="position_z" class="input-dark" value="<?php echo htmlspecialchars((string) $posZVal); ?>">
     </div>
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_teleport_locations_label_orientation', 'Orientation'); ?></label>
-        <input type="number" step="any" name="orientation" class="wow-input" value="<?php echo htmlspecialchars((string) $orientVal); ?>">
+        <label class="form-label"><?php echo translate('admin_teleport_locations_label_orientation', 'Orientation'); ?></label>
+        <input type="number" step="any" name="orientation" class="input-dark" value="<?php echo htmlspecialchars((string) $orientVal); ?>">
     </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
     <div>
-        <label class="block text-sm text-[#f2cf5b] mb-1"><?php echo translate('admin_teleport_locations_label_sort', 'Sort order'); ?></label>
-        <input type="number" name="sort_order" class="wow-input" value="<?php echo $sortVal; ?>">
+        <label class="form-label"><?php echo translate('admin_teleport_locations_label_sort', 'Sort order'); ?></label>
+        <input type="number" name="sort_order" class="input-dark" value="<?php echo $sortVal; ?>">
     </div>
     <label class="flex items-center gap-2 text-sm text-gray-300 pb-2">
         <input type="checkbox" name="is_active" value="1" <?php echo $activeChecked; ?>>

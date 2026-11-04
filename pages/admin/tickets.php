@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/account_gm_tickets.php';
 require_once $project_root . 'includes/admin_ticket_compensation.php';
 require_once $project_root . 'includes/admin_comp_item_ui.php';
+require_once $project_root . 'includes/admin_page_styles.php';
 
 $page_class = 'tickets';
 
@@ -259,131 +260,26 @@ $page_meta_description = translate('admin_tickets_meta_description', 'View in-ga
 $page_meta_robots = 'noindex';
 
 ob_start();
+sahtout_admin_page_styles();
 ?>
 <style>
-        * { font-family: 'Inter', sans-serif; }
-        body {
-            min-height: 100vh;
-            color: #d8d8d8;
-            background: #05070b;
-            background-image:
-                radial-gradient(1000px 700px at -10% 35%, rgba(59,130,246,.14), transparent 65%),
-                linear-gradient(180deg, #0a0e16 0%, #060810 45%, #03040a 100%);
-            background-attachment: fixed;
+        .modal-backdrop {
+            display: none;
         }
-        .wow-title {
-            font-family: 'Cinzel', serif;
-            font-weight: 900;
-            background: linear-gradient(180deg, #fff7d6 0%, #f2cf5b 35%, #c9a227 62%, #8a6a14 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .panel {
-            background: linear-gradient(180deg, rgba(22,25,32,.92), rgba(8,10,14,.9));
-            border: 1px solid rgba(201,162,39,.22);
-            box-shadow: 0 12px 32px rgba(0,0,0,.55);
-        }
-        .input-dark {
-            width: 100%;
-            padding: .65rem .85rem;
-            background: rgba(0,0,0,.45);
-            border: 1px solid rgba(201,162,39,.25);
-            color: #e5e7eb;
-            font-size: .875rem;
-        }
-        .input-dark:focus { outline: none; border-color: #f2cf5b; }
-        .textarea-dark {
-            min-height: 6rem;
-            resize: vertical;
-            white-space: pre-wrap;
-        }
-        .btn-gold {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: .4rem;
-            padding: .65rem 1.1rem;
-            font-weight: 700;
-            font-size: .8rem;
-            text-transform: uppercase;
-            background: linear-gradient(180deg, #f6d478, #c9a227, #8a6a14);
-            color: #1a1200;
-            border: 1px solid rgba(138,106,20,.8);
-            cursor: pointer;
-        }
-        .btn-iron {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: .35rem;
-            padding: .5rem 1rem;
-            font-weight: 700;
-            font-size: .75rem;
-            text-transform: uppercase;
-            border-radius: 2px;
-            transition: transform .2s ease;
-            background: linear-gradient(180deg, #3a404d 0%, #232833 55%, #141821 100%);
-            color: #cfe1ff;
-            box-shadow: inset 0 0 0 1px rgba(120,160,255,.25), inset 0 -8px 14px rgba(0,0,0,.4);
-            border: none;
-            cursor: pointer;
-        }
-        .btn-iron:hover { transform: translateY(-1px); }
-        .btn-iron-sm { padding: .4rem .85rem; font-size: .7rem; }
-        .btn-danger-outline {
-            background: rgba(127, 29, 29, 0.35);
-            color: #fca5a5;
-            box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35);
-        }
-        .table-dark { width: 100%; border-collapse: collapse; font-size: .875rem; }
-        .table-dark th {
-            text-align: left;
-            padding: .75rem 1rem;
-            color: #f2cf5b;
-            font-size: .7rem;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-            border-bottom: 1px solid rgba(201,162,39,.2);
-            background: rgba(201,162,39,.06);
-            white-space: nowrap;
-        }
-        .table-dark td {
-            padding: .75rem 1rem;
-            border-bottom: 1px solid rgba(201,162,39,.08);
-            vertical-align: middle;
-        }
-        .table-dark tr:hover td { background: rgba(242,207,82,.04); }
+        .modal-backdrop.active { display: flex; }
+        .modal-backdrop .panel { max-width: 42rem; }
         .ticket-status-open { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); background: rgba(251, 191, 36, 0.08); }
         .ticket-status-assigned { color: #60a5fa; border-color: rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.08); }
         .ticket-status-closed { color: #9ca3af; border-color: rgba(156, 163, 175, 0.35); background: rgba(156, 163, 175, 0.08); }
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(8px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        .modal-backdrop.active { display: flex; }
-        .modal-backdrop .panel { max-height: 90vh; overflow-y: auto; width: 100%; max-width: 42rem; }
         .ticket-comp-block {
             margin-top: 1.25rem;
             padding-top: 1.25rem;
             border-top: 1px solid rgba(201,162,39,0.15);
         }
-        .main-content-area {
-            transition: margin-left 0.3s ease;
-            min-height: calc(100vh - 72px);
-            width: 100%;
-        }
-        @media (min-width: 1024px) {
-            .main-content-area.lg\:ml-70 { margin-left: 280px; }
-        }
-        @media (max-width: 1023px) {
-            .main-content-area { margin-left: 0 !important; }
+        .btn-danger-outline {
+            background: rgba(127, 29, 29, 0.35);
+            color: #fca5a5;
+            box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.35);
         }
 </style>
 <?php
@@ -396,9 +292,10 @@ $page_head = ob_get_clean();
 <div class="flex relative min-h-screen">
     <?php include $project_root . 'includes/admin_sidebar.php'; ?>
 
-    <main class="main-content-area flex-1 p-3 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 lg:ml-70">
-        <div class="max-w-[1400px] mx-auto space-y-6">
-            <h1 class="wow-title text-2xl md:text-3xl"><?php echo translate('admin_tickets_title', 'Support Tickets'); ?></h1>
+    <main class="main-content-area flex-1 p-3 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 lg:ml-[280px]">
+        <div class="content-wrapper">
+            <div class="space-y-4 md:space-y-6 lg:space-y-8">
+            <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_tickets_title', 'Support Tickets'); ?></h1>
             <p class="text-gray-400 text-sm max-w-3xl"><?php echo translate('admin_tickets_intro', 'Review and update in-game Help (?) tickets. Changes are written to the character database and reloaded on the worldserver when SOAP is configured.'); ?></p>
 
             <?php if ($flashMessage): ?>
@@ -412,7 +309,7 @@ $page_head = ob_get_clean();
                     <?php echo translate('admin_tickets_unavailable', 'The gm_ticket table is not available on the character database.'); ?>
                 </div>
             <?php else: ?>
-                <div class="panel p-4 md:p-6">
+                <div class="panel p-4 md:p-6 lg:p-8">
                     <form method="get" action="<?php echo htmlspecialchars($base_path . 'admin/tickets'); ?>" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                         <select name="status" class="input-dark">
                             <option value="open" <?php echo $statusFilter === 'open' ? 'selected' : ''; ?>><?php echo translate('admin_tickets_status_open', 'Open only'); ?></option>
@@ -524,6 +421,7 @@ $page_head = ob_get_clean();
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+            </div>
         </div>
     </main>
 </div>

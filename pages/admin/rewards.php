@@ -6,6 +6,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_achievement_rewards.php';
+require_once $project_root . 'includes/admin_page_styles.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -177,49 +178,9 @@ $page_meta_description = translate('admin_rewards_meta', 'Configure achievement 
 $page_meta_robots = 'noindex';
 
 ob_start();
+sahtout_admin_page_styles();
 ?>
 <style>
-        * { font-family: 'Inter', sans-serif; }
-        body {
-            min-height: 100vh;
-            color: #d8d8d8;
-            background: #05070b;
-            background-image:
-                radial-gradient(1000px 700px at -10% 35%, rgba(59,130,246,.14), transparent 65%),
-                linear-gradient(180deg, #0a0e16 0%, #060810 45%, #03040a 100%);
-            background-attachment: fixed;
-        }
-        .wow-panel {
-            position: relative;
-            background: linear-gradient(180deg, rgba(22,25,32,.92), rgba(8,10,14,.9));
-            border: 1px solid rgba(201,162,39,.22);
-            box-shadow: 0 12px 32px rgba(0,0,0,.55);
-        }
-        .wow-title { font-family: 'Cinzel', serif; font-weight: 900; color: #f2cf5b; }
-        .wow-input, .wow-select {
-            width: 100%;
-            padding: .65rem .85rem;
-            background: rgba(0,0,0,.45);
-            border: 1px solid rgba(201,162,39,.25);
-            color: #e5e7eb;
-        }
-        .table-dark { width: 100%; border-collapse: collapse; font-size: .875rem; }
-        .table-dark th {
-            text-align: left;
-            padding: .75rem 1rem;
-            color: #f2cf5b;
-            font-size: .7rem;
-            text-transform: uppercase;
-            border-bottom: 1px solid rgba(201,162,39,.2);
-        }
-        .table-dark td { padding: .75rem 1rem; border-bottom: 1px solid rgba(201,162,39,.08); vertical-align: top; }
-        .btn-game { display: inline-flex; align-items: center; gap: .4rem; padding: .55rem 1rem; font-weight: 700; font-size: .75rem; text-transform: uppercase; cursor: pointer; border: 1px solid rgba(201,162,39,.35); }
-        .btn-gold { background: linear-gradient(180deg, #f6d478, #c9a227); color: #1a1200; }
-        .btn-iron { background: rgba(0,0,0,.35); color: #e5e7eb; }
-        .badge-on { color: #86efac; font-size: .75rem; }
-        .badge-off { color: #9ca3af; font-size: .75rem; }
-        .main-content-area { min-height: calc(100vh - 72px); }
-        @media (min-width: 1024px) { .main-content-area.lg\:ml-70 { margin-left: 280px; } }
         .ach-search-results {
             position: absolute;
             z-index: 50;
@@ -274,27 +235,28 @@ $milestoneLabels = [
 ?>
 <div class="flex relative min-h-screen">
     <?php include $project_root . 'includes/admin_sidebar.php'; ?>
-    <main class="main-content-area flex-1 p-4 md:p-8 lg:ml-70">
-        <div class="max-w-6xl mx-auto space-y-8">
-            <h1 class="wow-title text-2xl md:text-3xl"><?php echo translate('admin_rewards_heading', 'Reward Management'); ?></h1>
+    <main class="main-content-area flex-1 p-3 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 lg:ml-[280px]">
+        <div class="content-wrapper">
+            <div class="space-y-4 md:space-y-6 lg:space-y-8">
+            <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_rewards_heading', 'Reward Management'); ?></h1>
             <p class="text-gray-400 text-sm"><?php echo translate('admin_rewards_help', 'Link in-game achievements to website shop tokens. After import, set token amounts and enable each row. Login-time granting can be added later.'); ?></p>
 
             <?php echo $alertHtml; ?>
 
             <?php if (!$rewardsReady): ?>
-                <div class="wow-panel p-6 text-amber-300 border border-amber-500/30">
+                <div class="panel p-6 text-amber-300 border border-amber-500/30">
                     <?php echo translate('admin_rewards_table_missing', 'Run achievement_catalog.sql on the site database first.'); ?>
                 </div>
             <?php else: ?>
 
             <?php if (!$catalogReady): ?>
-                <div class="wow-panel p-4 text-amber-300 text-sm border border-amber-500/30">
+                <div class="panel p-4 text-amber-300 text-sm border border-amber-500/30">
                     <?php echo translate('admin_rewards_catalog_missing', 'Import achievement_catalog data to search achievements when adding rows.'); ?>
                 </div>
             <?php endif; ?>
 
-            <div class="wow-panel p-6">
-                <h2 class="text-[#f2cf5b] font-['Cinzel'] text-lg mb-4"><?php echo translate('admin_rewards_add', 'Add reward'); ?></h2>
+            <div class="panel p-4 md:p-6 lg:p-8">
+                <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_rewards_add', 'Add reward'); ?></h2>
                 <form method="post" action="<?php echo $formAction; ?>" class="space-y-4" id="addRewardForm">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="action" value="add">
@@ -303,7 +265,7 @@ $milestoneLabels = [
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-gray-400 mb-1" for="milestone_type"><?php echo translate('admin_rewards_col_type', 'Milestone type'); ?></label>
-                            <select name="milestone_type" id="milestone_type" class="wow-select" required>
+                            <select name="milestone_type" id="milestone_type" class="input-dark" required>
                                 <option value="level"><?php echo htmlspecialchars($milestoneLabels['level']); ?></option>
                                 <option value="quest_count"><?php echo htmlspecialchars($milestoneLabels['quest_count']); ?></option>
                                 <option value="dungeon"><?php echo htmlspecialchars($milestoneLabels['dungeon']); ?></option>
@@ -312,32 +274,32 @@ $milestoneLabels = [
                         </div>
                         <div id="milestoneValueWrap">
                             <label class="block text-xs text-gray-400 mb-1" for="milestone_value"><?php echo translate('admin_rewards_milestone_value', 'Level or quest count'); ?></label>
-                            <input type="number" min="1" max="999999" name="milestone_value" id="milestone_value" class="wow-input" placeholder="80">
+                            <input type="number" min="1" max="999999" name="milestone_value" id="milestone_value" class="input-dark" placeholder="80">
                         </div>
                     </div>
 
                     <div id="dungeonNameWrap" class="hidden">
                         <label class="block text-xs text-gray-400 mb-1" for="dungeon_name"><?php echo translate('admin_rewards_dungeon_name', 'Dungeon name (optional)'); ?></label>
-                        <input type="text" name="dungeon_name" id="dungeon_name" class="wow-input" maxlength="128" placeholder="Utgarde Keep">
+                        <input type="text" name="dungeon_name" id="dungeon_name" class="input-dark" maxlength="128" placeholder="Utgarde Keep">
                     </div>
 
                     <div class="relative">
                         <label class="block text-xs text-gray-400 mb-1" for="achievement_search"><?php echo translate('admin_rewards_achievement', 'Achievement'); ?></label>
-                        <input type="text" id="achievement_search" class="wow-input" autocomplete="off"
+                        <input type="text" id="achievement_search" class="input-dark" autocomplete="off"
                                placeholder="<?php echo htmlspecialchars(translate('admin_rewards_search_placeholder', 'Search by title or achievement ID…')); ?>"
                                <?php echo $catalogReady ? '' : 'disabled'; ?>>
                         <p id="achievement_picked" class="text-sm text-gray-500 mt-1"></p>
                         <div id="achievement_results" class="ach-search-results"></div>
                     </div>
 
-                    <button type="submit" class="btn-game btn-gold" id="addRewardBtn" disabled>
+                    <button type="submit" class="btn-gold" id="addRewardBtn" disabled>
                         <i class="fas fa-plus"></i> <?php echo translate('admin_rewards_create', 'Add reward row'); ?>
                     </button>
                 </form>
             </div>
 
-            <div class="wow-panel p-6 overflow-x-auto">
-                <h2 class="text-[#f2cf5b] font-['Cinzel'] text-lg mb-4"><?php echo translate('admin_rewards_list', 'Configured rewards'); ?></h2>
+            <div class="panel p-4 md:p-6 lg:p-8 overflow-x-auto">
+                <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_rewards_list', 'Configured rewards'); ?></h2>
                 <?php if ($allRewards === []): ?>
                     <p class="text-gray-500"><?php echo translate('admin_rewards_empty', 'No reward rows yet. Run the DBC import or add one above.'); ?></p>
                 <?php else: ?>
@@ -388,7 +350,7 @@ $milestoneLabels = [
                                     <input type="hidden" name="achievement_id" value="<?php echo $achId; ?>">
                                     <div class="w-28">
                                         <label class="sr-only"><?php echo translate('admin_rewards_col_tokens', 'Tokens'); ?></label>
-                                        <input type="number" name="tokens" class="wow-input text-sm py-2" min="0" max="9999999"
+                                        <input type="number" name="tokens" class="input-dark text-sm py-2" min="0" max="9999999"
                                                value="<?php echo (int) ($row['tokens'] ?? 0); ?>">
                                     </div>
                                     <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer" title="<?php echo htmlspecialchars(translate('admin_rewards_enable_hint', 'When checked, this reward is active for account-wide sync.')); ?>">
@@ -399,7 +361,7 @@ $milestoneLabels = [
                                             <span class="text-gray-500">(<?php echo translate('admin_rewards_off', 'off'); ?>)</span>
                                         <?php endif; ?>
                                     </label>
-                                    <button type="submit" class="btn-game btn-gold text-xs py-2 px-3">
+                                    <button type="submit" class="btn-gold btn-iron-sm text-xs py-2 px-3">
                                         <?php echo translate('admin_rewards_save', 'Save'); ?>
                                     </button>
                                 </form>
@@ -412,6 +374,7 @@ $milestoneLabels = [
             </div>
 
             <?php endif; ?>
+            </div>
         </div>
     </main>
 </div>
