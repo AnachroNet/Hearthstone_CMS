@@ -4,6 +4,8 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/admin_achievement_rewards.php';
+require_once $project_root . 'includes/admin_shop_rewards_post.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -11,6 +13,10 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'mode
 }
 
 $page_class = 'ashop';
+$shop_tab = (isset($_GET['tab']) && $_GET['tab'] === 'rewards') ? 'rewards' : 'inventory';
+$rewards_flash = '';
+
+global $site_db, $world_db;
 
 // Pagination settings
 $items_per_page = 10;
@@ -215,8 +221,21 @@ if (isset($_GET['status'])) {
     }
 }
 
-// Handle form submissions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Handle achievement reward form submissions (Rewards tab)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_rewards_post()) {
+    $rewardsReadyPost = isset($site_db) && $site_db instanceof mysqli && sahtout_admin_achievement_rewards_table_exists($site_db);
+    $catalogReadyPost = $rewardsReadyPost && sahtout_admin_achievement_catalog_table_exists($site_db);
+    $rewardsPostResult = sahtout_admin_shop_rewards_handle_post($site_db, $base_path, $rewardsReadyPost, $catalogReadyPost);
+    if ($rewardsPostResult['redirect'] !== null) {
+        header('Location: ' . $rewardsPostResult['redirect']);
+        exit;
+    }
+    $rewards_flash = $rewardsPostResult['flash'];
+    $shop_tab = 'rewards';
+}
+
+// Handle shop inventory form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post()) {
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_csrf_error', 'CSRF token validation failed.')));
         exit;
@@ -556,6 +575,28 @@ try {
 } finally {
     if (isset($stmt)) $stmt->close();
 }
+
+$rewardsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_admin_achievement_rewards_table_exists($site_db);
+$catalogReady = $rewardsReady && sahtout_admin_achievement_catalog_table_exists($site_db);
+$allRewards = $rewardsReady ? sahtout_admin_fetch_achievement_rewards($site_db) : [];
+$rewardCreatureNames = $catalogReady
+    ? sahtout_admin_creature_names_for_rewards(
+        (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null,
+        $allRewards
+    )
+    : [];
+$milestoneLabels = [
+    'level' => translate('admin_rewards_type_level', 'Level'),
+    'quest_count' => translate('admin_rewards_type_quest', 'Quests'),
+    'dungeon' => translate('admin_rewards_type_dungeon', 'Dungeon'),
+    'manual' => translate('admin_rewards_type_other', 'Other'),
+];
+$rewardsFormAction = htmlspecialchars($base_path . 'admin/ashop?tab=rewards', ENT_QUOTES, 'UTF-8');
+$rewardsSearchUrl = htmlspecialchars($base_path . 'admin/achievement_search', ENT_QUOTES, 'UTF-8');
+$rewardsStatusFlash = sahtout_admin_shop_rewards_status_flash_from_get();
+$rewards_alert_html = sahtout_admin_shop_rewards_flash_html(
+    $rewards_flash !== '' ? $rewards_flash : $rewardsStatusFlash
+);
 ?>
 <?php
 $page_title = translate('admin_shop_page_title', 'Shop Management');
@@ -909,6 +950,53 @@ ob_start();
                 padding: 0 0.5rem;
             }
         }
+
+        .tab-link {
+            color: #b8c8ff;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .tab-link:hover { color: #f2cf5b; }
+        .tab-link.active { color: #f2cf5b; border-bottom-color: #f2cf5b; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .ach-search-results {
+            position: absolute;
+            z-index: 50;
+            left: 0;
+            right: 0;
+            max-height: 14rem;
+            overflow-y: auto;
+            background: rgba(8,10,14,.98);
+            border: 1px solid rgba(201,162,39,.35);
+            display: none;
+        }
+        .ach-search-results button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: .5rem .75rem;
+            font-size: .8rem;
+            color: #e5e7eb;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .ach-search-results button:hover { background: rgba(201,162,39,.12); }
+        .type-pill {
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: .2rem .45rem;
+            border: 1px solid rgba(201,162,39,.25);
+            color: #f2cf5b;
+        }
     </style>
 <?php $page_head = ob_get_clean(); ?>
 
@@ -926,8 +1014,23 @@ ob_start();
                 <div class="space-y-4 md:space-y-6 lg:space-y-8">
                     
                     <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_shop_title', 'Shop Management'); ?></h1>
-                    
-                    <?php echo $update_message; ?>
+
+                    <?php if ($shop_tab === 'inventory'): ?>
+                        <?php echo $update_message; ?>
+                    <?php endif; ?>
+
+                    <div class="border-b border-[rgba(201,162,39,.2)]">
+                        <nav class="flex gap-0 overflow-x-auto">
+                            <a class="tab-link whitespace-nowrap <?php echo $shop_tab === 'inventory' ? 'active' : ''; ?>" href="<?php echo $base_path; ?>admin/ashop?tab=inventory">
+                                <i class="fas fa-store mr-2"></i><?php echo translate('admin_shop_tab_inventory', 'Store Inventory'); ?>
+                            </a>
+                            <a class="tab-link whitespace-nowrap <?php echo $shop_tab === 'rewards' ? 'active' : ''; ?>" href="<?php echo $base_path; ?>admin/ashop?tab=rewards">
+                                <i class="fas fa-medal mr-2"></i><?php echo translate('admin_shop_tab_rewards', 'Rewards'); ?>
+                            </a>
+                        </nav>
+                    </div>
+
+                    <div id="shop-inventory-tab" class="tab-content <?php echo $shop_tab === 'inventory' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
 
                     <!-- Add/Edit Shop Item Form -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8">
@@ -1075,6 +1178,7 @@ ob_start();
                         
                         <!-- Filter & Search -->
                         <form method="GET" class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 md:gap-4 items-end mb-4 md:mb-6" action="<?php echo $base_path; ?>admin/ashop">
+                            <input type="hidden" name="tab" value="inventory">
                             <div>
                                 <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_category_filter', 'Filter by Category'); ?></label>
                                 <select name="category" id="category_filter" class="wow-select">
@@ -1210,6 +1314,13 @@ ob_start();
                             </nav>
                         <?php endif; ?>
                     </div>
+
+                    </div><!-- /shop-inventory-tab -->
+
+                    <div id="shop-rewards-tab" class="tab-content <?php echo $shop_tab === 'rewards' ? 'active' : ''; ?> space-y-4 md:space-y-6 lg:space-y-8">
+                        <?php include __DIR__ . '/ashop_rewards_tab.inc.php'; ?>
+                    </div>
+
                 </div>
             </div>
         </main>
@@ -1530,6 +1641,92 @@ ob_start();
                 el.value = max;
             }
         });
+    </script>
+    <script>
+    (function () {
+        const searchUrl = <?php echo json_encode($rewardsSearchUrl); ?>;
+        const searchInput = document.getElementById('achievement_search');
+        const resultsBox = document.getElementById('achievement_results');
+        const achIdInput = document.getElementById('achievement_id');
+        const pickedLabel = document.getElementById('achievement_picked');
+        const addBtn = document.getElementById('addRewardBtn');
+        const typeSelect = document.getElementById('milestone_type');
+        const valueWrap = document.getElementById('milestoneValueWrap');
+        const dungeonWrap = document.getElementById('dungeonNameWrap');
+        if (!typeSelect || !addBtn) return;
+
+        let debounceTimer = null;
+
+        function syncTypeFields() {
+            const t = typeSelect.value;
+            const needsValue = t === 'level' || t === 'quest_count';
+            valueWrap.classList.toggle('hidden', !needsValue);
+            dungeonWrap.classList.toggle('hidden', t !== 'dungeon');
+        }
+        typeSelect.addEventListener('change', syncTypeFields);
+        syncTypeFields();
+
+        function setAchievement(id, title) {
+            achIdInput.value = String(id);
+            pickedLabel.textContent = title + ' (ID ' + id + ')';
+            addBtn.disabled = false;
+            resultsBox.style.display = 'none';
+            searchInput.value = title;
+        }
+
+        if (searchInput && resultsBox) {
+            searchInput.addEventListener('input', function () {
+                achIdInput.value = '0';
+                pickedLabel.textContent = '';
+                addBtn.disabled = true;
+                const q = searchInput.value.trim();
+                if (q.length < 2) {
+                    resultsBox.style.display = 'none';
+                    return;
+                }
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(function () {
+                    fetch(searchUrl + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (data) {
+                            resultsBox.innerHTML = '';
+                            if (!data.ok || !data.achievements || !data.achievements.length) {
+                                resultsBox.style.display = 'none';
+                                return;
+                            }
+                            data.achievements.forEach(function (a) {
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.textContent = '[' + a.id + '] ' + a.title;
+                                btn.addEventListener('click', function () {
+                                    setAchievement(a.id, a.title);
+                                    if (a.criteria_value && typeSelect.value === 'level' && a.criteria_type === 5) {
+                                        document.getElementById('milestone_value').value = a.criteria_value;
+                                    }
+                                    if (a.criteria_value && typeSelect.value === 'quest_count' && a.criteria_type === 9) {
+                                        document.getElementById('milestone_value').value = a.criteria_value;
+                                    }
+                                });
+                                resultsBox.appendChild(btn);
+                            });
+                            resultsBox.style.display = 'block';
+                        })
+                        .catch(function () { resultsBox.style.display = 'none'; });
+                }, 250);
+            });
+            document.addEventListener('click', function (e) {
+                if (!resultsBox.contains(e.target) && e.target !== searchInput) {
+                    resultsBox.style.display = 'none';
+                }
+            });
+        }
+
+        document.getElementById('addRewardForm')?.addEventListener('submit', function (e) {
+            if (parseInt(achIdInput.value, 10) <= 0) {
+                e.preventDefault();
+            }
+        });
+    })();
     </script>
 <?php $site_db->close(); ?>
 </body>

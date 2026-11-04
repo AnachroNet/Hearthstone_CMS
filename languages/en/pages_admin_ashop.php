@@ -3,6 +3,8 @@ return [
     'admin_shop_page_title' => 'Shop Management - Admin Panel',
     'admin_shop_meta_description' => 'Shop Management for Sahtout WoW Server',
     'admin_shop_title' => 'Shop Management',
+    'admin_shop_tab_inventory' => 'Store Inventory',
+    'admin_shop_tab_rewards' => 'Rewards',
     'admin_shop_add_edit_header' => 'Add/Edit Shop Item',
     'admin_shop_list_header' => 'Shop Items',
     'admin_shop_operation_success' => 'Operation successful!',
