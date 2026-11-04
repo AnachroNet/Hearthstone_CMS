@@ -307,6 +307,9 @@ $query = "SELECT id, title, slug, image_url, post_date
           ORDER BY is_important DESC, post_date DESC 
           LIMIT 4";
 $result = $site_db->query($query);
+if ($result === false) {
+    error_log('index.php server_news query failed: ' . $site_db->error);
+}
 
 $maintenance_visible = [];
 if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
@@ -318,24 +321,11 @@ if (isset($world_db) && $world_db instanceof mysqli && !$world_db->connect_error
     $home_breaking_news = sahtout_breaking_news_fetch_for_display($world_db);
 }
 
-$home_calendar = null;
-$home_cal_year = 0;
-$home_cal_month = 0;
-if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
-    [$home_cal_year, $home_cal_month] = sahtout_holiday_calendar_parse_month(
-        isset($_GET['cal']) ? (string) $_GET['cal'] : null
-    );
-    $home_calendar = sahtout_holiday_calendar_build($site_db, $home_cal_year, $home_cal_month);
-}
-
-$home_cal_tz = new DateTimeZone(isset($site_timezone) && $site_timezone !== '' ? $site_timezone : 'UTC');
-$home_cal_today = new DateTimeImmutable('now', $home_cal_tz);
-$home_cal_is_current_month = $home_cal_year === (int) $home_cal_today->format('Y')
-    && $home_cal_month === (int) $home_cal_today->format('n');
-$home_cal_today_day = (int) $home_cal_today->format('j');
-[$home_cal_prev_y, $home_cal_prev_m] = sahtout_holiday_calendar_shift_month($home_cal_year, $home_cal_month, -1);
-[$home_cal_next_y, $home_cal_next_m] = sahtout_holiday_calendar_shift_month($home_cal_year, $home_cal_month, 1);
-$home_cal_month_label = (new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal_year, $home_cal_month)))->format('F Y');
+$home_cal = sahtout_holiday_calendar_for_home(
+    isset($site_db) && $site_db instanceof mysqli ? $site_db : null,
+    isset($_GET['cal']) ? (string) $_GET['cal'] : null,
+    isset($site_timezone) ? (string) $site_timezone : ''
+);
 ?>
 
     <main class="max-w-350 mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -392,7 +382,20 @@ $home_cal_month_label = (new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal
                     </div>
                 </div>
 
-                <?php if ($home_calendar !== null && !empty($home_calendar['holidays_enabled'])): ?>
+                <?php if (!empty($home_cal['show']) && is_array($home_cal['calendar'])): ?>
+                <?php
+                $home_calendar = $home_cal['calendar'];
+                $home_cal_year = $home_cal['year'];
+                $home_cal_month = $home_cal['month'];
+                $home_cal_is_current_month = $home_cal['is_current_month'];
+                $home_cal_today_day = $home_cal['today_day'];
+                $home_cal_prev_y = $home_cal['prev_y'];
+                $home_cal_prev_m = $home_cal['prev_m'];
+                $home_cal_next_y = $home_cal['next_y'];
+                $home_cal_next_m = $home_cal['next_m'];
+                $home_cal_month_label = $home_cal['month_label'];
+                $home_cal_today = $home_cal['today'];
+                ?>
                 <section class="wow-panel home-event-calendar p-3 sm:p-4 md:p-6" aria-labelledby="home-event-calendar-heading">
                     <h2 id="home-event-calendar-heading" class="section-title text-lg sm:text-xl md:text-2xl mb-4 sm:mb-5">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -405,7 +408,7 @@ $home_cal_month_label = (new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal
                             <span class="home-event-calendar-month-label"><?php echo htmlspecialchars($home_cal_month_label, ENT_QUOTES, 'UTF-8'); ?></span>
                             <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, $home_cal_next_y, $home_cal_next_m); ?>" aria-label="<?php echo translate('home_event_calendar_next', 'Next month'); ?>">›</a>
                         </div>
-                        <?php if (!$home_cal_is_current_month): ?>
+                        <?php if (!$home_cal_is_current_month && $home_cal_today instanceof DateTimeImmutable): ?>
                         <a href="<?php echo sahtout_holiday_calendar_nav_url($base_path, (int) $home_cal_today->format('Y'), (int) $home_cal_today->format('n')); ?>" class="text-xs font-semibold text-[#f2cf5b] hover:text-white transition-colors">
                             <?php echo translate('home_event_calendar_today', 'Today'); ?>
                         </a>
@@ -508,7 +511,7 @@ $home_cal_month_label = (new DateTimeImmutable(sprintf('%04d-%02d-01', $home_cal
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <?php if ($result->num_rows === 0): ?>
+                        <?php if (!$result instanceof mysqli_result || $result->num_rows === 0): ?>
                             <p class="col-span-full text-gray-400 text-center py-8">
                                 <?php echo translate('home_no_news', 'No news available at the time.'); ?>
                             </p>

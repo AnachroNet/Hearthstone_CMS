@@ -15,11 +15,32 @@ function sahtout_holiday_calendar_tables_exist(?mysqli $siteDb): bool
     if ($exists !== null) {
         return $exists;
     }
-    $res = $siteDb->query("SHOW TABLES LIKE 'holidays_dbc'");
-    $exists = $res && $res->num_rows > 0;
-    $res?->free();
+    $required = ['holidays_dbc', 'holidaynames_dbc', 'holidaydescriptions_dbc'];
+    foreach ($required as $table) {
+        $res = $siteDb->query("SHOW TABLES LIKE '" . $siteDb->real_escape_string($table) . "'");
+        if (!$res || $res->num_rows === 0) {
+            $exists = false;
 
-    return $exists;
+            return false;
+        }
+        $res->free();
+    }
+    $exists = true;
+
+    return true;
+}
+
+function sahtout_holiday_calendar_timezone(string $siteTimezone): DateTimeZone
+{
+    $tz = trim($siteTimezone);
+    if ($tz === '') {
+        $tz = 'UTC';
+    }
+    try {
+        return new DateTimeZone($tz);
+    } catch (Exception $e) {
+        return new DateTimeZone('UTC');
+    }
 }
 
 function sahtout_holiday_calendar_should_show(int $holidayId, int $calendarFilterType, int $flags): bool
@@ -125,9 +146,16 @@ function sahtout_holiday_occurrences_in_year(array $holidayRow, int $year): arra
         if ($u === null || (int) $u['year'] !== $year) {
             continue;
         }
+        if (!checkdate((int) $u['month'], (int) $u['day'], (int) $u['year'])) {
+            continue;
+        }
         $start = sprintf('%04d-%02d-%02d', $u['year'], $u['month'], $u['day']);
         $hours = sahtout_holiday_duration_hours($holidayRow, $dateIdx);
-        $endDt = (new DateTimeImmutable($start))->modify('+' . max(0, $hours - 1) . ' hours');
+        try {
+            $endDt = (new DateTimeImmutable($start))->modify('+' . max(0, $hours - 1) . ' hours');
+        } catch (Exception $e) {
+            continue;
+        }
         $end = $endDt->format('Y-m-d');
         $occurrences[] = [
             'start' => $start,
@@ -242,9 +270,80 @@ function sahtout_holiday_calendar_nav_url(string $basePath, int $year, int $mont
 
 function sahtout_holiday_calendar_shift_month(int $year, int $month, int $delta): array
 {
-    $dt = (new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month)))->modify(
-        ($delta >= 0 ? '+' : '') . $delta . ' months'
-    );
+    if ($year < 2000 || $year > 2030 || $month < 1 || $month > 12) {
+        return sahtout_holiday_calendar_parse_month(null);
+    }
 
-    return [(int) $dt->format('Y'), (int) $dt->format('n')];
+    try {
+        $dt = (new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month)))->modify(
+            ($delta >= 0 ? '+' : '') . $delta . ' months'
+        );
+
+        return [(int) $dt->format('Y'), (int) $dt->format('n')];
+    } catch (Exception $e) {
+        return sahtout_holiday_calendar_parse_month(null);
+    }
+}
+
+/**
+ * Home page calendar context; never throws (failures are logged, home page keeps rendering).
+ *
+ * @return array{
+ *   show: bool,
+ *   year: int,
+ *   month: int,
+ *   calendar: array<string, mixed>|null,
+ *   today: ?DateTimeImmutable,
+ *   is_current_month: bool,
+ *   today_day: int,
+ *   prev_y: int,
+ *   prev_m: int,
+ *   next_y: int,
+ *   next_m: int,
+ *   month_label: string
+ * }
+ */
+function sahtout_holiday_calendar_for_home(?mysqli $siteDb, ?string $calParam, string $siteTimezone = ''): array
+{
+    [$year, $month] = sahtout_holiday_calendar_parse_month($calParam);
+    $out = [
+        'show' => false,
+        'year' => $year,
+        'month' => $month,
+        'calendar' => null,
+        'today' => null,
+        'is_current_month' => false,
+        'today_day' => 1,
+        'prev_y' => $year,
+        'prev_m' => $month,
+        'next_y' => $year,
+        'next_m' => $month,
+        'month_label' => '',
+    ];
+
+    if (!$siteDb instanceof mysqli || $siteDb->connect_error) {
+        return $out;
+    }
+
+    try {
+        $tz = sahtout_holiday_calendar_timezone($siteTimezone);
+        $today = new DateTimeImmutable('now', $tz);
+        $out['today'] = $today;
+        $out['is_current_month'] = $year === (int) $today->format('Y') && $month === (int) $today->format('n');
+        $out['today_day'] = (int) $today->format('j');
+        [$out['prev_y'], $out['prev_m']] = sahtout_holiday_calendar_shift_month($year, $month, -1);
+        [$out['next_y'], $out['next_m']] = sahtout_holiday_calendar_shift_month($year, $month, 1);
+        $out['month_label'] = (new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month)))->format('F Y');
+
+        $calendar = sahtout_holiday_calendar_build($siteDb, $year, $month);
+        if (empty($calendar['holidays_enabled'])) {
+            return $out;
+        }
+        $out['calendar'] = $calendar;
+        $out['show'] = true;
+    } catch (Throwable $e) {
+        error_log('sahtout_holiday_calendar_for_home: ' . $e->getMessage());
+    }
+
+    return $out;
 }
