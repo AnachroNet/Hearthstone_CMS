@@ -171,13 +171,15 @@ $is_auth_page = in_array($page_class, ['login', 'register']);
 // ---- Escaped output helpers for HTML attributes ----
 $esc_base = htmlspecialchars($base_path, ENT_QUOTES, 'UTF-8');
 $esc_logo = htmlspecialchars($site_logo ?? '', ENT_QUOTES, 'UTF-8');
+$page_document_base = isset($page_document_base) ? (string) $page_document_base : $base_path;
+$esc_document_base = htmlspecialchars($page_document_base, ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base href="<?php echo $esc_base; ?>">
+    <base href="<?php echo $esc_document_base; ?>">
 
     <title><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></title>
 

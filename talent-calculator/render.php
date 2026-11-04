@@ -28,10 +28,10 @@ $page_meta_robots = 'index';
 $tc_css = $tc_web_base . 'talents/' . $tc_dir . '/talent.css';
 $tc_script_base = $tc_web_base . 'talents/' . $tc_dir . '/';
 $tc_public_url = rtrim($site_url, '/') . '/talent-calculator/' . rawurlencode($tc_slug) . '.php';
+$page_document_base = $tc_web_base;
 
 ob_start();
 ?>
-<base href="<?php echo htmlspecialchars($tc_web_base, ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars($tc_css, ENT_QUOTES, 'UTF-8'); ?>">
 <style>
     body.page-talent-calculator {
