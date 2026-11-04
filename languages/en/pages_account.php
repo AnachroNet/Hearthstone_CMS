@@ -201,5 +201,6 @@ return [
     'inquiry_status_pending' => 'Pending',
     'inquiry_status_answered' => 'Answered',
     'inquiry_status_closed' => 'Closed',
+    'inquiry_tokens_awarded' => 'Shop tokens included with this reply: %s',
 ];
 ?>

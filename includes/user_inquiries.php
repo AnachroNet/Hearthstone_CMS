@@ -19,6 +19,32 @@ function sahtout_user_inquiries_table_exists(?mysqli $siteDb): bool
     return $exists;
 }
 
+function sahtout_user_inquiries_tokens_column_exists(mysqli $siteDb): bool
+{
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    if (!sahtout_user_inquiries_table_exists($siteDb)) {
+        $exists = false;
+
+        return false;
+    }
+    $res = $siteDb->query("SHOW COLUMNS FROM user_inquiries LIKE 'tokens_awarded'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
+
+function sahtout_user_inquiry_select_sql(mysqli $siteDb): string
+{
+    $tokens = sahtout_user_inquiries_tokens_column_exists($siteDb) ? 'tokens_awarded,' : '';
+
+    return 'id, account_id, account_username, subject, message, status,
+                responder_username, response_text, ' . $tokens . ' created_at, responded_at, updated_at';
+}
+
 function sahtout_format_inquiry_time($value): string
 {
     if ($value === null || $value === '') {
@@ -84,13 +110,13 @@ function sahtout_account_user_inquiries(mysqli $siteDb, int $accountId): array
         return $empty;
     }
 
+    $select = sahtout_user_inquiry_select_sql($siteDb);
     $stmt = $siteDb->prepare(
-        'SELECT id, account_id, account_username, subject, message, status,
-                responder_username, response_text, created_at, responded_at, updated_at
+        "SELECT {$select}
          FROM user_inquiries
          WHERE account_id = ?
          ORDER BY created_at DESC
-         LIMIT 100'
+         LIMIT 100"
     );
     if (!$stmt) {
         return $empty;
@@ -107,6 +133,9 @@ function sahtout_account_user_inquiries(mysqli $siteDb, int $accountId): array
     while ($row = $result->fetch_assoc()) {
         if (($row['status'] ?? '') === 'pending') {
             $pending++;
+        }
+        if (!isset($row['tokens_awarded'])) {
+            $row['tokens_awarded'] = 0;
         }
         $rows[] = $row;
     }
@@ -188,8 +217,8 @@ function sahtout_admin_user_inquiries(
     $total = (int) ($countRow['c'] ?? 0);
     $stmt->close();
 
-    $listSql = "SELECT id, account_id, account_username, subject, message, status,
-                       responder_username, response_text, created_at, responded_at, updated_at
+    $select = sahtout_user_inquiry_select_sql($siteDb);
+    $listSql = "SELECT {$select}
                 FROM user_inquiries {$whereSql}
                 ORDER BY created_at DESC
                 LIMIT ? OFFSET ?";
@@ -210,6 +239,12 @@ function sahtout_admin_user_inquiries(
     }
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
+    foreach ($rows as &$row) {
+        if (!isset($row['tokens_awarded'])) {
+            $row['tokens_awarded'] = 0;
+        }
+    }
+    unset($row);
 
     return [
         'available' => true,
@@ -223,10 +258,10 @@ function sahtout_admin_user_inquiry_by_id(mysqli $siteDb, int $id): ?array
     if ($id <= 0 || !sahtout_user_inquiries_table_exists($siteDb)) {
         return null;
     }
+    $select = sahtout_user_inquiry_select_sql($siteDb);
     $stmt = $siteDb->prepare(
-        'SELECT id, account_id, account_username, subject, message, status,
-                responder_username, response_text, created_at, responded_at, updated_at
-         FROM user_inquiries WHERE id = ? LIMIT 1'
+        "SELECT {$select}
+         FROM user_inquiries WHERE id = ? LIMIT 1"
     );
     if (!$stmt) {
         return null;
@@ -240,6 +275,10 @@ function sahtout_admin_user_inquiry_by_id(mysqli $siteDb, int $id): ?array
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
+    if ($row && !isset($row['tokens_awarded'])) {
+        $row['tokens_awarded'] = 0;
+    }
+
     return $row ?: null;
 }
 
@@ -248,7 +287,8 @@ function sahtout_admin_save_user_inquiry(
     int $inquiryId,
     string $responseText,
     string $responderUsername,
-    string $stateAction
+    string $stateAction,
+    int $tokensToAdd = 0
 ): array {
     if (!sahtout_user_inquiries_table_exists($siteDb)) {
         return ['ok' => false, 'message' => 'table_missing'];
@@ -310,7 +350,99 @@ function sahtout_admin_save_user_inquiry(
     $ok = $stmt->execute();
     $stmt->close();
 
-    return $ok ? ['ok' => true] : ['ok' => false, 'message' => 'update_failed'];
+    if (!$ok) {
+        return ['ok' => false, 'message' => 'update_failed'];
+    }
+
+    if ($tokensToAdd > 0) {
+        $tokenResult = sahtout_admin_inquiry_award_tokens($siteDb, $inquiryId, $tokensToAdd);
+        if (!$tokenResult['ok']) {
+            return $tokenResult;
+        }
+
+        return [
+            'ok' => true,
+            'tokens_added' => $tokensToAdd,
+            'new_balance' => $tokenResult['new_balance'] ?? null,
+        ];
+    }
+
+    return ['ok' => true];
+}
+
+/**
+ * @return array{ok: bool, message?: string, new_balance?: ?int, tokens_added?: int}
+ */
+function sahtout_admin_inquiry_award_tokens(mysqli $siteDb, int $inquiryId, int $amount): array
+{
+    if ($amount <= 0 || $amount > 9999999) {
+        return ['ok' => false, 'message' => 'invalid_tokens'];
+    }
+    if (!sahtout_user_inquiries_tokens_column_exists($siteDb)) {
+        return ['ok' => false, 'message' => 'tokens_column_missing'];
+    }
+
+    $inquiry = sahtout_admin_user_inquiry_by_id($siteDb, $inquiryId);
+    if ($inquiry === null) {
+        return ['ok' => false, 'message' => 'not_found'];
+    }
+
+    $accountId = (int) ($inquiry['account_id'] ?? 0);
+    if ($accountId <= 0) {
+        return ['ok' => false, 'message' => 'invalid_account'];
+    }
+
+    $siteDb->begin_transaction();
+    try {
+        $stmt = $siteDb->prepare(
+            'UPDATE user_currencies SET tokens = LEAST(tokens + ?, 9999999) WHERE account_id = ?'
+        );
+        if (!$stmt) {
+            throw new RuntimeException('currency_prepare');
+        }
+        $stmt->bind_param('ii', $amount, $accountId);
+        $stmt->execute();
+        $affected = $stmt->affected_rows;
+        $stmt->close();
+        if ($affected <= 0) {
+            throw new RuntimeException('no_account');
+        }
+
+        $stmt = $siteDb->prepare(
+            'UPDATE user_inquiries SET tokens_awarded = tokens_awarded + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+        );
+        if (!$stmt) {
+            throw new RuntimeException('inquiry_prepare');
+        }
+        $stmt->bind_param('ii', $amount, $inquiryId);
+        $stmt->execute();
+        $stmt->close();
+
+        $siteDb->commit();
+    } catch (Throwable $e) {
+        $siteDb->rollback();
+        $code = $e->getMessage();
+        if ($code === 'no_account') {
+            return ['ok' => false, 'message' => 'no_account'];
+        }
+
+        return ['ok' => false, 'message' => 'token_award_failed'];
+    }
+
+    $stmt = $siteDb->prepare('SELECT tokens FROM user_currencies WHERE account_id = ? LIMIT 1');
+    $newBalance = null;
+    if ($stmt) {
+        $stmt->bind_param('i', $accountId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $row = $res ? $res->fetch_assoc() : null;
+        $stmt->close();
+        if ($row) {
+            $newBalance = (int) ($row['tokens'] ?? 0);
+        }
+    }
+
+    return ['ok' => true, 'tokens_added' => $amount, 'new_balance' => $newBalance];
 }
 
 function sahtout_inquiry_status_label_key(string $status): string

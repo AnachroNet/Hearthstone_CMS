@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `user_inquiries` (
   `status` enum('pending','answered','closed') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
   `responder_username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `response_text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `tokens_awarded` int unsigned NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `responded_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

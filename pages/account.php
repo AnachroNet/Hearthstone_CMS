@@ -1850,6 +1850,15 @@ include_once $project_root . 'includes/header.php';
                                                 }
                                                 ?>
                                             </div>
+                                            <?php if ((int) ($inquiry['tokens_awarded'] ?? 0) > 0): ?>
+                                                <p class="text-sm text-[#f2cf5b] mt-3 mb-0">
+                                                    <i class="fa-solid fa-gem mr-1"></i>
+                                                    <?php echo htmlspecialchars(sprintf(
+                                                        translate('inquiry_tokens_awarded', 'Shop tokens included with this reply: %s'),
+                                                        number_format((int) $inquiry['tokens_awarded'])
+                                                    )); ?>
+                                                </p>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </details>

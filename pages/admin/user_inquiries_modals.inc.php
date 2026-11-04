@@ -7,6 +7,9 @@ if (empty($inquiryData['available']) || empty($inquiryData['inquiries'])) {
 }
 foreach ($inquiryData['inquiries'] as $inq):
     $inqId = (int) $inq['id'];
+    $inqAccountId = (int) ($inq['account_id'] ?? 0);
+    $inqTokenBalance = $inqAccountId > 0 ? (int) ($inquiryTokenBalances[$inqAccountId] ?? 0) : 0;
+    $inqTokensAwarded = (int) ($inq['tokens_awarded'] ?? 0);
     $status = (string) ($inq['status'] ?? 'pending');
     $isClosed = $status === 'closed';
     ?>
@@ -45,6 +48,23 @@ foreach ($inquiryData['inquiries'] as $inq):
                             <?php endif; ?>
                         </p>
                     <?php endif; ?>
+                </div>
+
+                <div class="mb-4 pt-2 border-t border-[rgba(201,162,39,0.08)]">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-[#f2cf5b] mb-2"><?php echo translate('admin_inquiries_tokens_heading', 'Shop tokens (optional)'); ?></h4>
+                    <p class="text-xs text-gray-500 mb-3"><?php echo translate('admin_inquiries_tokens_help', 'Adds tokens when you save the response. Amount is cumulative on this inquiry.'); ?></p>
+                    <?php if ($inqTokensAwarded > 0): ?>
+                        <p class="text-xs text-gray-400 mb-2">
+                            <?php echo translate('admin_inquiries_tokens_already', 'Tokens granted for this inquiry'); ?>:
+                            <span class="text-[#f2cf5b] font-semibold"><?php echo number_format($inqTokensAwarded); ?></span>
+                        </p>
+                    <?php endif; ?>
+                    <p class="text-xs text-gray-400 mb-2">
+                        <?php echo translate('admin_inquiries_tokens_balance', 'Current account balance'); ?>:
+                        <span class="text-[#f2cf5b] font-semibold"><?php echo number_format($inqTokenBalance); ?></span>
+                    </p>
+                    <label class="block text-xs text-gray-400 mb-1" for="inquiry-tokens-<?php echo $inqId; ?>"><?php echo translate('admin_inquiries_tokens_add', 'Tokens to add on save'); ?></label>
+                    <input type="number" id="inquiry-tokens-<?php echo $inqId; ?>" name="tokens_to_add" class="input-dark max-w-[12rem]" min="0" max="9999999" step="1" placeholder="0">
                 </div>
 
                 <div class="flex flex-wrap justify-end gap-3 pt-2 border-t border-[rgba(201,162,39,0.12)]">

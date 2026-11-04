@@ -79,8 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $responseText = (string) ($_POST['response_text'] ?? '');
         $stateAction = (string) ($_POST['state_action'] ?? 'save');
         $responder = (string) ($_SESSION['username'] ?? '');
+        $tokensToAdd = $stateAction === 'save' ? max(0, (int) ($_POST['tokens_to_add'] ?? 0)) : 0;
 
-        $result = sahtout_admin_save_user_inquiry($site_db, $inquiryId, $responseText, $responder, $stateAction);
+        $result = sahtout_admin_save_user_inquiry($site_db, $inquiryId, $responseText, $responder, $stateAction, $tokensToAdd);
 
         unset($redirectParams['inquiry_edit']);
         if (!$result['ok']) {
@@ -91,7 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $redirectParams['msg'] = match ($stateAction) {
                 'close' => 'inquiry_closed',
                 'reopen' => 'inquiry_reopened',
-                default => 'inquiry_saved',
+                default => !empty($result['tokens_added'])
+                    ? 'inquiry_saved_tokens'
+                    : 'inquiry_saved',
             };
         }
     }
@@ -282,6 +285,11 @@ if (isset($_GET['msg'])) {
         'inquiry_csrf' => translate('admin_inquiries_csrf_error', 'Security token validation failed.'),
         'inquiry_unavailable' => translate('admin_inquiries_unavailable', 'The user_inquiries table is not available on the website database.'),
         'empty_response' => translate('admin_inquiries_empty_response', 'Enter a response before saving.'),
+        'inquiry_saved_tokens' => translate('admin_inquiries_saved_tokens', 'Inquiry saved and tokens were added to the account.'),
+        'invalid_tokens' => translate('admin_inquiries_invalid_tokens', 'Enter a token amount between 1 and 9,999,999.'),
+        'tokens_column_missing' => translate('admin_inquiries_tokens_column_missing', 'Run user_inquiries_tokens_awarded.sql on the website database to enable inquiry token grants.'),
+        'token_award_failed' => translate('admin_inquiries_token_award_failed', 'The response was saved but tokens could not be added.'),
+        'no_account' => translate('admin_inquiries_no_account', 'No website currency record exists for this account.'),
         default => htmlspecialchars($msgKey),
     };
     if (isset($_GET['reload']) && $_GET['reload'] === '0') {
@@ -324,6 +332,12 @@ if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
 $inquiryTotalPages = max(1, (int) ceil(($inquiryData['total'] ?? 0) / $inquiryPerPage));
 if ($inquiryPage > $inquiryTotalPages) {
     $inquiryPage = $inquiryTotalPages;
+}
+
+$inquiryTokenBalances = [];
+if (!empty($inquiryData['inquiries']) && isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+    $inquiryAccountIds = array_column($inquiryData['inquiries'], 'account_id');
+    $inquiryTokenBalances = sahtout_account_token_balances($site_db, $inquiryAccountIds);
 }
 
 $page_title = translate('admin_user_services_page_title', 'User Services');
