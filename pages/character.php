@@ -272,6 +272,27 @@ ob_start();
     .talent-spec-panel[hidden] { display: none !important; }
     .talent-dbc-hint { font-size: .75rem; color: var(--muted); margin-top: 1rem; }
     .talent-tree-empty { font-size: .8rem; color: var(--muted); font-style: italic; margin: .25rem 0 0; }
+    .talent-calc-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; margin: 1rem 0 1.25rem; }
+    .talent-calc-actions .btn-game {
+        display: inline-flex; align-items: center; gap: .55rem;
+        padding: .85rem 1.75rem; font-weight: 800; font-size: .85rem; letter-spacing: .04em; text-transform: uppercase;
+        clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+        transition: transform .2s ease; text-decoration: none;
+    }
+    .talent-calc-actions .btn-game:hover { transform: translateY(-2px) scale(1.02); }
+    .talent-calc-actions .btn-gold {
+        background: linear-gradient(180deg, #f6d478 0%, #c9a227 48%, #8a6a14 100%);
+        color: #1a1200; text-shadow: 0 1px 0 rgba(255,255,255,.35);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), inset 0 -8px 14px rgba(0,0,0,.25);
+    }
+    .talent-calc-embed {
+        width: 100%; max-width: 100%; border: 0; display: block; min-height: 680px;
+        background: transparent;
+    }
+    .talent-calc-embed-wrap {
+        margin: 0 auto 1rem; max-width: 100%; overflow: visible;
+        border: 1px solid rgba(201,162,39,.18); background: rgba(0,0,0,.25);
+    }
 </style>
 <script>
 /* Image fallbacks: missing icons swap to data-fallback, otherwise are hidden (no broken-image boxes). */
@@ -488,7 +509,8 @@ require_once $project_root . 'includes/header.php';
                         isset($world_db) ? $world_db : null,
                         $guid,
                         (int) $character['class'],
-                        (int) $character['level']
+                        (int) $character['level'],
+                        $base_path
                     );
                 } catch (Throwable $e) {
                     error_log('[character.php] talents: ' . $e->getMessage());
@@ -787,10 +809,16 @@ $map = [
             <!-- Talents Tab -->
             <div id="talents-tab" class="tab-content mt-6" role="tabpanel" aria-labelledby="tab-talents" tabindex="0">
                 <?php
-                $render_talent_spec = static function (array $specData, bool $flatOnly) {
+                $render_talent_spec = static function (array $specData, bool $flatOnly) use ($base_path) {
                     $pages = $specData['points'] ?? [0, 0, 0];
                     $primary = $specData['primary_tree'] ?? '';
                     $pointsTotal = (int) ($specData['points_total'] ?? 0);
+                    $calc = is_array($specData['calculator'] ?? null) ? $specData['calculator'] : [];
+                    $showCalcEmbed = !empty($calc['supported'])
+                        && !empty($calc['has_points'])
+                        && !empty($calc['slug'])
+                        && (($calc['tal'] ?? '') !== '')
+                        && preg_match('/[1-9]/', (string) ($calc['tal'] ?? '')) === 1;
                     if (!$flatOnly && array_sum($pages) > 0):
                 ?>
                     <div class="talent-summary">
@@ -804,6 +832,25 @@ $map = [
                         <b><?= (int) $pointsTotal ?></b> <?= htmlspecialchars(translate('talents_points_spent', 'talent points spent')) ?>
                     </div>
                 <?php endif; ?>
+                    <?php if (!empty($calc['supported']) && !empty($calc['url'])): ?>
+                    <div class="talent-calc-actions">
+                        <a href="<?= htmlspecialchars($calc['url'], ENT_QUOTES, 'UTF-8') ?>" class="btn-game btn-gold">
+                            <?= htmlspecialchars(translate('talents_open_calculator', 'Open in Talent Calculator'), ENT_QUOTES, 'UTF-8') ?>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($showCalcEmbed):
+                        $embedUrl = rtrim($base_path, '/') . '/talent-calculator/embed.php?class='
+                            . rawurlencode((string) $calc['slug']) . '&tal=' . rawurlencode((string) $calc['tal']);
+                    ?>
+                    <div class="talent-calc-embed-wrap">
+                        <iframe
+                            class="talent-calc-embed"
+                            title="<?= htmlspecialchars(translate('talents_embed_title', 'Talent build'), ENT_QUOTES, 'UTF-8') ?>"
+                            src="<?= htmlspecialchars($embedUrl, ENT_QUOTES, 'UTF-8') ?>"
+                            loading="lazy"></iframe>
+                    </div>
+                    <?php else: ?>
                     <div class="talent-trees">
                         <?php foreach ($specData['trees'] as $tree): ?>
                         <div class="talent-tree">
@@ -832,6 +879,7 @@ $map = [
                         </div>
                         <?php endforeach; ?>
                     </div>
+                    <?php endif; ?>
                 <?php
                 };
                 ?>

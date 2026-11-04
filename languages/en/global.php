@@ -12,6 +12,8 @@ return [
     'home_event_calendar_open_full' => 'Event Calendar',
     'nav_armory' => 'Armory',
     'armory_talent_calculator_btn' => 'Talent Calculator',
+    'talents_open_calculator' => 'Open in Talent Calculator',
+    'talents_embed_title' => 'Talent build',
     'nav_shop' => 'Shop',
     'nav_register' => 'Register',
     'nav_login' => 'Login',

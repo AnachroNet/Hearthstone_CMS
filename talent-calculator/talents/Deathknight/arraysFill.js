@@ -1,9 +1,11 @@
 var query = '';
-if (variableIsSite) {
+if (typeof window.__tcPresetTal === 'string') {
+	query = window.__tcPresetTal;
+} else if (variableIsSite) {
 	query = window.location.search.substring(1);
-}
-if (query.indexOf('tal=') > -1) {
-	query = query.slice(4);
+	if (query.indexOf('tal=') > -1) {
+		query = query.slice(4);
+	}
 }
 
 var vars = query;

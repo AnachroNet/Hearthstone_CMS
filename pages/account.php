@@ -1566,7 +1566,7 @@ include_once $project_root . 'includes/header.php';
                                     <div class="flex items-center gap-3">
                                         <span><?php echo getFactionIcon($char['race']); ?></span>
                                         <span><?php echo getRaceIcon($char['race'], $char['gender']); ?></span>
-                                        <span class="text-lg font-bold text-white"><?php echo htmlspecialchars($char['name']); ?></span>
+                                        <a href="<?php echo htmlspecialchars($base_path . 'character?guid=' . (int) $char['guid'], ENT_QUOTES, 'UTF-8'); ?>" class="text-lg font-bold text-white hover:text-[#f2cf5b] transition-colors"><?php echo htmlspecialchars($char['name']); ?></a>
                                     </div>
                                     <div class="flex flex-wrap items-center gap-3 mt-2 text-sm">
                                         <span class="text-gray-300"><?php echo getClassIcon($char['class']); ?> <?php echo translate('label_level', 'Level'); ?> <?php echo $char['level']; ?></span>

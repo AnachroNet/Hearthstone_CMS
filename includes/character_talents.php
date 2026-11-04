@@ -8,6 +8,7 @@ if (!defined('ALLOWED_ACCESS')) {
  */
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'dbc_reader.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'character_talent_calculator.php';
 
 function sahtout_talent_dbc_dir(): ?string
 {
@@ -167,7 +168,7 @@ function sahtout_fetch_spell_meta(mysqli $worldDb, array $spellIds): array
 /**
  * @return array<string, mixed>
  */
-function sahtout_character_talent_view(mysqli $charDb, ?mysqli $worldDb, int $guid, int $classId, int $level): array
+function sahtout_character_talent_view(mysqli $charDb, ?mysqli $worldDb, int $guid, int $classId, int $level, string $basePath = '/'): array
 {
     $view = [
         'available' => false,
@@ -354,12 +355,16 @@ function sahtout_character_talent_view(mysqli $charDb, ?mysqli $worldDb, int $gu
             $pointsTotal = array_sum(array_column($talentRows, 'rank'));
         }
 
+        $calcLearned = sahtout_talent_calculator_learned_from_rows($talentRows);
+        $calcMeta = sahtout_talent_calculator_spec_meta($classId, $calcLearned, $basePath);
+
         $view['specs'][$specIndex] = [
             'points' => $pages,
             'points_total' => $pointsTotal,
             'primary_tree' => $primaryTree,
             'trees' => array_values($trees),
             'talent_count' => count($rowsBySpec[$specIndex]),
+            'calculator' => $calcMeta,
         ];
     }
 
