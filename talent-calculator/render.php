@@ -27,6 +27,7 @@ $page_meta_robots = 'index';
 
 $tc_css = $tc_web_base . 'talents/' . $tc_dir . '/talent.css';
 $tc_integration_css = $tc_web_base . 'tc-integration.css';
+$tc_theme_css = $tc_web_base . 'tc-theme.css';
 $tc_script_base = $tc_web_base . 'talents/' . $tc_dir . '/';
 $tc_public_url = rtrim($site_url, '/') . '/talent-calculator/' . rawurlencode($tc_slug) . '.php';
 $page_document_base = $tc_web_base;
@@ -35,77 +36,7 @@ ob_start();
 ?>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($tc_css, ENT_QUOTES, 'UTF-8'); ?>">
 <link rel="stylesheet" href="<?php echo htmlspecialchars($tc_integration_css, ENT_QUOTES, 'UTF-8'); ?>">
-<style>
-    body.page-talent-calculator {
-        min-height: 100vh;
-        padding-top: 112px;
-        margin: 0;
-        color: #d8dbe2;
-        background: #05070b;
-        background-image:
-            radial-gradient(1000px 700px at -10% 35%, rgba(59,130,246,.14), transparent 65%),
-            radial-gradient(800px 600px at 105% 20%, rgba(201,162,39,.08), transparent 70%),
-            linear-gradient(180deg, #0a0e16 0%, #060810 45%, #03040a 100%);
-        background-attachment: fixed;
-    }
-    .tc-content { position: relative; z-index: 1; }
-    .tc-glass {
-        background: rgba(5, 7, 11, 0.88);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(201,162,39,.22);
-        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(0,0,0,.25);
-        padding: 1.25rem 1rem 2rem;
-        position: relative;
-    }
-    .tc-glass::before {
-        content: '';
-        position: absolute;
-        inset: 5px;
-        border: 1px solid rgba(201,162,39,.14);
-        pointer-events: none;
-    }
-    .tc-page-title {
-        font-family: 'Cinzel', serif;
-        font-weight: 800;
-        color: #f2cf5b;
-        text-align: center;
-        text-shadow: 0 0 12px rgba(201,162,39,.35);
-        margin: 0 0 0.35rem;
-    }
-    .tc-intro { text-align: center; color: #9ca3af; font-size: 0.875rem; margin: 0 0 1rem; }
-    .tc-class-nav {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 0.35rem 0.5rem;
-        margin-bottom: 1.25rem;
-    }
-    .tc-class-nav-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: #d1d5db;
-        text-decoration: none;
-        border: 1px solid rgba(201,162,39,.2);
-        background: rgba(0,0,0,.35);
-        transition: border-color .2s, color .2s, background .2s;
-    }
-    .tc-class-nav-item img { border-radius: 4px; display: block; }
-    .tc-class-nav-item:hover { color: #fff; border-color: rgba(242,207,82,.45); }
-    .tc-class-nav-item.is-active {
-        color: #f2cf5b;
-        border-color: rgba(242,207,82,.55);
-        box-shadow: 0 0 8px rgba(242,207,82,.2);
-    }
-    .tc-calculator-wrap { overflow-x: auto; text-align: center; }
-    @media (min-width: 768px) {
-        .tc-glass { padding: 1.75rem 1.5rem 2.25rem; }
-    }
-</style>
+<link rel="stylesheet" href="<?php echo htmlspecialchars($tc_theme_css, ENT_QUOTES, 'UTF-8'); ?>">
 <?php
 $page_head = ob_get_clean();
 
@@ -114,8 +45,8 @@ include $project_root . 'includes/header.php';
 
 <div class="tc-content min-h-screen px-3 sm:px-6 lg:px-8 py-6 md:py-10">
     <div class="max-w-[1600px] mx-auto">
-        <div class="tc-glass">
-            <h1 class="tc-page-title text-xl sm:text-2xl md:text-3xl"><?php echo htmlspecialchars(translate('tc_page_title', 'Talent Calculator'), ENT_QUOTES, 'UTF-8'); ?></h1>
+        <div class="wow-panel relative overflow-hidden p-4 sm:p-6 md:p-8">
+            <h1 class="wow-title text-xl sm:text-2xl md:text-3xl"><?php echo htmlspecialchars(translate('tc_page_title', 'Talent Calculator'), ENT_QUOTES, 'UTF-8'); ?></h1>
             <p class="tc-intro"><?php echo htmlspecialchars(sprintf(translate('tc_class_intro', 'WotLK 3.3.5a build planner — %s'), $class_label), ENT_QUOTES, 'UTF-8'); ?></p>
             <?php include __DIR__ . '/_class_nav.php'; ?>
             <div class="tc-calculator-wrap">

@@ -9,7 +9,7 @@ var talentDescriptionArray = new Array;
 
 var imgDir = "";
 
-massiveReplaceString += '<div class="talentwrap1"><div class="talentwrap2"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td>';
+massiveReplaceString += '<div id="tcCalcColumn"><div class="talentwrap1"><div class="talentwrap2"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td>';
 
 if (variableIsSite) {
 	massiveReplaceString += '<div style = "position: relative; top: -12px; left: 13px;"><div style = "position: absolute;"><table border = "0" cellpadding = "0" cellspacing = "0"><tr><td><img src = "'+ imgPath +'/'+ nlclass +'/images'+ lg +'/text-classname.gif" /></td>';
@@ -292,59 +292,56 @@ for (var printTreeID = 0; printTreeID < numberOfTrees; printTreeID++) {
 
 
 
-massiveReplaceString += "</tr></table></div></div><br/>";
+massiveReplaceString += "</tr></table></div></div>";
 
-
-
-
-massiveReplaceString += '<div id = "hideBoxBot"';
+massiveReplaceString += '<div id = "hideBoxBot" class="tc-stats-panel wow-panel"';
 
 if (!variableIsSite)
 	massiveReplaceString += ' style = "display: none;"';
 
-massiveReplaceString += '><table><tr><td valign = "top" width = "350">';
+massiveReplaceString += '>';
 
-//box top
-massiveReplaceString += '<table border = "0" width = "100%" cellpadding = "0" cellspacing = "0"><tr></tr><tr><td style = "padding: 7;" bgcolor = "#000000" width = "350">';
-massiveReplaceString += '<table width = "100%"><tr><td nowrap width = "50%"><span class = "mySmallWhite"><b>'+ textPointsLeft +'</b> <span id = "tabPointsAvailable" class = "mySmallWhite">'+ rankPoints +'</span><br><b>'+ textPointsSpent +'</b> <span id = "modifyRankPoints" class = "mySmallWhite">'+ eval(theRequiredLevel - 9) +'</span><br><b>'+ textLevelRequired +'</b> <span id = "levelRequired" class = "mySmallWhite">'+ theRequiredLevel +'</span></span></td>';
-
-massiveReplaceString += '<td rowspan = "2">&nbsp;&nbsp;&nbsp;</td><td align = "right" valign = "bottom">';
-
-massiveReplaceString += '<table border = "0" cellpadding = "0" cellspacing = "0">';
-
-for (var jia = 0; jia < tree.length; jia++){
-	massiveReplaceString += '<tr><td width = "50%"><nobr><span class = "mySmallWhite"><b>'+tree[jia]+'</b>'+ textColon +'</td><td align = "right">&nbsp;&nbsp;<span id="'+ tree[jia] +'PointsTopRight" class = "mySmallWhite">'+ pointsTree[jia] +'</span></span></nobr></td></tr>';
+if (variableIsSite) {
+	massiveReplaceString += '<div class="tc-stats-bar">';
+	massiveReplaceString += '<div class="tc-stats-list mySmallWhite">';
+	massiveReplaceString += '<span class="tc-stat-item"><b>'+ textPointsLeft +'</b> <span id = "tabPointsAvailable" class = "mySmallWhite">'+ rankPoints +'</span></span>';
+	massiveReplaceString += '<span class="tc-stat-item"><b>'+ textPointsSpent +'</b> <span id = "modifyRankPoints" class = "mySmallWhite">'+ eval(theRequiredLevel - 9) +'</span></span>';
+	massiveReplaceString += '<span class="tc-stat-item"><b>'+ textLevelRequired +'</b> <span id = "levelRequired" class = "mySmallWhite">'+ theRequiredLevel +'</span></span>';
+	for (var jia = 0; jia < tree.length; jia++) {
+		massiveReplaceString += '<span class="tc-stat-item"><b>'+tree[jia]+'</b>'+ textColon +' <span id="'+ tree[jia] +'PointsTopRight" class = "mySmallWhite">'+ pointsTree[jia] +'</span></span>';
+	}
+	massiveReplaceString += '</div>';
+	massiveReplaceString += '<div class="tc-stats-actions">';
+	massiveReplaceString += '<a onClick = "printableVersion();" style="cursor:pointer"><img src = "'+ imgPath +'/includes/images/printableversion.png" border = "0"></a>';
+	massiveReplaceString += '<a href = "#none" onClick = "resetTreeAll(); return false;"><img src = \"'+ imgPath +'/includes/images/resetall.png\" border = "0"></a>';
+	massiveReplaceString += '</div></div>';
+	massiveReplaceString += '<div class="tc-share-block"><span class="tc-share-label">'+ textToSave +'</span> <span class="tc-share-url">'+ theURLtoCopy +'?tal=<span id = "copyURL"></span></span></div>';
+} else {
+	massiveReplaceString += '<table><tr><td valign = "top" width = "350">';
+	massiveReplaceString += '<table border = "0" width = "100%" cellpadding = "0" cellspacing = "0"><tr></tr><tr><td style = "padding: 7;" bgcolor = "#000000" width = "350">';
+	massiveReplaceString += '<table width = "100%"><tr><td nowrap width = "50%"><span class = "mySmallWhite"><b>'+ textPointsLeft +'</b> <span id = "tabPointsAvailable" class = "mySmallWhite">'+ rankPoints +'</span><br><b>'+ textPointsSpent +'</b> <span id = "modifyRankPoints" class = "mySmallWhite">'+ eval(theRequiredLevel - 9) +'</span><br><b>'+ textLevelRequired +'</b> <span id = "levelRequired" class = "mySmallWhite">'+ theRequiredLevel +'</span></span></td>';
+	massiveReplaceString += '<td rowspan = "2">&nbsp;&nbsp;&nbsp;</td><td align = "right" valign = "bottom">';
+	massiveReplaceString += '<table border = "0" cellpadding = "0" cellspacing = "0">';
+	for (var jia = 0; jia < tree.length; jia++){
+		massiveReplaceString += '<tr><td width = "50%"><nobr><span class = "mySmallWhite"><b>'+tree[jia]+'</b>'+ textColon +'</td><td align = "right">&nbsp;&nbsp;<span id="'+ tree[jia] +'PointsTopRight" class = "mySmallWhite">'+ pointsTree[jia] +'</span></span></nobr></td></tr>';
+	}
+	massiveReplaceString += "</table>";
+	massiveReplaceString += "</td></tr>";
+	massiveReplaceString += "</table>";
+	massiveReplaceString += '<img src = "'+ pixelGif +'" height = "10" width = "300">';
+	massiveReplaceString += '<table border = "0" cellpadding = "0" cellspacing = "0" width = "100%"><tr><td width = "100%"><a onClick = "printableVersion();" style="cursor:pointer"><img src = "'+ imgPath +'/includes/images/printableversion.png" border = "0"></a></td>';
+	massiveReplaceString += '<td><a href = #none onClick=resetTreeAll()><img src = \"'+ imgPath +'/includes/images/resetall.png\" border = 0></a></td>';
+	massiveReplaceString += "</table>";
+	massiveReplaceString += '</td></tr>';
+	massiveReplaceString += '<tr></tr></table>';
+	massiveReplaceString += '</td></tr><tr><td valign = "top">';
+	massiveReplaceString += "</td></tr>";
+	massiveReplaceString += "</table>";
+	massiveReplaceString += '<br><span style = "color: #ffffff;"><span style = "font-weight: bold;">'+ textToSave +'</span></span><br>';
+	massiveReplaceString += '<span style = "color:ffd800;">'+ theURLtoCopy +'?tal=<span id = "copyURL" style = "color:ffd800"></span></span><br>';
 }
 
-massiveReplaceString += "</table>";
-
-massiveReplaceString += "</td></tr>";
-
-massiveReplaceString += "</table>";
-
-
-
-massiveReplaceString += '<img src = "'+ pixelGif +'" height = "10" width = "300">';
-
-massiveReplaceString += '<table border = "0" cellpadding = "0" cellspacing = "0" width = "100%"><tr><td width = "100%"><a onClick = "printableVersion();" style="cursor:pointer"><img src = "'+ imgPath +'/includes/images/printableversion.png" border = "0"></a></td>';
-
-massiveReplaceString += '<td><a href = #none onClick=resetTreeAll()><img src = \"'+ imgPath +'/includes/images/resetall.png\" border = 0></a></td>';
-
-massiveReplaceString += "</table>";
-
-//box bottom
-massiveReplaceString += '</td></tr>';
-massiveReplaceString += '<tr></tr></table>';
-
-massiveReplaceString += '</td></tr><tr><td valign = "top">';
-
-massiveReplaceString += "</td></tr>";
-
-massiveReplaceString += "</table>";
-
-massiveReplaceString += '<br><span style = "color: #ffffff;"><span style = "font-weight: bold;">'+ textToSave +'</span></span><br>';
-
-massiveReplaceString += '<span style = "color:ffd800;">'+ theURLtoCopy +'?tal=<span id = "copyURL" style = "color:ffd800"></span></span><br></div>';
+massiveReplaceString += '</div></div>';
 
 
 

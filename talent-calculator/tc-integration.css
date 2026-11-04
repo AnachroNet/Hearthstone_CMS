@@ -21,6 +21,88 @@ body.page-talent-calculator #replaceMeWithTalents {
     line-height: normal;
 }
 
+body.page-talent-calculator #tcCalcColumn {
+    width: max-content;
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table > tr:first-child > td {
+    height: 32px;
+    vertical-align: bottom;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table > tr:nth-child(2) > td {
+    padding-top: 14px;
+}
+
+body.page-talent-calculator #hideBoxBot,
+body.page-talent-calculator #hideBoxBot * {
+    box-sizing: border-box;
+}
+
+body.page-talent-calculator #hideBoxBot.tc-stats-panel {
+    width: 100%;
+    margin-top: 0.65rem;
+    padding: 0.65rem 0.85rem 0.75rem;
+    position: relative;
+    overflow: hidden;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-stats-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-stats-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.25rem 1.1rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #fff;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-stat-item {
+    white-space: nowrap;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-stats-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-share-block {
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(201,162,39,.18);
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: left;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-share-label {
+    color: #fff;
+    font-weight: bold;
+}
+
+body.page-talent-calculator #hideBoxBot .tc-share-url {
+    color: #ffd800;
+    word-break: break-all;
+}
+
 body.page-talent-calculator #replaceMeWithTalents img {
     display: inline !important;
     vertical-align: bottom;
