@@ -12,6 +12,9 @@ body.page-talent-calculator #replaceMeWithTalents *::after {
 }
 
 body.page-talent-calculator #replaceMeWithTalents {
+    --tc-tree-column-width: 260px;
+    --tc-talent-cell-size: 36px;
+    --tc-talent-cell-padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -26,6 +29,7 @@ body.page-talent-calculator #replaceMeWithTalents {
 body.page-talent-calculator #tcCalcColumn {
     display: inline-block;
     width: auto;
+    min-width: calc(3 * var(--tc-tree-column-width));
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
@@ -34,10 +38,30 @@ body.page-talent-calculator #tcCalcColumn {
 
 body.page-talent-calculator #tcTreeBlock {
     display: block;
-    width: max-content;
+    width: 100%;
     max-width: 100%;
     margin-left: auto;
     margin-right: auto;
+}
+
+/* Fixed per-tree column width — stops layout shift when ranks/points/stats update */
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table > tr:nth-child(2) > td {
+    width: var(--tc-tree-column-width);
+    min-width: var(--tc-tree-column-width);
+    max-width: var(--tc-tree-column-width);
+    padding-top: 14px;
+    vertical-align: top;
+    box-sizing: content-box;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table > tr:nth-child(2) > td > table {
+    width: var(--tc-tree-column-width);
+    table-layout: fixed;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .talentwrap2 table[cellpadding="10"] {
+    table-layout: fixed;
+    width: calc(4 * (var(--tc-talent-cell-size) + 2 * var(--tc-talent-cell-padding)));
 }
 
 body.page-talent-calculator #replaceMeWithTalents .talentwrap1,
@@ -56,8 +80,43 @@ body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table > tr:firs
     vertical-align: bottom;
 }
 
-body.page-talent-calculator #replaceMeWithTalents .talentwrap2 > table > tr:nth-child(2) > td {
-    padding-top: 14px;
+body.page-talent-calculator #replaceMeWithTalents td.tdPaddingTen {
+    width: var(--tc-talent-cell-size);
+    height: var(--tc-talent-cell-size);
+    min-width: var(--tc-talent-cell-size);
+    max-width: var(--tc-talent-cell-size);
+    min-height: var(--tc-talent-cell-size);
+    padding: var(--tc-talent-cell-padding);
+    position: relative;
+    vertical-align: top;
+    overflow: visible;
+}
+
+body.page-talent-calculator #replaceMeWithTalents [id^="talentMouseOver"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    z-index: 200;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .treePoint {
+    display: inline-block;
+    min-width: 2ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+body.page-talent-calculator #replaceMeWithTalents .treePoints {
+    display: inline-block;
+    min-width: 3.5em;
+}
+
+body.page-talent-calculator #replaceMeWithTalents td.tablebotbot {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 body.page-talent-calculator #hideBoxBot,
@@ -100,6 +159,7 @@ body.page-talent-calculator #hideBoxBot .tc-stats-list {
 
 body.page-talent-calculator #hideBoxBot .tc-stat-item {
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 body.page-talent-calculator #hideBoxBot .tc-stats-actions {
@@ -150,10 +210,7 @@ body.page-talent-calculator #replaceMeWithTalents table {
     line-height: normal;
 }
 
-/* Tailwind preflight removes cellpadding presentation from <td> */
-body.page-talent-calculator #replaceMeWithTalents td.tdPaddingTen {
-    padding: 10px;
-}
+/* Tailwind preflight removes cellpadding presentation from <td> — padding set with fixed cell size above */
 body.page-talent-calculator #replaceMeWithTalents td.tdPaddingThree {
     padding: 3px;
 }
