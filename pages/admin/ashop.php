@@ -484,7 +484,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                 $is_item = 0;
                 $is_set = 0;
             } elseif ($category === 'Mount' || $category === 'Pet' || $category === 'Stuff' || $category === 'Set') {
-                $description = null;
                 $gold_amount = 0;
                 $level_boost = null;
                 $at_login_flags = 0;
@@ -1369,7 +1368,7 @@ ob_start();
                                         <select name="itemset_id" id="itemset_id" class="wow-select">
                                             <option value=""><?php echo translate('admin_shop_select_itemset', 'Select item set'); ?></option>
                                             <?php foreach ($itemset_dbc_options as $opt): ?>
-                                                <option value="<?php echo (int) $opt['id']; ?>" data-label="<?php echo htmlspecialchars(strtolower($opt['name'] . ' ' . $opt['id']), ENT_QUOTES, 'UTF-8'); ?>">
+                                                <option value="<?php echo (int) $opt['id']; ?>" data-set-name="<?php echo htmlspecialchars($opt['name'], ENT_QUOTES, 'UTF-8'); ?>" data-label="<?php echo htmlspecialchars(strtolower($opt['name'] . ' ' . $opt['id']), ENT_QUOTES, 'UTF-8'); ?>">
                                                     <?php echo htmlspecialchars('#' . $opt['id'] . ' — ' . $opt['name'] . ' (' . (int) $opt['item_count'] . ' ' . translate('admin_shop_itemset_pieces', 'pieces') . ')', ENT_QUOTES, 'UTF-8'); ?>
                                                 </option>
                                             <?php endforeach; ?>
@@ -1418,6 +1417,12 @@ ob_start();
                                     </select>
                                 </div>
 
+                                <!-- Description -->
+                                <div class="field-group active md:col-span-2" id="description-group">
+                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_description', 'Description'); ?></label>
+                                    <textarea name="description" id="description" class="wow-textarea" rows="3" placeholder="<?php echo translate('admin_shop_placeholder_description', 'Enter description'); ?>"></textarea>
+                                </div>
+
                                 <!-- Image Upload -->
                                 <div class="field-group active md:col-span-2">
                                     <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_image', 'Image Upload'); ?></label>
@@ -1439,12 +1444,6 @@ ob_start();
                                         <p id="itemset_preview_empty" class="text-muted-wow text-sm mb-0"><?php echo translate('admin_shop_itemset_preview_hint', 'Enter an item set ID to preview its items.'); ?></p>
                                         <ul id="itemset_preview_list" class="mb-0"></ul>
                                     </div>
-                                </div>
-
-                                <!-- Description -->
-                                <div class="field-group md:col-span-2" id="description-group">
-                                    <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_description', 'Description'); ?></label>
-                                    <textarea name="description" id="description" class="wow-textarea" rows="3" placeholder="<?php echo translate('admin_shop_placeholder_description', 'Enter description'); ?>"></textarea>
                                 </div>
                             </div>
 
@@ -1529,6 +1528,7 @@ ob_start();
             const isItemSelect = document.getElementById('is_item');
             const itemsetInput = document.getElementById('itemset_id');
             const itemsetFilterInput = document.getElementById('itemset_filter');
+            const shopNameInput = document.getElementById('name');
             const itemsetPreviewEmpty = document.getElementById('itemset_preview_empty');
             const itemsetPreviewList = document.getElementById('itemset_preview_list');
             const itemsetPreviewData = <?php echo json_encode($site_itemsets, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
@@ -1544,7 +1544,7 @@ ob_start();
                 'level-boost-group': ['Service'],
                 'login-flags-group': ['Service'],
                 'is-item-group': ['Mount', 'Pet', 'Stuff'],
-                'description-group': ['Service', 'Gold'],
+                'description-group': ['Mount', 'Pet', 'Stuff', 'Set', 'Service', 'Gold'],
                 'itemset-preview-group': ['Set']
             };
 
@@ -1640,6 +1640,36 @@ ob_start();
                 });
             }
 
+            function fillShopNameFromItemsetSelection() {
+                if (!shopNameInput || !itemsetInput || categorySelect.value !== 'Set') {
+                    return;
+                }
+                const rawSetId = itemsetInput.value.trim();
+                if (!rawSetId) {
+                    return;
+                }
+
+                if (itemsetInput.tagName === 'SELECT') {
+                    const opt = itemsetInput.selectedOptions[0];
+                    const setName = opt ? (opt.dataset.setName || opt.getAttribute('data-set-name') || '').trim() : '';
+                    if (setName !== '') {
+                        shopNameInput.value = setName;
+                    }
+                    return;
+                }
+
+                if (itemsetUseDbcLookup) {
+                    fetch(itemsetLookupUrl + '?id=' + encodeURIComponent(rawSetId), { credentials: 'same-origin' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.ok && data.set && data.set.name) {
+                                shopNameInput.value = data.set.name;
+                            }
+                        })
+                        .catch(() => {});
+                }
+            }
+
             function updateFormFields() {
                 const category = categorySelect.value;
                 const isSet = category === 'Set';
@@ -1707,7 +1737,10 @@ ob_start();
             categorySelect.addEventListener('change', updateFormFields);
             if (itemsetInput) {
                 itemsetInput.addEventListener('input', renderItemsetPreview);
-                itemsetInput.addEventListener('change', renderItemsetPreview);
+                itemsetInput.addEventListener('change', function () {
+                    fillShopNameFromItemsetSelection();
+                    renderItemsetPreview();
+                });
             }
             if (itemsetFilterInput) {
                 itemsetFilterInput.addEventListener('input', filterItemsetOptions);
