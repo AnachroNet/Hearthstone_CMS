@@ -162,11 +162,16 @@ body.page-talent-calculator .tc-class-nav-item.is-active {
 }
 
 body.page-talent-calculator .tc-calculator-wrap {
-    overflow-x: auto;
+    /* overflow-x: auto would force overflow-y: auto and trap vertical scroll in this box */
+    overflow: visible;
     display: flex;
     justify-content: center;
     align-items: flex-start;
     width: 100%;
+}
+
+body.page-talent-calculator .wow-panel.tc-tree-panel {
+    overflow: visible;
 }
 
 body.page-talent-calculator .tc-calculator-wrap #replaceMeWithTalents {

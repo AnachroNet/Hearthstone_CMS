@@ -45,7 +45,7 @@ include $project_root . 'includes/header.php';
 
 <div class="tc-content min-h-screen py-6 md:py-10">
     <div class="container mx-auto max-w-7xl px-2 sm:px-4">
-        <div class="wow-panel relative overflow-hidden p-4 sm:p-6 md:p-8">
+        <div class="wow-panel tc-tree-panel relative p-4 sm:p-6 md:p-8">
             <h1 class="wow-title text-xl sm:text-2xl md:text-3xl"><?php echo htmlspecialchars(translate('tc_page_title', 'Talent Calculator'), ENT_QUOTES, 'UTF-8'); ?></h1>
             <p class="tc-intro"><?php echo htmlspecialchars(sprintf(translate('tc_class_intro', 'WotLK 3.3.5a build planner — %s'), $class_label), ENT_QUOTES, 'UTF-8'); ?></p>
             <?php include __DIR__ . '/_class_nav.php'; ?>
