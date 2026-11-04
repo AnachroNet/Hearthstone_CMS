@@ -5,6 +5,9 @@ if (!defined('ALLOWED_ACCESS')) {
 
 const SAHTOUT_ITEMSET_DBC_ITEM_COLUMNS = 17;
 
+/** @var array<string, list<string>> */
+$GLOBALS['sahtout_itemset_dbc_column_cache'] = [];
+
 function sahtout_itemset_dbc_table_exists(?mysqli $db): bool
 {
     if (!$db instanceof mysqli || $db->connect_error) {
@@ -33,6 +36,118 @@ function sahtout_itemset_dbc_db(): ?mysqli
 }
 
 /**
+ * @return list<string>
+ */
+function sahtout_itemset_dbc_table_columns(mysqli $dbcDb): array
+{
+    $dbName = '';
+    $dbRes = $dbcDb->query('SELECT DATABASE() AS db');
+    if ($dbRes instanceof mysqli_result) {
+        $row = $dbRes->fetch_assoc();
+        $dbName = trim((string) ($row['db'] ?? ''));
+        $dbRes->free();
+    }
+    $cacheKey = $dbName . ':itemset_dbc';
+    if (isset($GLOBALS['sahtout_itemset_dbc_column_cache'][$cacheKey])) {
+        return $GLOBALS['sahtout_itemset_dbc_column_cache'][$cacheKey];
+    }
+
+    $columns = [];
+    $res = $dbcDb->query('SHOW COLUMNS FROM itemset_dbc');
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $field = trim((string) ($row['Field'] ?? ''));
+            if ($field !== '') {
+                $columns[] = $field;
+            }
+        }
+        $res->free();
+    }
+
+    $GLOBALS['sahtout_itemset_dbc_column_cache'][$cacheKey] = $columns;
+
+    return $columns;
+}
+
+function sahtout_itemset_dbc_resolve_column(array $columns, string $wanted): ?string
+{
+    $want = strtolower($wanted);
+    foreach ($columns as $column) {
+        if (strtolower($column) === $want) {
+            return $column;
+        }
+    }
+
+    return null;
+}
+
+/** @param array<string, mixed> $row */
+function sahtout_itemset_dbc_row_value(array $row, string $field): mixed
+{
+    if (array_key_exists($field, $row)) {
+        return $row[$field];
+    }
+    $want = strtolower($field);
+    foreach ($row as $key => $value) {
+        if (strtolower((string) $key) === $want) {
+            return $value;
+        }
+    }
+
+    return null;
+}
+
+/** @param array<string, mixed> $row */
+function sahtout_itemset_dbc_row_int(array $row, string $field): int
+{
+    return (int) sahtout_itemset_dbc_row_value($row, $field);
+}
+
+/**
+ * @return list<string> SQL column identifiers (backtick-quoted)
+ */
+function sahtout_itemset_dbc_select_columns(mysqli $dbcDb): array
+{
+    $tableCols = sahtout_itemset_dbc_table_columns($dbcDb);
+    $select = [];
+
+    $idCol = sahtout_itemset_dbc_resolve_column($tableCols, 'ID');
+    if ($idCol === null) {
+        return [];
+    }
+    $select[] = '`' . str_replace('`', '``', $idCol) . '`';
+
+    foreach (['Name_Lang_enUS', 'Name_Lang_enGB', 'Name'] as $nameCandidate) {
+        $resolved = sahtout_itemset_dbc_resolve_column($tableCols, $nameCandidate);
+        if ($resolved !== null) {
+            $select[] = '`' . str_replace('`', '``', $resolved) . '`';
+        }
+    }
+
+    for ($i = 1; $i <= SAHTOUT_ITEMSET_DBC_ITEM_COLUMNS; $i++) {
+        $resolved = sahtout_itemset_dbc_resolve_column($tableCols, 'ItemID_' . $i);
+        if ($resolved !== null) {
+            $select[] = '`' . str_replace('`', '``', $resolved) . '`';
+        }
+    }
+
+    return $select;
+}
+
+function sahtout_itemset_dbc_order_by_name_column(mysqli $dbcDb): ?string
+{
+    $tableCols = sahtout_itemset_dbc_table_columns($dbcDb);
+    foreach (['Name_Lang_enUS', 'Name_Lang_enGB', 'Name'] as $nameCandidate) {
+        $resolved = sahtout_itemset_dbc_resolve_column($tableCols, $nameCandidate);
+        if ($resolved !== null) {
+            return '`' . str_replace('`', '``', $resolved) . '`';
+        }
+    }
+
+    return null;
+}
+
+/**
  * @param array<string, mixed> $row
  * @return list<int>
  */
@@ -40,8 +155,7 @@ function sahtout_itemset_dbc_entries_from_row(array $row): array
 {
     $entries = [];
     for ($i = 1; $i <= SAHTOUT_ITEMSET_DBC_ITEM_COLUMNS; $i++) {
-        $key = 'ItemID_' . $i;
-        $entry = (int) ($row[$key] ?? 0);
+        $entry = sahtout_itemset_dbc_row_int($row, 'ItemID_' . $i);
         if ($entry > 0) {
             $entries[] = $entry;
         }
@@ -50,14 +164,17 @@ function sahtout_itemset_dbc_entries_from_row(array $row): array
     return $entries;
 }
 
+/** @param array<string, mixed> $row */
 function sahtout_itemset_dbc_display_name(array $row): string
 {
-    $name = trim((string) ($row['Name_Lang_enUS'] ?? ''));
-    if ($name === '') {
-        $name = trim((string) ($row['Name_Lang_enGB'] ?? ''));
+    foreach (['Name_Lang_enUS', 'Name_Lang_enGB', 'Name'] as $field) {
+        $name = trim((string) (sahtout_itemset_dbc_row_value($row, $field) ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
     }
 
-    return $name;
+    return '';
 }
 
 /**
@@ -69,11 +186,18 @@ function sahtout_itemset_dbc_fetch_row(mysqli $dbcDb, int $setId): ?array
         return null;
     }
 
-    $cols = ['ID', 'Name_Lang_enUS', 'Name_Lang_enGB'];
-    for ($i = 1; $i <= SAHTOUT_ITEMSET_DBC_ITEM_COLUMNS; $i++) {
-        $cols[] = 'ItemID_' . $i;
+    $selectCols = sahtout_itemset_dbc_select_columns($dbcDb);
+    if ($selectCols === []) {
+        return null;
     }
-    $sql = 'SELECT ' . implode(', ', $cols) . ' FROM itemset_dbc WHERE ID = ? LIMIT 1';
+
+    $idCol = sahtout_itemset_dbc_resolve_column(sahtout_itemset_dbc_table_columns($dbcDb), 'ID');
+    if ($idCol === null) {
+        return null;
+    }
+
+    $sql = 'SELECT ' . implode(', ', $selectCols)
+        . ' FROM itemset_dbc WHERE `' . str_replace('`', '``', $idCol) . '` = ? LIMIT 1';
     $stmt = $dbcDb->prepare($sql);
     if (!$stmt) {
         return null;
@@ -159,21 +283,41 @@ function sahtout_itemset_dbc_resolve_item_names(?mysqli $siteDb, ?mysqli $worldD
  */
 function sahtout_itemset_dbc_admin_options(mysqli $dbcDb): array
 {
-    $itemCols = [];
-    for ($i = 1; $i <= SAHTOUT_ITEMSET_DBC_ITEM_COLUMNS; $i++) {
-        $itemCols[] = 'ItemID_' . $i;
+    $tableCols = sahtout_itemset_dbc_table_columns($dbcDb);
+    $selectCols = sahtout_itemset_dbc_select_columns($dbcDb);
+    if ($selectCols === []) {
+        return [];
     }
-    $nonEmpty = implode(' OR ', array_map(static fn (string $c): string => "`{$c}` > 0", $itemCols));
-    $sql = 'SELECT ID, Name_Lang_enUS, Name_Lang_enGB, ' . implode(', ', $itemCols)
-        . " FROM itemset_dbc WHERE {$nonEmpty} ORDER BY Name_Lang_enUS ASC, ID ASC";
+
+    $itemFilters = [];
+    for ($i = 1; $i <= SAHTOUT_ITEMSET_DBC_ITEM_COLUMNS; $i++) {
+        $resolved = sahtout_itemset_dbc_resolve_column($tableCols, 'ItemID_' . $i);
+        if ($resolved !== null) {
+            $itemFilters[] = '`' . str_replace('`', '``', $resolved) . '` > 0';
+        }
+    }
+    if ($itemFilters === []) {
+        return [];
+    }
+
+    $orderCol = sahtout_itemset_dbc_order_by_name_column($dbcDb);
+    $idCol = sahtout_itemset_dbc_resolve_column($tableCols, 'ID');
+    $orderSql = $orderCol !== null
+        ? "{$orderCol} ASC, `" . str_replace('`', '``', (string) $idCol) . '` ASC'
+        : '`' . str_replace('`', '``', (string) $idCol) . '` ASC';
+
+    $sql = 'SELECT ' . implode(', ', $selectCols)
+        . ' FROM itemset_dbc WHERE (' . implode(' OR ', $itemFilters) . ') ORDER BY ' . $orderSql;
     $result = $dbcDb->query($sql);
     if (!$result) {
+        error_log('itemset_dbc admin_options query failed: ' . $dbcDb->error);
+
         return [];
     }
 
     $options = [];
     while ($row = $result->fetch_assoc()) {
-        $id = (int) ($row['ID'] ?? 0);
+        $id = sahtout_itemset_dbc_row_int($row, 'ID');
         if ($id <= 0) {
             continue;
         }
@@ -220,7 +364,7 @@ function sahtout_itemset_dbc_detail(?mysqli $siteDb, ?mysqli $worldDb, mysqli $d
     $displayName = sahtout_itemset_dbc_display_name($row);
 
     return [
-        'id' => (int) ($row['ID'] ?? $setId),
+        'id' => sahtout_itemset_dbc_row_int($row, 'ID') ?: $setId,
         'name' => $displayName !== '' ? $displayName : ('Set #' . $setId),
         'items' => $items,
     ];
