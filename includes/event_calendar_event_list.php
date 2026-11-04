@@ -9,6 +9,7 @@ $event_list_events = $event_list_events ?? [];
 $event_list_empty_message = $event_list_empty_message ?? translate('home_event_calendar_empty_upcoming', 'No events are active or scheduled in the next 30 days.');
 $event_list_show_description = $event_list_show_description ?? true;
 $event_list_description_max = (int) ($event_list_description_max ?? 160);
+$event_list_enable_tooltips = $event_list_enable_tooltips ?? true;
 
 if ($event_list_events === []): ?>
     <p class="home-event-calendar-footnote mt-0 mb-0"><?php echo htmlspecialchars($event_list_empty_message, ENT_QUOTES, 'UTF-8'); ?></p>
@@ -23,9 +24,13 @@ if ($event_list_events === []): ?>
             }
             $listed[$key] = true;
             $range = sahtout_holiday_event_date_range($ev);
-            $list_tooltip = sahtout_holiday_event_tooltip_html($ev);
+            $list_tooltip = $event_list_enable_tooltips ? sahtout_holiday_event_tooltip_html($ev) : '';
+            $li_class = $event_list_enable_tooltips ? ' class="has-event-tooltip"' : '';
+            $li_tooltip_attr = $event_list_enable_tooltips
+                ? ' data-tooltip="' . htmlspecialchars($list_tooltip, ENT_QUOTES, 'UTF-8') . '"'
+                : '';
             ?>
-            <li class="has-event-tooltip" data-tooltip="<?php echo htmlspecialchars($list_tooltip, ENT_QUOTES, 'UTF-8'); ?>">
+            <li<?php echo $li_class . $li_tooltip_attr; ?>>
                 <strong><?php echo htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'); ?></strong>
                 <span class="dates"> · <?php echo htmlspecialchars($range, ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php if ($event_list_show_description && ($ev['description'] ?? '') !== ''): ?>

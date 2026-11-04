@@ -455,6 +455,7 @@ if ($home_calendar_enabled) {
                     <div class="home-event-calendar-list border-0 pt-0 mt-0">
                         <?php
                         $event_list_events = $home_upcoming_events;
+                        $event_list_enable_tooltips = false;
                         include $project_root . 'includes/event_calendar_event_list.php';
                         ?>
                     </div>
@@ -464,7 +465,6 @@ if ($home_calendar_enabled) {
                             <?php echo translate('home_event_calendar_open_full', 'Event Calendar'); ?>
                         </a>
                     </div>
-                    <script src="<?php echo htmlspecialchars($base_path . 'assets/js/home-event-calendar-tooltip.js', ENT_QUOTES, 'UTF-8'); ?>" defer></script>
                 </section>
                 <?php endif; ?>
 
