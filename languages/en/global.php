@@ -29,7 +29,7 @@ return [
     'admin_tickets' => 'Support Tickets',
     'admin_users' => 'User Management',
     'admin_news' => 'News Management',
-    'admin_events' => 'Event Manager',
+    'admin_events' => 'Event Management',
     'admin_rewards' => 'Reward Management',
     'admin_downloads' => 'Download Management',
     'admin_sidebar_attribution' => 'Based on SahtoutCMS',

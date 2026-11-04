@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'admin_events_page_title' => 'Event Manager',
+    'admin_events_page_title' => 'Event Management',
     'admin_events_meta' => 'Manage custom calendar events on the home page',
-    'admin_events_heading' => 'Event Manager',
+    'admin_events_heading' => 'Event Management',
     'admin_events_help' => 'Custom events appear on the home Event Calendar alongside WoW world holidays (silver chips). Inactive events are hidden from the public calendar.',
     'admin_events_table_missing' => 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_calendar_events.sql on the site database first.',
     'admin_events_add' => 'Add event',

@@ -94,7 +94,7 @@ if (isset($_GET['status'])) {
 
 $allEvents = $tableReady ? sahtout_site_calendar_events_fetch_all($site_db, false) : [];
 
-$page_title = translate('admin_events_page_title', 'Event Manager');
+$page_title = translate('admin_events_page_title', 'Event Management');
 $page_meta_description = translate('admin_events_meta', 'Manage custom calendar events on the home page');
 $page_meta_robots = 'noindex';
 
@@ -225,7 +225,7 @@ function sahtout_admin_format_event_dates(array $row): string
     <?php include $project_root . 'includes/admin_sidebar.php'; ?>
     <main class="main-content-area flex-1 p-4 md:p-8">
         <div class="max-w-5xl mx-auto space-y-8">
-            <h1 class="wow-title text-2xl md:text-3xl"><?php echo translate('admin_events_heading', 'Event Manager'); ?></h1>
+            <h1 class="wow-title text-2xl md:text-3xl"><?php echo translate('admin_events_heading', 'Event Management'); ?></h1>
             <p class="text-gray-400 text-sm"><?php echo translate('admin_events_help', 'Custom events appear on the home Event Calendar alongside WoW world holidays (silver chips). Inactive events are hidden from the public calendar.'); ?></p>
 
             <?php echo $alertHtml; ?>
