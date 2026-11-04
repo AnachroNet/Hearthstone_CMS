@@ -5,6 +5,7 @@ if (!defined('ALLOWED_ACCESS')) {
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_settings.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_world.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 
 function sahtout_token_gifts_table_exists(mysqli $siteDb): bool
 {
@@ -203,6 +204,11 @@ function sahtout_admin_update_token_gift(
             if (!$worldUpdate['ok']) {
                 return ['ok' => false, 'message' => $worldUpdate['message'] ?? 'world_update_failed'];
             }
+
+            return [
+                'ok' => true,
+                'reload' => $worldUpdate['reload'] ?? sahtout_soap_reload_token_gift_content(),
+            ];
         }
     }
 
@@ -215,6 +221,7 @@ function sahtout_admin_delete_token_gift(mysqli $siteDb, ?mysqli $worldDb, int $
     if ($giftId <= 0) {
         return ['ok' => false, 'message' => 'invalid_id'];
     }
+    $reload = null;
     if ($worldDb instanceof mysqli && !$worldDb->connect_error) {
         sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId);
         $pageLoad = $siteDb->prepare('SELECT page_text_id, page_text_page_count FROM token_gifts WHERE id = ? LIMIT 1');
@@ -231,6 +238,10 @@ function sahtout_admin_delete_token_gift(mysqli $siteDb, ?mysqli $worldDb, int $
                 );
             }
         }
+        $reload = sahtout_soap_try_reload_commands([
+            '.reload loot_template',
+            '.reload page_text',
+        ]);
     }
     $stmt = $siteDb->prepare('DELETE FROM token_gifts WHERE id = ?');
     if (!$stmt) {
@@ -240,5 +251,9 @@ function sahtout_admin_delete_token_gift(mysqli $siteDb, ?mysqli $worldDb, int $
     $ok = $stmt->execute();
     $stmt->close();
 
-    return ['ok' => $ok, 'message' => $ok ? 'deleted' : 'delete_failed'];
+    return [
+        'ok' => $ok,
+        'message' => $ok ? 'deleted' : 'delete_failed',
+        'reload' => is_array($reload) ? $reload : null,
+    ];
 }

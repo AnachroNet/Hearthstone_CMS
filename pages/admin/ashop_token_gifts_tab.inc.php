@@ -123,20 +123,26 @@ if (!defined('ALLOWED_ACCESS')) {
                         <div>
                             <input type="text" name="tg_go_loot_ids" class="wow-input text-sm" placeholder="<?php echo htmlspecialchars(translate('admin_token_gifts_go_loot_ids', 'GO loot IDs')); ?>" value="<?php echo htmlspecialchars((string) ($row['extra_go_loot_ids'] ?? '')); ?>">
                         </div>
-                        <div class="md:col-span-2 flex flex-wrap gap-2 pt-2 items-center">
-                            <button type="submit" name="action" value="tg_update" class="btn-game btn-gold text-xs py-2 px-3"><?php echo translate('admin_rewards_save', 'Save'); ?></button>
+                        <div class="md:col-span-2 flex flex-wrap gap-2 pt-2 items-center action-buttons">
+                            <button type="submit" name="action" value="tg_update" class="btn-game btn-gold text-xs py-2 px-3">
+                                <i class="fas fa-save" aria-hidden="true"></i>
+                                <?php echo translate('admin_rewards_save', 'Save'); ?>
+                            </button>
                             <?php if ($canPublishTokenGifts): ?>
                                 <?php if (!$published): ?>
-                                <button type="submit" name="action" value="tg_publish" class="btn-game text-xs py-2 px-3 border border-emerald-500/50 text-emerald-300">
+                                <button type="submit" name="action" value="tg_publish" class="btn-game btn-success text-xs py-2 px-3">
+                                    <i class="fas fa-globe-americas" aria-hidden="true"></i>
                                     <?php echo translate('admin_token_gifts_publish', 'Publish to world'); ?>
                                 </button>
                                 <?php else: ?>
-                                <button type="submit" name="action" value="tg_redeploy_loot" class="btn-game text-xs py-2 px-3 border border-sky-500/50 text-sky-300">
+                                <button type="submit" name="action" value="tg_redeploy_loot" class="btn-game btn-edit-action text-xs py-2 px-3">
+                                    <i class="fas fa-dice" aria-hidden="true"></i>
                                     <?php echo translate('admin_token_gifts_redeploy_loot', 'Redeploy loot'); ?>
                                 </button>
                                 <?php endif; ?>
-                                <button type="submit" name="action" value="tg_delete" class="text-xs text-red-400 hover:text-red-300 px-2"
+                                <button type="submit" name="action" value="tg_delete" class="btn-game btn-danger text-xs py-2 px-3"
                                     onclick="return confirm(<?php echo json_encode(translate('admin_token_gifts_delete_confirm', 'Delete this token gift and remove its loot rows?')); ?>);">
+                                    <i class="fas fa-trash-alt" aria-hidden="true"></i>
                                     <?php echo translate('admin_token_gifts_delete', 'Delete'); ?>
                                 </button>
                             <?php endif; ?>

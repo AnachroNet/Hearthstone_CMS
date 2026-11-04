@@ -4,6 +4,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_settings.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 
 const SAHTOUT_QUEST_FLAG_AUTOCOMPLETE = 65536;
 const SAHTOUT_QUEST_FLAG_AUTOCOMPLETE_EVENT = 131072;
@@ -580,7 +581,8 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
     }
 
     $upd = $siteDb->prepare(
-        'UPDATE token_gifts SET item_entry = ?, quest_id = ?, published_at = COALESCE(published_at, NOW()) WHERE id = ?'
+        'UPDATE token_gifts SET item_entry = ?, quest_id = ?, is_enabled = 1,
+         published_at = COALESCE(published_at, NOW()) WHERE id = ?'
     );
     if (!$upd) {
         return ['ok' => false, 'message' => 'site_update_failed'];
@@ -598,7 +600,11 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         return ['ok' => false, 'message' => $deployResult['message'] ?? 'loot_deploy_failed'];
     }
 
-    return ['ok' => true, 'message' => 'published'];
+    return [
+        'ok' => true,
+        'message' => 'published',
+        'reload' => sahtout_soap_reload_token_gift_publish(),
+    ];
 }
 
 /** @return array{ok:bool, message:string} */
@@ -656,7 +662,11 @@ function sahtout_token_gift_redeploy_loot(mysqli $siteDb, mysqli $worldDb, int $
         sahtout_token_gift_record_loot_deployment($siteDb, $giftId, $kind, $lootEntry, $itemEntry, $chance);
     }
 
-    return ['ok' => true, 'message' => 'loot_deployed'];
+    return [
+        'ok' => true,
+        'message' => 'loot_deployed',
+        'reload' => sahtout_soap_reload_token_gift_loot(),
+    ];
 }
 
 function sahtout_token_gift_insert_loot_row(
@@ -785,5 +795,13 @@ function sahtout_token_gift_update_world_content(
     $questOk = $questStmt->execute();
     $questStmt->close();
 
-    return ['ok' => $itemOk && $questOk, 'message' => $itemOk && $questOk ? 'updated' : 'update_failed'];
+    if (!$itemOk || !$questOk) {
+        return ['ok' => false, 'message' => 'update_failed'];
+    }
+
+    return [
+        'ok' => true,
+        'message' => 'updated',
+        'reload' => sahtout_soap_reload_token_gift_content(),
+    ];
 }

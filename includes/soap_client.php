@@ -215,3 +215,82 @@ function sahtout_try_reload_gm_tickets(): bool
 
     return false;
 }
+
+/**
+ * Run one reload command, trying with and without a leading dot.
+ *
+ * @return array{ok: bool, configured: bool, error: ?string}
+ */
+function sahtout_soap_try_single_reload(string $command): array
+{
+    if (!sahtout_soap_is_configured()) {
+        return ['ok' => false, 'configured' => false, 'error' => 'soap_not_configured'];
+    }
+
+    $command = trim($command);
+    $variants = [$command];
+    if (str_starts_with($command, '.')) {
+        $variants[] = substr($command, 1);
+    } else {
+        $variants[] = '.' . $command;
+    }
+
+    foreach (array_unique($variants) as $variant) {
+        $result = sahtout_soap_execute_command($variant);
+        if ($result['ok']) {
+            return ['ok' => true, 'configured' => true, 'error' => null];
+        }
+        error_log('[soap_client] ' . $variant . ' failed: ' . ($result['error'] ?? 'unknown')
+            . ' ' . substr(preg_replace('/\s+/', ' ', $result['output']) ?? '', 0, 400));
+    }
+
+    return ['ok' => false, 'configured' => true, 'error' => 'reload_failed'];
+}
+
+/**
+ * @param list<string> $commands
+ * @return array{ok: bool, configured: bool, failed: list<string>}
+ */
+function sahtout_soap_try_reload_commands(array $commands): array
+{
+    if (!sahtout_soap_is_configured()) {
+        return ['ok' => false, 'configured' => false, 'failed' => $commands];
+    }
+
+    $failed = [];
+    foreach ($commands as $command) {
+        $one = sahtout_soap_try_single_reload($command);
+        if (!$one['ok']) {
+            $failed[] = $command;
+        }
+    }
+
+    return ['ok' => $failed === [], 'configured' => true, 'failed' => $failed];
+}
+
+/** @return array{ok: bool, configured: bool, failed: list<string>} */
+function sahtout_soap_reload_token_gift_publish(): array
+{
+    return sahtout_soap_try_reload_commands([
+        '.reload item_template',
+        '.reload quest_template',
+        '.reload page_text',
+        '.reload loot_template',
+    ]);
+}
+
+/** @return array{ok: bool, configured: bool, failed: list<string>} */
+function sahtout_soap_reload_token_gift_loot(): array
+{
+    return sahtout_soap_try_reload_commands(['.reload loot_template']);
+}
+
+/** @return array{ok: bool, configured: bool, failed: list<string>} */
+function sahtout_soap_reload_token_gift_content(): array
+{
+    return sahtout_soap_try_reload_commands([
+        '.reload item_template',
+        '.reload quest_template',
+        '.reload page_text',
+    ]);
+}

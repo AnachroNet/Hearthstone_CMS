@@ -875,6 +875,13 @@ ob_start();
             box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), inset 0 -8px 14px rgba(0,0,0,.3);
         }
 
+        .btn-success {
+            background: linear-gradient(180deg, #5ecf8a 0%, #2d8a52 48%, #1a5230 100%);
+            color: #f0fff4;
+            text-shadow: 0 1px 0 rgba(0,0,0,.35);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 -8px 14px rgba(0,0,0,.28);
+        }
+
         .btn-edit-action {
             background: linear-gradient(180deg, #4a90d9 0%, #2a5f8a 48%, #1a3f5a 100%);
             color: #fff;

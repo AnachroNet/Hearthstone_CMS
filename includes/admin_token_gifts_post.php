@@ -6,6 +6,19 @@ if (!defined('ALLOWED_ACCESS')) {
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_token_gifts.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_shop_rewards_post.php';
 
+/** @param array{configured?:bool, ok?:bool} $reload */
+function sahtout_admin_token_gift_reload_query_params(array $reload): array
+{
+    if ($reload === [] || !array_key_exists('configured', $reload)) {
+        return [];
+    }
+    if (empty($reload['configured'])) {
+        return ['tg_reload' => 'none'];
+    }
+
+    return ['tg_reload' => !empty($reload['ok']) ? 'ok' : 'fail'];
+}
+
 function sahtout_admin_shop_is_token_gifts_post(): bool
 {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -96,7 +109,9 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
             return ['redirect' => null, 'flash' => 'error:' . $msg];
         }
 
-        return ['redirect' => $subtabUrl(['tg_status' => 'updated']), 'flash' => ''];
+        $query = array_merge(['tg_status' => 'updated'], sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
+
+        return ['redirect' => $subtabUrl($query), 'flash' => ''];
     }
 
     if ($action === 'tg_delete') {
@@ -115,7 +130,9 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
             ];
         }
 
-        return ['redirect' => $subtabUrl(['tg_status' => 'deleted']), 'flash' => ''];
+        $query = array_merge(['tg_status' => 'deleted'], sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
+
+        return ['redirect' => $subtabUrl($query), 'flash' => ''];
     }
 
     if ($action === 'tg_publish' || $action === 'tg_redeploy_loot') {
@@ -163,8 +180,9 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
         }
 
         $status = $action === 'tg_publish' ? 'published' : 'loot_redeployed';
+        $query = array_merge(['tg_status' => $status], sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
 
-        return ['redirect' => $subtabUrl(['tg_status' => $status]), 'flash' => ''];
+        return ['redirect' => $subtabUrl($query), 'flash' => ''];
     }
 
     return ['redirect' => null, 'flash' => ''];
@@ -177,18 +195,45 @@ function sahtout_admin_shop_token_gifts_status_flash_from_get(): string
         return '';
     }
 
+    $reload = (string) ($_GET['tg_reload'] ?? '');
+
     return match ($status) {
         'added' => 'success:' . translate('admin_token_gifts_added', 'Token gift created.'),
-        'updated' => 'success:' . translate('admin_token_gifts_updated', 'Token gift saved.'),
-        'deleted' => 'success:' . translate('admin_token_gifts_deleted', 'Token gift removed.'),
-        'published' => 'success:' . translate(
-            'admin_token_gifts_published',
-            'Published to world. Run .reload item_template, quest_template, page_text, and loot_template on the game server.'
+        'updated' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
+            translate('admin_token_gifts_updated', 'Token gift saved.'),
+            $reload
         ),
-        'loot_redeployed' => 'success:' . translate(
-            'admin_token_gifts_loot_redeployed',
-            'Chest and creature loot rows updated. Run .reload loot_template on the game server.'
+        'deleted' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
+            translate('admin_token_gifts_deleted', 'Token gift removed.'),
+            $reload
+        ),
+        'published' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
+            translate('admin_token_gifts_published', 'Published to world and enabled for website grants.'),
+            $reload
+        ),
+        'loot_redeployed' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
+            translate('admin_token_gifts_loot_redeployed', 'Chest and creature loot rows updated.'),
+            $reload
         ),
         default => '',
+    };
+}
+
+function sahtout_admin_token_gift_flash_with_reload(string $baseMessage, string $reloadFlag): string
+{
+    return match ($reloadFlag) {
+        'ok' => $baseMessage . ' ' . translate(
+            'admin_token_gifts_reload_ok',
+            'Worldserver templates reloaded via SOAP.'
+        ),
+        'fail' => $baseMessage . ' ' . translate(
+            'admin_token_gifts_reload_failed',
+            'Database changes saved, but automatic reload via SOAP failed. Check Admin → Settings → SOAP and worldserver logs.'
+        ),
+        'none' => $baseMessage . ' ' . translate(
+            'admin_token_gifts_reload_none',
+            'Configure SOAP under Admin → Settings → SOAP to reload the worldserver without using the command line.'
+        ),
+        default => $baseMessage,
     };
 }
