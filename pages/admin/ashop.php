@@ -639,6 +639,7 @@ try {
     while ($row = $result->fetch_assoc()) {
         $items[] = $row;
     }
+    sahtout_itemset_apply_piece_counts_to_rows($site_db, $items);
 } catch (Exception $e) {
     error_log("Error fetching shop items: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
 } finally {

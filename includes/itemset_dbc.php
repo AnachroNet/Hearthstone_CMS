@@ -379,3 +379,84 @@ function sahtout_itemset_dbc_is_valid(mysqli $dbcDb, int $setId): bool
 
     return sahtout_itemset_dbc_entries_from_row($row) !== [];
 }
+
+/**
+ * Piece counts per item set ID (itemset_dbc first, then site_items.itemset).
+ *
+ * @param list<int> $setIds
+ * @return array<int, int>
+ */
+function sahtout_itemset_piece_counts(?mysqli $siteDb, array $setIds): array
+{
+    $setIds = array_values(array_unique(array_filter(array_map('intval', $setIds), static fn (int $id): bool => $id > 0)));
+    if ($setIds === []) {
+        return [];
+    }
+
+    $counts = [];
+    $dbcDb = sahtout_itemset_dbc_db();
+    if ($dbcDb !== null) {
+        foreach ($setIds as $setId) {
+            $row = sahtout_itemset_dbc_fetch_row($dbcDb, $setId);
+            if ($row === null) {
+                continue;
+            }
+            $pieceCount = count(sahtout_itemset_dbc_entries_from_row($row));
+            if ($pieceCount > 0) {
+                $counts[$setId] = $pieceCount;
+            }
+        }
+    }
+
+    $missing = array_values(array_filter($setIds, static fn (int $id): bool => !isset($counts[$id])));
+    if ($missing !== [] && $siteDb instanceof mysqli && !$siteDb->connect_error) {
+        $placeholders = implode(',', array_fill(0, count($missing), '?'));
+        $types = str_repeat('i', count($missing));
+        $sql = "SELECT itemset, COUNT(*) AS c FROM site_items WHERE itemset IN ({$placeholders}) GROUP BY itemset";
+        $stmt = $siteDb->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param($types, ...$missing);
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $setId = (int) ($row['itemset'] ?? 0);
+                    $c = (int) ($row['c'] ?? 0);
+                    if ($setId > 0 && $c > 0) {
+                        $counts[$setId] = $c;
+                    }
+                }
+            }
+            $stmt->close();
+        }
+    }
+
+    return $counts;
+}
+
+/**
+ * @param list<array<string, mixed>> $rows
+ */
+function sahtout_itemset_apply_piece_counts_to_rows(?mysqli $siteDb, array &$rows): void
+{
+    $setIds = [];
+    foreach ($rows as $row) {
+        if ((int) ($row['is_set'] ?? 0) === 1 && !empty($row['itemset_id'])) {
+            $setIds[] = (int) $row['itemset_id'];
+        }
+    }
+    if ($setIds === []) {
+        return;
+    }
+
+    $counts = sahtout_itemset_piece_counts($siteDb, $setIds);
+    foreach ($rows as &$row) {
+        if ((int) ($row['is_set'] ?? 0) !== 1 || empty($row['itemset_id'])) {
+            continue;
+        }
+        $setId = (int) $row['itemset_id'];
+        if (isset($counts[$setId])) {
+            $row['set_item_count'] = $counts[$setId];
+        }
+    }
+    unset($row);
+}

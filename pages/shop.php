@@ -5,6 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'includes/item_tooltip.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php'; // Site title used in $page_title
+require_once $project_root . 'includes/itemset_dbc.php';
 
 $page_class = 'shop';
 
@@ -60,6 +61,10 @@ if ($stmt) {
         $items[$row['category']][] = $row;
     }
     $stmt->close();
+    foreach ($items as &$categoryItems) {
+        sahtout_itemset_apply_piece_counts_to_rows($site_db, $categoryItems);
+    }
+    unset($categoryItems);
 } else {
     error_log("Failed to prepare shop items query: " . $site_db->error);
 }
