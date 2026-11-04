@@ -74,6 +74,8 @@ return [
     'admin_shop_itemset_preview_hint' => 'Select or enter an item set to preview its items.',
     'admin_shop_itemset_preview_hidden' => 'Enable "Is Set?" to preview the set contents.',
     'admin_shop_itemset_preview_empty' => 'No items were found for this item set ID.',
+    'admin_shop_itemset_preview_req_level' => 'Requires level {level} to equip all pieces.',
+    'admin_shop_itemset_req_level_short' => 'Req. lvl',
     'admin_shop_yes' => 'Yes',
     'admin_shop_no' => 'No',
     'admin_shop_label_image' => 'Image Upload (JPG, PNG, GIF, max 2MB)',

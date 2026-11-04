@@ -1443,6 +1443,7 @@ ob_start();
                                     <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide"><?php echo translate('admin_shop_label_itemset_preview', 'Set Preview'); ?></label>
                                     <div class="itemset-preview">
                                         <p id="itemset_preview_empty" class="text-muted-wow text-sm mb-0"><?php echo translate('admin_shop_itemset_preview_hint', 'Enter an item set ID to preview its items.'); ?></p>
+                                        <p id="itemset_preview_req" class="text-amber-300/90 text-xs font-semibold mb-2 hidden"></p>
                                         <ul id="itemset_preview_list" class="mb-0"></ul>
                                     </div>
                                 </div>
@@ -1531,6 +1532,7 @@ ob_start();
             const itemsetFilterInput = document.getElementById('itemset_filter');
             const shopNameInput = document.getElementById('name');
             const itemsetPreviewEmpty = document.getElementById('itemset_preview_empty');
+            const itemsetPreviewReq = document.getElementById('itemset_preview_req');
             const itemsetPreviewList = document.getElementById('itemset_preview_list');
             const itemsetPreviewData = <?php echo json_encode($site_itemsets, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
             const itemsetUseDbcLookup = <?php echo $itemset_dbc_ready ? 'true' : 'false'; ?>;
@@ -1549,17 +1551,38 @@ ob_start();
                 'itemset-preview-group': ['Set']
             };
 
-            function paintItemsetPreviewList(setItems) {
+            function setItemsetPreviewRequiredLevel(level) {
+                if (!itemsetPreviewReq) {
+                    return;
+                }
+                const req = parseInt(level, 10) || 0;
+                if (req <= 0) {
+                    itemsetPreviewReq.textContent = '';
+                    itemsetPreviewReq.classList.add('hidden');
+                    return;
+                }
+                itemsetPreviewReq.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_req_level', 'Requires level {level} to equip all pieces.')); ?>.replace('{level}', String(req));
+                itemsetPreviewReq.classList.remove('hidden');
+            }
+
+            function paintItemsetPreviewList(setItems, setRequiredLevel) {
                 itemsetPreviewList.innerHTML = '';
                 if (!setItems || setItems.length === 0) {
+                    setItemsetPreviewRequiredLevel(0);
                     itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_empty', 'No items were found for this item set ID.')); ?>;
                     itemsetPreviewEmpty.classList.remove('hidden');
                     return;
                 }
                 itemsetPreviewEmpty.classList.add('hidden');
+                const maxFromItems = setItems.reduce((max, item) => Math.max(max, parseInt(item.required_level, 10) || 0), 0);
+                setItemsetPreviewRequiredLevel(setRequiredLevel || maxFromItems);
                 setItems.forEach(item => {
                     const listItem = document.createElement('li');
-                    listItem.textContent = `${item.entry} - ${item.name}`;
+                    let line = `${item.entry} - ${item.name}`;
+                    if (item.required_level && parseInt(item.required_level, 10) > 0) {
+                        line += ' (' + <?php echo json_encode(translate('admin_shop_itemset_req_level_short', 'Req. lvl')); ?> + ' ' + item.required_level + ')';
+                    }
+                    listItem.textContent = line;
                     itemsetPreviewList.appendChild(listItem);
                 });
             }
@@ -1570,6 +1593,7 @@ ob_start();
                 const rawSetId = itemsetInput ? itemsetInput.value.trim() : '';
 
                 itemsetPreviewList.innerHTML = '';
+                setItemsetPreviewRequiredLevel(0);
 
                 if (!isSet) {
                     itemsetPreviewEmpty.textContent = <?php echo json_encode(translate('admin_shop_itemset_preview_hidden', 'Choose the "Set" category to preview the set contents.')); ?>;
@@ -1594,10 +1618,10 @@ ob_start();
                                 return;
                             }
                             if (!data.ok || !data.set || !data.set.items) {
-                                paintItemsetPreviewList([]);
+                                paintItemsetPreviewList([], 0);
                                 return;
                             }
-                            paintItemsetPreviewList(data.set.items);
+                            paintItemsetPreviewList(data.set.items, data.set.required_level);
                         })
                         .catch(() => {
                             if (reqId !== itemsetPreviewRequest) {

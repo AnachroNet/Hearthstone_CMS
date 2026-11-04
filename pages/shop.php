@@ -469,6 +469,12 @@ include_once $project_root . 'includes/header.php';
                                             <i class="fas fa-cubes mr-1"></i>
                                             <?php echo translate('shop_set_contains', 'Set') . ' #' . (int)$item['itemset_id'] . ' - ' . (int)($item['set_item_count'] ?? 0) . ' ' . translate('shop_items', 'items'); ?>
                                         </p>
+                                        <?php if (!empty($item['set_required_level'])): ?>
+                                            <p class="text-amber-300/90 text-xs font-semibold mt-1 force-wrap">
+                                                <i class="fas fa-level-up-alt mr-1"></i>
+                                                <?php echo str_replace('{level}', (string) (int) $item['set_required_level'], translate('shop_set_requires_level', 'Requires level {level} to equip all pieces.')); ?>
+                                            </p>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                     
                                     <?php if ($category === 'Service'): ?>

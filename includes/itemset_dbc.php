@@ -279,6 +279,119 @@ function sahtout_itemset_dbc_resolve_item_names(?mysqli $siteDb, ?mysqli $worldD
 }
 
 /**
+ * @param list<int> $entries
+ * @return array<int, int> entry => RequiredLevel
+ */
+function sahtout_itemset_dbc_resolve_required_levels(?mysqli $siteDb, ?mysqli $worldDb, array $entries): array
+{
+    $entries = array_values(array_unique(array_filter(array_map('intval', $entries), static fn (int $e): bool => $e > 0)));
+    if ($entries === []) {
+        return [];
+    }
+
+    $levels = [];
+    $missing = $entries;
+
+    if ($siteDb instanceof mysqli && !$siteDb->connect_error) {
+        $placeholders = implode(',', array_fill(0, count($missing), '?'));
+        $types = str_repeat('i', count($missing));
+        $sql = "SELECT entry, RequiredLevel FROM site_items WHERE entry IN ({$placeholders})";
+        $stmt = $siteDb->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param($types, ...$missing);
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $entry = (int) ($row['entry'] ?? 0);
+                    if ($entry > 0) {
+                        $levels[$entry] = sahtout_itemset_dbc_row_int($row, 'RequiredLevel');
+                    }
+                }
+            }
+            $stmt->close();
+        }
+    }
+
+    $missing = array_values(array_filter($missing, static fn (int $e): bool => !array_key_exists($e, $levels)));
+    if ($missing !== [] && $worldDb instanceof mysqli && !$worldDb->connect_error) {
+        $placeholders = implode(',', array_fill(0, count($missing), '?'));
+        $types = str_repeat('i', count($missing));
+        $sql = "SELECT entry, RequiredLevel FROM item_template WHERE entry IN ({$placeholders})";
+        $stmt = $worldDb->prepare($sql);
+        if ($stmt) {
+            $stmt->bind_param($types, ...$missing);
+            if ($stmt->execute()) {
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $entry = (int) ($row['entry'] ?? 0);
+                    if ($entry > 0 && !array_key_exists($entry, $levels)) {
+                        $levels[$entry] = sahtout_itemset_dbc_row_int($row, 'RequiredLevel');
+                    }
+                }
+            }
+            $stmt->close();
+        }
+    }
+
+    return $levels;
+}
+
+/**
+ * Highest RequiredLevel among set pieces (level needed to equip every piece).
+ *
+ * @param list<int> $setIds
+ * @return array<int, int> set ID => required level
+ */
+function sahtout_itemset_required_levels_for_sets(?mysqli $siteDb, ?mysqli $worldDb, array $setIds): array
+{
+    $setIds = array_values(array_unique(array_filter(array_map('intval', $setIds), static fn (int $id): bool => $id > 0)));
+    if ($setIds === []) {
+        return [];
+    }
+
+    $dbcDb = sahtout_itemset_dbc_db();
+    if ($dbcDb === null) {
+        return [];
+    }
+
+    /** @var array<int, list<int>> $setEntries */
+    $setEntries = [];
+    $allEntries = [];
+    foreach ($setIds as $setId) {
+        $row = sahtout_itemset_dbc_fetch_row($dbcDb, $setId);
+        if ($row === null) {
+            continue;
+        }
+        $entries = sahtout_itemset_dbc_entries_from_row($row);
+        if ($entries === []) {
+            continue;
+        }
+        $setEntries[$setId] = $entries;
+        foreach ($entries as $entry) {
+            $allEntries[$entry] = true;
+        }
+    }
+
+    if ($allEntries === []) {
+        return [];
+    }
+
+    $entryLevels = sahtout_itemset_dbc_resolve_required_levels($siteDb, $worldDb, array_keys($allEntries));
+    $result = [];
+    foreach ($setEntries as $setId => $entries) {
+        $maxLevel = 0;
+        foreach ($entries as $entry) {
+            $maxLevel = max($maxLevel, (int) ($entryLevels[$entry] ?? 0));
+        }
+        if ($maxLevel > 0) {
+            $result[$setId] = $maxLevel;
+        }
+    }
+
+    return $result;
+}
+
+/**
  * @return list<array{id: int, name: string, item_count: int}>
  */
 function sahtout_itemset_dbc_admin_options(mysqli $dbcDb): array
@@ -341,7 +454,7 @@ function sahtout_itemset_dbc_admin_options(mysqli $dbcDb): array
 }
 
 /**
- * @return array{id: int, name: string, items: list<array{entry: int, name: string}>}|null
+ * @return array{id: int, name: string, required_level: int, items: list<array{entry: int, name: string, required_level: int}>}|null
  */
 function sahtout_itemset_dbc_detail(?mysqli $siteDb, ?mysqli $worldDb, mysqli $dbcDb, int $setId): ?array
 {
@@ -354,11 +467,16 @@ function sahtout_itemset_dbc_detail(?mysqli $siteDb, ?mysqli $worldDb, mysqli $d
         return null;
     }
     $nameMap = sahtout_itemset_dbc_resolve_item_names($siteDb, $worldDb, $entries);
+    $levelMap = sahtout_itemset_dbc_resolve_required_levels($siteDb, $worldDb, $entries);
     $items = [];
+    $maxLevel = 0;
     foreach ($entries as $entry) {
+        $req = (int) ($levelMap[$entry] ?? 0);
+        $maxLevel = max($maxLevel, $req);
         $items[] = [
             'entry' => $entry,
             'name' => $nameMap[$entry] ?? ('Item #' . $entry),
+            'required_level' => $req,
         ];
     }
     $displayName = sahtout_itemset_dbc_display_name($row);
@@ -366,6 +484,7 @@ function sahtout_itemset_dbc_detail(?mysqli $siteDb, ?mysqli $worldDb, mysqli $d
     return [
         'id' => sahtout_itemset_dbc_row_int($row, 'ID') ?: $setId,
         'name' => $displayName !== '' ? $displayName : ('Set #' . $setId),
+        'required_level' => $maxLevel,
         'items' => $items,
     ];
 }
@@ -448,7 +567,11 @@ function sahtout_itemset_apply_piece_counts_to_rows(?mysqli $siteDb, array &$row
         return;
     }
 
+    global $world_db;
+
     $counts = sahtout_itemset_piece_counts($siteDb, $setIds);
+    $worldDb = (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null;
+    $reqLevels = sahtout_itemset_required_levels_for_sets($siteDb, $worldDb, $setIds);
     foreach ($rows as &$row) {
         if ((int) ($row['is_set'] ?? 0) !== 1 || empty($row['itemset_id'])) {
             continue;
@@ -456,6 +579,9 @@ function sahtout_itemset_apply_piece_counts_to_rows(?mysqli $siteDb, array &$row
         $setId = (int) $row['itemset_id'];
         if (isset($counts[$setId])) {
             $row['set_item_count'] = $counts[$setId];
+        }
+        if (isset($reqLevels[$setId])) {
+            $row['set_required_level'] = $reqLevels[$setId];
         }
     }
     unset($row);
