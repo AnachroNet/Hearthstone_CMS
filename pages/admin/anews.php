@@ -9,6 +9,16 @@ require_once $project_root . 'includes/breaking_news.php';
 require_once $project_root . 'includes/news_helpers.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
 require_once $project_root . 'includes/admin_pagination.php';
+require_once $project_root . 'includes/admin_subtabs.php';
+require_once $project_root . 'includes/admin_server_communications.php';
+
+$anewsGmLang = $project_root . 'languages/en/pages_admin_gm_cmd.php';
+if (is_readable($anewsGmLang)) {
+    $anewsGmStrings = include $anewsGmLang;
+    if (is_array($anewsGmStrings)) {
+        $lang = array_merge($lang, $anewsGmStrings);
+    }
+}
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -69,6 +79,21 @@ $alert_success = function($msg) {
         <span>' . $msg . '</span>
     </div>';
 };
+
+$soapConfigured = sahtout_soap_is_configured();
+$serverCommFeedback = null;
+$serverMotd = '';
+$motdLoadNotice = null;
+$skipMotdFetch = false;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['gm_action'])) {
+    $commPost = sahtout_admin_server_comm_handle_post($soapConfigured);
+    $serverCommFeedback = $commPost['feedback'];
+    if ($commPost['motd'] !== '') {
+        $serverMotd = $commPost['motd'];
+    }
+    $skipMotdFetch = $commPost['skip_motd_fetch'];
+}
 
 $update_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -277,6 +302,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $update_message = $alert_danger(translate($errKey, translate('admin_breaking_news_save_failed', 'Could not save breaking news.')));
             }
         }
+    }
+}
+
+$news_subtab = sahtout_admin_resolve_subtab(
+    ['articles', 'add', 'announcements', 'ingame', 'communications'],
+    'articles'
+);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['gm_action'])) {
+        $news_subtab = 'communications';
+    } elseif (isset($_POST['action'])) {
+        $news_subtab = match ((string) $_POST['action']) {
+            'add' => 'add',
+            'announcement_add', 'announcement_delete' => 'announcements',
+            'breaking_news_save' => 'ingame',
+            default => 'articles',
+        };
+    }
+}
+
+if ($news_subtab === 'communications') {
+    if ($serverMotd === '' && !$skipMotdFetch) {
+        $motdLoaded = sahtout_admin_server_comm_load_motd($soapConfigured, false);
+        $serverMotd = $motdLoaded['motd'];
+        $motdLoadNotice = $motdLoaded['load_notice'];
     }
 }
 
@@ -649,6 +699,22 @@ ob_start();
                 padding: 0 0.5rem;
             }
         }
+
+        .tab-link {
+            color: #b8c8ff;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .tab-link:hover { color: #f2cf5b; }
+        .tab-link.active { color: #f2cf5b; border-bottom-color: #f2cf5b; }
+
+        .admin-subtab { display: none; }
+        .admin-subtab.active { display: block; }
+        .sub-tab-link { padding: 0.5rem 1rem; font-size: 0.9rem; }
     </style>
     <link rel="stylesheet" href="<?php echo htmlspecialchars($base_path . 'assets/css/breaking-news-editor.css', ENT_QUOTES, 'UTF-8'); ?>">
 <?php $page_head = ob_get_clean(); ?>
@@ -670,6 +736,28 @@ ob_start();
                     
                     <?php echo $update_message; ?>
 
+                    <?php
+                    $newsSubtabPersist = [];
+                    if ($page > 1 && $news_subtab === 'articles') {
+                        $newsSubtabPersist['page'] = $page;
+                    }
+                    sahtout_admin_render_subtab_nav(
+                        [
+                            ['id' => 'articles', 'label' => translate('admin_news_subtab_articles', 'News Articles'), 'icon' => 'fas fa-newspaper'],
+                            ['id' => 'add', 'label' => translate('admin_news_subtab_add', 'Add Article'), 'icon' => 'fas fa-plus'],
+                            ['id' => 'announcements', 'label' => translate('admin_news_subtab_announcements', 'Announcements'), 'icon' => 'fas fa-tools'],
+                            ['id' => 'ingame', 'label' => translate('admin_news_subtab_ingame', 'In-Game News'), 'icon' => 'fas fa-gamepad'],
+                            ['id' => 'communications', 'label' => translate('admin_news_subtab_communications', 'Server Communications'), 'icon' => 'fas fa-bullhorn'],
+                        ],
+                        $news_subtab,
+                        $base_path,
+                        'admin/anews',
+                        $newsSubtabPersist,
+                        translate('admin_news_title', 'News Management')
+                    );
+                    ?>
+
+                    <div class="<?php echo sahtout_admin_subtab_panel_class('announcements', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
                     <!-- Maintenance announcements (home page) -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8 mb-6 md:mb-8">
                         <h2 class="section-title text-lg md:text-xl mb-2 md:mb-3"><?php echo translate('admin_maintenance_header', 'Maintenance announcements'); ?></h2>
@@ -748,7 +836,9 @@ ob_start();
                         <?php endif; ?>
                         <?php endif; ?>
                     </div>
+                    </div><!-- /announcements subtab -->
 
+                    <div class="<?php echo sahtout_admin_subtab_panel_class('ingame', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
                     <!-- In-game breaking news (character select) -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8 mb-6 md:mb-8 breaking-news-editor" data-breaking-news-editor>
                         <h2 class="section-title text-lg md:text-xl mb-2 md:mb-3"><?php echo translate('admin_breaking_news_header', 'In-game breaking news'); ?></h2>
@@ -815,10 +905,12 @@ ob_start();
                         </form>
                         <?php endif; ?>
                     </div>
+                    </div><!-- /ingame subtab -->
 
+                    <div class="<?php echo sahtout_admin_subtab_panel_class('add', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
                     <!-- Add News Form -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8">
-                        <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_news_add_header', 'Add New News'); ?></h2>
+                        <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_news_add_header', 'Add News'); ?></h2>
                         <form method="POST" enctype="multipart/form-data" class="space-y-4 md:space-y-6">
                             <input type="hidden" name="action" value="add">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -886,7 +978,9 @@ ob_start();
                             </div>
                         </form>
                     </div>
+                    </div><!-- /add subtab -->
 
+                    <div class="<?php echo sahtout_admin_subtab_panel_class('articles', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
                     <!-- News List -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8">
                         <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_news_list_header', 'News Articles'); ?></h2>
@@ -1047,6 +1141,7 @@ ob_start();
                             'total_pages' => (int) $total_pages,
                             'base_path' => $base_path,
                             'route' => 'admin/anews',
+                            'query' => ['subtab' => 'articles'],
                             'theme' => 'game',
                             'aria_label' => translate('admin_news_pagination_aria', 'News pagination'),
                             'prev_label' => translate('admin_news_previous', 'Previous'),
@@ -1054,6 +1149,12 @@ ob_start();
                         ]);
                         ?>
                     </div>
+                    </div><!-- /articles subtab -->
+
+                    <div class="<?php echo sahtout_admin_subtab_panel_class('communications', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
+                        <?php include __DIR__ . '/anews_server_comm.inc.php'; ?>
+                    </div>
+
                 </div>
             </div>
         </main>

@@ -252,6 +252,22 @@ function sahtout_admin_page_styles(): void
             overflow-y: auto;
             width: 100%;
         }
+
+        .tab-link {
+            color: #b8c8ff;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .tab-link:hover { color: #f2cf5b; }
+        .tab-link.active { color: #f2cf5b; border-bottom-color: #f2cf5b; }
+
+        .admin-subtab { display: none; }
+        .admin-subtab.active { display: block; }
+        .sub-tab-link { padding: 0.5rem 1rem; font-size: 0.9rem; }
 </style>
     <?php
 }

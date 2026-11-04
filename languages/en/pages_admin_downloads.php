@@ -3,6 +3,8 @@ return [
     'admin_downloads_page_title' => 'Download Management',
     'admin_downloads_meta' => 'Manage external download links',
     'admin_downloads_heading' => 'Download Management',
+    'admin_downloads_subtab_list' => 'Current Downloads',
+    'admin_downloads_subtab_add' => 'Add Download Link',
     'admin_downloads_help' => 'Add public URLs (Google Drive, torrent pages, etc.). Lower sort order appears first within each category.',
     'admin_downloads_table_missing' => 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_downloads.sql on the site database first.',
     'admin_downloads_add' => 'Add link',

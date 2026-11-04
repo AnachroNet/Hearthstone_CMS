@@ -5,9 +5,12 @@ if (!defined('ALLOWED_ACCESS')) {
 
 function sahtout_admin_shop_rewards_tab_url(string $basePath, array $queryExtra = []): string
 {
+    if (!isset($queryExtra['subtab'])) {
+        $queryExtra['subtab'] = 'configured';
+    }
     $params = array_merge(['tab' => 'rewards'], $queryExtra);
     $rewardPage = (int) ($_POST['reward_page'] ?? $_GET['reward_page'] ?? 0);
-    if ($rewardPage > 1) {
+    if ($rewardPage > 1 && ($params['subtab'] ?? '') === 'configured') {
         $params['reward_page'] = $rewardPage;
     }
 
@@ -58,7 +61,7 @@ function sahtout_admin_shop_rewards_handle_post(mysqli $siteDb, string $basePath
                 $ok = $stmt->execute();
                 $stmt->close();
                 if ($ok) {
-                    return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['reward_status' => 'updated']), 'flash' => ''];
+                    return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['subtab' => 'configured', 'reward_status' => 'updated']), 'flash' => ''];
                 }
             }
         }
@@ -168,7 +171,7 @@ function sahtout_admin_shop_rewards_handle_post(mysqli $siteDb, string $basePath
         $ok = $stmt->execute();
         $stmt->close();
         if ($ok) {
-            return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['reward_status' => 'added']), 'flash' => ''];
+            return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['subtab' => 'configured', 'reward_status' => 'added']), 'flash' => ''];
         }
 
         return ['redirect' => null, 'flash' => 'error:' . translate('admin_rewards_save_failed', 'Could not save changes.')];

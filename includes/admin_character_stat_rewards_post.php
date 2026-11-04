@@ -53,7 +53,7 @@ function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $bas
             return ['redirect' => null, 'flash' => 'error:' . $msg];
         }
 
-        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['stat_status' => 'added']), 'flash' => ''];
+        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['subtab' => 'character', 'stat_status' => 'added']), 'flash' => ''];
     }
 
     if ($action === 'stat_update') {
@@ -68,7 +68,7 @@ function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $bas
             ];
         }
 
-        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['stat_status' => 'updated']), 'flash' => ''];
+        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['subtab' => 'character', 'stat_status' => 'updated']), 'flash' => ''];
     }
 
     if ($action === 'stat_delete') {
@@ -81,7 +81,7 @@ function sahtout_admin_shop_stat_rewards_handle_post(mysqli $siteDb, string $bas
             ];
         }
 
-        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['stat_status' => 'deleted']), 'flash' => ''];
+        return ['redirect' => sahtout_admin_shop_rewards_tab_url($basePath, ['subtab' => 'character', 'stat_status' => 'deleted']), 'flash' => ''];
     }
 
     return ['redirect' => null, 'flash' => ''];

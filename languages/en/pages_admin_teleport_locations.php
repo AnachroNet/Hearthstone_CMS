@@ -3,6 +3,8 @@ return [
     'admin_teleport_locations_page_title' => 'Teleport Locations',
     'admin_teleport_locations_meta' => 'Manage fixed teleport destinations for character management',
     'admin_teleport_locations_heading' => 'Teleport Locations',
+    'admin_teleport_subtab_list' => 'Locations',
+    'admin_teleport_subtab_add' => 'Add Location',
     'admin_teleport_locations_help' => 'These destinations appear in Admin → Character Management → Teleport Directly and on the Account Dashboard → Characters tab. Lower sort order appears first in dropdowns.',
     'admin_teleport_locations_table_missing' => 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/admin_teleport_locations.sql on the site database first.',
     'admin_teleport_locations_add' => 'Add location',

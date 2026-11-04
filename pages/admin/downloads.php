@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/site_downloads.php';
 require_once $project_root . 'includes/admin_page_styles.php';
+require_once $project_root . 'includes/admin_subtabs.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -35,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $ok = $stmt->execute();
             $stmt->close();
             if ($ok) {
-                header('Location: ' . $base_path . 'admin/downloads?status=deleted');
+                header('Location: ' . $base_path . 'admin/downloads?subtab=list&status=deleted');
                 exit;
             }
             $flash = 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $ok = $stmt->execute();
             $stmt->close();
             if ($ok) {
-                header('Location: ' . $base_path . 'admin/downloads?status=added');
+                header('Location: ' . $base_path . 'admin/downloads?subtab=list&status=added');
                 exit;
             }
             $flash = 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
                 $ok = $stmt->execute();
                 $stmt->close();
                 if ($ok) {
-                    header('Location: ' . $base_path . 'admin/downloads?status=updated');
+                    header('Location: ' . $base_path . 'admin/downloads?subtab=list&status=updated');
                     exit;
                 }
                 $flash = 'error:' . translate('admin_downloads_save_failed', 'Could not save changes.');
@@ -90,6 +91,14 @@ if (isset($_GET['status'])) {
         'deleted' => 'success:' . translate('admin_downloads_deleted', 'Download link removed.'),
         default => 'success:' . translate('admin_downloads_saved', 'Changes saved.'),
     };
+}
+
+$downloads_subtab = sahtout_admin_resolve_subtab(['list', 'add'], 'list');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $flash !== '' && str_starts_with($flash, 'error:')) {
+    $postAction = (string) ($_POST['action'] ?? '');
+    if ($postAction === 'add' || $postAction === 'update') {
+        $downloads_subtab = 'add';
+    }
 }
 
 $allDownloads = $tableReady ? sahtout_fetch_downloads($site_db, false) : [];
@@ -127,6 +136,21 @@ if ($flash !== '') {
                 </div>
             <?php else: ?>
 
+            <?php
+            sahtout_admin_render_subtab_nav(
+                [
+                    ['id' => 'list', 'label' => translate('admin_downloads_subtab_list', 'Current Downloads'), 'icon' => 'fas fa-list'],
+                    ['id' => 'add', 'label' => translate('admin_downloads_subtab_add', 'Add Download Link'), 'icon' => 'fas fa-plus'],
+                ],
+                $downloads_subtab,
+                $base_path,
+                'admin/downloads',
+                [],
+                translate('admin_downloads_heading', 'Download Management')
+            );
+            ?>
+
+            <div class="<?php echo sahtout_admin_subtab_panel_class('add', $downloads_subtab); ?>">
             <div class="panel p-4 md:p-6 lg:p-8">
                 <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_downloads_add', 'Add link'); ?></h2>
                 <form method="post" action="<?php echo $formAction; ?>" class="space-y-4">
@@ -181,7 +205,9 @@ if ($flash !== '') {
                     </div>
                 </form>
             </div>
+            </div>
 
+            <div class="<?php echo sahtout_admin_subtab_panel_class('list', $downloads_subtab); ?>">
             <div class="panel p-4 md:p-6 lg:p-8 overflow-x-auto">
                 <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_downloads_list', 'All links'); ?></h2>
                 <?php if ($allDownloads === []): ?>
@@ -305,6 +331,8 @@ if ($flash !== '') {
                 </div>
             </div>
             <?php endforeach; ?>
+
+            </div><!-- /downloads list subtab -->
 
             <?php endif; ?>
             </div>

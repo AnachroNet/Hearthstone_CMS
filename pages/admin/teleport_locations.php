@@ -7,6 +7,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
 require_once $project_root . 'includes/admin_page_styles.php';
+require_once $project_root . 'includes/admin_subtabs.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -33,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $ok = $stmt->execute();
             $stmt->close();
             if ($ok) {
-                header('Location: ' . $base_path . 'admin/teleport_locations?status=deleted');
+                header('Location: ' . $base_path . 'admin/teleport_locations?subtab=list&status=deleted');
                 exit;
             }
             $flash = 'error:' . translate('admin_teleport_locations_save_failed', 'Could not save changes.');
@@ -60,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $ok = $stmt->execute();
             $stmt->close();
             if ($ok) {
-                header('Location: ' . $base_path . 'admin/teleport_locations?status=added');
+                header('Location: ' . $base_path . 'admin/teleport_locations?subtab=list&status=added');
                 exit;
             }
             $flash = 'error:' . translate('admin_teleport_locations_save_failed', 'Could not save changes.');
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
                 $ok = $stmt->execute();
                 $stmt->close();
                 if ($ok) {
-                    header('Location: ' . $base_path . 'admin/teleport_locations?status=updated');
+                    header('Location: ' . $base_path . 'admin/teleport_locations?subtab=list&status=updated');
                     exit;
                 }
                 $flash = 'error:' . translate('admin_teleport_locations_save_failed', 'Could not save changes.');
@@ -90,6 +91,14 @@ if (isset($_GET['status'])) {
         'deleted' => 'success:' . translate('admin_teleport_locations_deleted', 'Teleport location removed.'),
         default => '',
     };
+}
+
+$teleport_subtab = sahtout_admin_resolve_subtab(['list', 'add'], 'list');
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $flash !== '' && str_starts_with($flash, 'error:')) {
+    $postAction = (string) ($_POST['action'] ?? '');
+    if ($postAction === 'add' || $postAction === 'update') {
+        $teleport_subtab = 'add';
+    }
 }
 
 $allLocations = $tableReady ? sahtout_fetch_admin_teleport_locations($site_db, false) : [];
@@ -128,6 +137,21 @@ if ($flash !== '') {
                 </div>
             <?php else: ?>
 
+            <?php
+            sahtout_admin_render_subtab_nav(
+                [
+                    ['id' => 'list', 'label' => translate('admin_teleport_subtab_list', 'Locations'), 'icon' => 'fas fa-map-marker-alt'],
+                    ['id' => 'add', 'label' => translate('admin_teleport_subtab_add', 'Add Location'), 'icon' => 'fas fa-plus'],
+                ],
+                $teleport_subtab,
+                $base_path,
+                'admin/teleport_locations',
+                [],
+                translate('admin_teleport_locations_heading', 'Teleport Locations')
+            );
+            ?>
+
+            <div class="<?php echo sahtout_admin_subtab_panel_class('add', $teleport_subtab); ?>">
             <div class="panel p-4 md:p-6 lg:p-8">
                 <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_teleport_locations_add', 'Add location'); ?></h2>
                 <form method="post" action="<?php echo $formAction; ?>" class="space-y-4">
@@ -137,7 +161,9 @@ if ($flash !== '') {
                     <button type="submit" class="btn-gold"><i class="fas fa-plus"></i> <?php echo translate('admin_teleport_locations_create', 'Add location'); ?></button>
                 </form>
             </div>
+            </div>
 
+            <div class="<?php echo sahtout_admin_subtab_panel_class('list', $teleport_subtab); ?>">
             <div class="panel p-4 md:p-6 lg:p-8 overflow-x-auto">
                 <h2 class="section-title text-lg md:text-xl mb-4 md:mb-6"><?php echo translate('admin_teleport_locations_list', 'All locations'); ?></h2>
                 <?php if ($allLocations === []): ?>
@@ -233,6 +259,8 @@ if ($flash !== '') {
                 </div>
             </div>
             <?php endforeach; ?>
+
+            </div><!-- /teleport list subtab -->
 
             <?php endif; ?>
             </div>

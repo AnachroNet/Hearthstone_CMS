@@ -13,6 +13,7 @@ if (is_readable($ashopRewardsLang)) {
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
 require_once $project_root . 'includes/admin_pagination.php';
+require_once $project_root . 'includes/admin_subtabs.php';
 require_once $project_root . 'includes/admin_achievement_rewards.php';
 require_once $project_root . 'includes/admin_shop_rewards_post.php';
 require_once $project_root . 'includes/admin_character_stat_rewards.php';
@@ -667,8 +668,19 @@ $statTypeLabels = [
     'deaths' => translate('admin_stat_reward_type_deaths', 'Deaths'),
     'hours_played' => translate('admin_stat_reward_type_hours_played', 'Hours Played'),
 ];
-$rewardsTabQuery = ['tab' => 'rewards'];
-if ($reward_page > 1) {
+$rewards_subtab = 'configured';
+if ($shop_tab === 'rewards') {
+    $rewards_subtab = sahtout_admin_resolve_subtab(['configured', 'add', 'character'], 'configured');
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (sahtout_admin_shop_is_stat_rewards_post()) {
+            $rewards_subtab = 'character';
+        } elseif (sahtout_admin_shop_is_rewards_post()) {
+            $rewards_subtab = ((string) ($_POST['action'] ?? '')) === 'add' ? 'add' : 'configured';
+        }
+    }
+}
+$rewardsTabQuery = ['tab' => 'rewards', 'subtab' => $rewards_subtab];
+if ($reward_page > 1 && $rewards_subtab === 'configured') {
     $rewardsTabQuery['reward_page'] = $reward_page;
 }
 $rewardsFormAction = htmlspecialchars($base_path . 'admin/ashop?' . http_build_query($rewardsTabQuery), ENT_QUOTES, 'UTF-8');
@@ -1051,8 +1063,10 @@ ob_start();
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        .inventory-subtab { display: none; }
-        .inventory-subtab.active { display: block; }
+        .inventory-subtab,
+        .admin-subtab { display: none; }
+        .inventory-subtab.active,
+        .admin-subtab.active { display: block; }
         .sub-tab-link { padding: 0.5rem 1rem; font-size: 0.9rem; }
 
         .ach-search-results {
