@@ -172,22 +172,42 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
                 $rewardedActiveByQuestGuid,
                 $activePublishedGiftCount
             );
-            if (!$snap['rewarded']) {
+
+            $completionCount = sahtout_token_gift_char_tracked_completion_count(
+                $row,
+                $guid,
+                $completionCountsByQuestGuid,
+                $activePublishedGiftCount
+            );
+            $hasRewarded = $snap['rewarded'];
+            if ($completionCount <= 0 && $hasRewarded) {
+                // Rewarded row present but quest_tracker off or empty (first sync after upgrade).
+                $completionCount = 1;
+            }
+            if (!$hasRewarded && $completionCount <= 0) {
+                continue;
+            }
+            if (!$hasRewarded && $activePublishedGiftCount !== 1) {
                 continue;
             }
 
             $active = $snap['active'];
-            $grantQuestId = $snap['matched_quest_id'] > 0 ? $snap['matched_quest_id'] : $questId;
-            sahtout_token_gift_repair_site_world_ids($siteDb, $giftId, $grantQuestId, $questId, $itemEntry);
-            $charGrantCount = (int) (($charGrantCounts[$giftId] ?? [])[$guid] ?? 0);
-            $completionCount = (int) (($completionCountsByQuestGuid[$grantQuestId] ?? [])[$guid] ?? 0);
-            if ($completionCount <= 0 && $snap['rewarded']) {
-                // First completion is recorded in character_queststatus_rewarded even when quest_tracker is off.
-                $completionCount = 1;
+            $grantQuestId = sahtout_token_gift_resolve_grant_quest_id(
+                $row,
+                $guid,
+                (int) ($snap['matched_quest_id'] ?? 0),
+                $completionCountsByQuestGuid,
+                $activePublishedGiftCount
+            );
+            if ($grantQuestId <= 0) {
+                continue;
             }
 
+            sahtout_token_gift_repair_site_world_ids($siteDb, $giftId, $grantQuestId, $questId, $itemEntry);
+            $charGrantCount = (int) (($charGrantCounts[$giftId] ?? [])[$guid] ?? 0);
+
             // Repeatable promos: one site grant per tracked in-game completion (quest_tracker).
-            if ($useSyncState && $upsertState && $charGrantCount > 0 && $completionCount <= $charGrantCount && $snap['rewarded']) {
+            if ($useSyncState && $upsertState && $charGrantCount > 0 && $completionCount <= $charGrantCount && $hasRewarded) {
                 $seenActive = $active > 0 ? 1 : 0;
                 $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $seenActive);
                 $upsertState->execute();
@@ -257,8 +277,34 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
 
     if ($tokensAdded === 0 && $gifts !== []) {
         $catalog = [];
+        $eligibility = [];
         foreach ($gifts as $gid => $grow) {
             $catalog[] = $gid . ':' . (int) ($grow['quest_id'] ?? 0) . '/' . (int) ($grow['item_entry'] ?? 0);
+            foreach ($guids as $eligGuid) {
+                $eligGuid = (int) $eligGuid;
+                if ($eligGuid <= 0) {
+                    continue;
+                }
+                $eligSnap = sahtout_token_gift_char_reward_snapshot(
+                    $grow,
+                    $eligGuid,
+                    $rewardedExistsByQuestGuid,
+                    $rewardedActiveByQuestGuid,
+                    $activePublishedGiftCount
+                );
+                $eligCompletions = sahtout_token_gift_char_tracked_completion_count(
+                    $grow,
+                    $eligGuid,
+                    $completionCountsByQuestGuid,
+                    $activePublishedGiftCount
+                );
+                $eligGrants = (int) (($charGrantCounts[(int) $gid] ?? [])[$eligGuid] ?? 0);
+                $eligibility[] = 'g' . $eligGuid . '/gift' . (int) $gid
+                    . '/rewarded' . ($eligSnap['rewarded'] ? '1' : '0')
+                    . '/match' . (int) ($eligSnap['matched_quest_id'] ?? 0)
+                    . '/tracker' . $eligCompletions
+                    . '/grants' . $eligGrants;
+            }
         }
         error_log(
             'token_gift_sync none_eligible account=' . $accountId
@@ -266,7 +312,7 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
             . ' use_sync_state=' . ($useSyncState ? '1' : '0')
             . ' quest_tracker=' . (sahtout_char_quest_tracker_table_exists($charDb) ? '1' : '0')
             . ' catalog=' . implode(',', $catalog)
-            . ' char_db_quest_ids=' . implode(',', $questIds)
+            . ' eligibility=' . implode(',', $eligibility)
         );
     }
 
@@ -360,11 +406,89 @@ function sahtout_token_gift_rewarded_quest_matches_gift(
     if ($activePublishedGiftCount !== 1) {
         return false;
     }
-    if (!sahtout_token_gift_is_reserved_world_id($rewardedQuestId)) {
-        return false;
+    // Single live promo: in-game id may differ from token_gifts row after republish/cleanup (e.g. game 18270, site 18271).
+    return sahtout_token_gift_is_reserved_world_id($rewardedQuestId);
+}
+
+/**
+ * Quest ids that may count toward this promo's tracker completions.
+ *
+ * @param array<string, mixed> $giftRow
+ * @return list<int>
+ */
+function sahtout_token_gift_completion_quest_ids_for_gift(array $giftRow, int $activePublishedGiftCount): array
+{
+    $ids = [];
+    foreach (['quest_id', 'item_entry'] as $key) {
+        $id = (int) ($giftRow[$key] ?? 0);
+        if ($id > 0) {
+            $ids[$id] = true;
+        }
+    }
+    if ($activePublishedGiftCount === 1) {
+        foreach (sahtout_token_gift_configured_world_ids() as $worldId) {
+            if ($worldId > 0) {
+                $ids[$worldId] = true;
+            }
+        }
     }
 
-    return sahtout_token_gift_site_catalog_uses_legacy_world_ids($giftRow);
+    return array_map('intval', array_keys($ids));
+}
+
+/**
+ * @param array<int, array<int, int>> $completionCountsByQuestGuid
+ */
+function sahtout_token_gift_char_tracked_completion_count(
+    array $giftRow,
+    int $guid,
+    array $completionCountsByQuestGuid,
+    int $activePublishedGiftCount
+): int {
+    if ($guid <= 0) {
+        return 0;
+    }
+    $best = 0;
+    $bestQuestId = 0;
+    foreach (sahtout_token_gift_completion_quest_ids_for_gift($giftRow, $activePublishedGiftCount) as $questId) {
+        $c = (int) (($completionCountsByQuestGuid[$questId] ?? [])[$guid] ?? 0);
+        if ($c > $best) {
+            $best = $c;
+            $bestQuestId = $questId;
+        }
+    }
+
+    return $best;
+}
+
+/**
+ * @param array<int, array<int, int>> $completionCountsByQuestGuid
+ */
+function sahtout_token_gift_resolve_grant_quest_id(
+    array $giftRow,
+    int $guid,
+    int $matchedQuestId,
+    array $completionCountsByQuestGuid,
+    int $activePublishedGiftCount
+): int {
+    if ($matchedQuestId > 0) {
+        return $matchedQuestId;
+    }
+    $siteQuest = (int) ($giftRow['quest_id'] ?? 0);
+    if ($siteQuest > 0) {
+        return $siteQuest;
+    }
+    $best = 0;
+    $bestQuestId = 0;
+    foreach (sahtout_token_gift_completion_quest_ids_for_gift($giftRow, $activePublishedGiftCount) as $questId) {
+        $c = (int) (($completionCountsByQuestGuid[$questId] ?? [])[$guid] ?? 0);
+        if ($c > $best) {
+            $best = $c;
+            $bestQuestId = $questId;
+        }
+    }
+
+    return $bestQuestId;
 }
 
 function sahtout_token_gift_repair_site_world_ids(
