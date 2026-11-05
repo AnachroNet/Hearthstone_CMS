@@ -52,9 +52,25 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
         text-transform: uppercase;
         text-decoration: none;
     }
-    .footer-nav-link:hover {
+        .footer-nav-link:hover {
         color: var(--gold-primary);
         text-shadow: 0 0 8px rgba(242,207,82,.4);
+    }
+
+    .footer-credits-link {
+        display: inline-block;
+        margin-top: 0.5rem;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #6b7280;
+        text-decoration: none;
+        transition: color 0.25s ease;
+    }
+
+    .footer-credits-link:hover {
+        color: var(--gold-primary);
     }
 
     .footer-nav-links {
@@ -197,6 +213,10 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
                 <p class="text-gray-500 text-xs tracking-wider uppercase font-semibold">
                     &copy; <?php echo date('Y') . " " . $site_title_name; ?>. <?php echo translate('footer_rights', 'All rights reserved.'); ?>
                 </p>
+                <a href="<?php echo htmlspecialchars($base_path, ENT_QUOTES, 'UTF-8'); ?>credits"
+                   class="footer-credits-link">
+                    <?php echo htmlspecialchars(translate('footer_credits_link', 'Credits'), ENT_QUOTES, 'UTF-8'); ?>
+                </a>
             </div>
 
             <!-- Socials -->
