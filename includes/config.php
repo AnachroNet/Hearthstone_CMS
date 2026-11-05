@@ -29,6 +29,8 @@ foreach ($dbKeys as $dbKey) {
     ${"db_{$dbKey}_name"} = (string) ($d['name'] ?? '');
 }
 
+$db_playerbots_name = trim((string) ($sahtout_local['database']['playerbots']['name'] ?? 'acore_playerbots'));
+
 $auth_db = new mysqli($db_auth_host, $db_auth_user, $db_auth_pass, $db_auth_name, (int) $db_auth_port);
 $world_db = new mysqli($db_world_host, $db_world_user, $db_world_pass, $db_world_name, (int) $db_world_port);
 $char_db = new mysqli($db_char_host, $db_char_user, $db_char_pass, $db_char_name, (int) $db_char_port);

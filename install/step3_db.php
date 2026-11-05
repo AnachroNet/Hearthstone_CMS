@@ -31,6 +31,10 @@ $dbGroups = [
     'site'  => ['label' => translate('db_site', 'Site DB')],
 ];
 
+$localInstallerConfig = sahtout_load_local_config();
+$defaultPlayerbotsDbName = trim((string) ($localInstallerConfig['database']['playerbots']['name'] ?? 'acore_playerbots'));
+$playerbotsDbNameField = trim((string) ($_POST['db_playerbots_name'] ?? $defaultPlayerbotsDbName));
+
 function makeConnection(array $c): array {
     $conn  = null;
     $error = '';
@@ -90,9 +94,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'user'  => trim($_POST['db_site_user'] ?? ''),
             'pass'  => $_POST['db_site_pass'] ?? '',
         ],
+        'playerbots' => [
+            'label' => translate('db_playerbots', 'Playerbots DB (optional)'),
+            'name'  => trim((string) ($_POST['db_playerbots_name'] ?? $defaultPlayerbotsDbName)),
+        ],
     ];
+    $playerbotsDbNameField = $dbGroups['playerbots']['name'];
 
     foreach ($dbGroups as $key => $g) {
+        if ($key === 'playerbots') {
+            continue;
+        }
         if (empty($g['host'])) $errors[] = translate('err_host_required', '[%s] Host is required', $g['label']);
         if (empty($g['user'])) $errors[] = translate('err_user_required', '[%s] Username is required', $g['label']);
         if (empty($g['port']) || !is_numeric($g['port']) || $g['port'] < 1 || $g['port'] > 65535) {
@@ -103,6 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         foreach ($dbGroups as $key => $g) {
+            if ($key === 'playerbots') {
+                continue;
+            }
             [$conn, $connError] = makeConnection($g);
             $status = ['success' => false, 'message' => ''];
 
@@ -469,6 +484,21 @@ $db_icons = [
                                 </div>
                             </div>
                         <?php endforeach; ?>
+                    </div>
+
+                    <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 shadow-lg">
+                        <h3 class="font-cinzel text-gold-400 font-bold text-lg mb-2 flex items-center gap-2">
+                            <i class="fas fa-robot"></i>
+                            <?= translate('db_playerbots', 'Playerbots DB (optional)') ?>
+                        </h3>
+                        <p class="text-slate-400 text-sm mb-4">
+                            <?= translate('help_playerbots_db', 'Database name for the Playerbots mod (same MySQL server as Char DB). Used for realm online counts and armory human/bot filters. Leave blank if you do not use Playerbots.') ?>
+                        </p>
+                        <label for="db_playerbots_name" class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider"><?= translate('label_db_name', 'Database') ?></label>
+                        <input id="db_playerbots_name" type="text" name="db_playerbots_name"
+                               value="<?= htmlspecialchars($playerbotsDbNameField) ?>"
+                               class="w-full max-w-md bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all text-sm"
+                               placeholder="acore_playerbots">
                     </div>
 
                     <!-- reCAPTCHA Section -->

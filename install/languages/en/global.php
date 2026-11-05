@@ -131,6 +131,8 @@ return [
 'step3_description'           => 'Configure your database connections and security settings.',
 'db_auth'                     => 'Auth DB',
 'db_world'                    => 'World DB',
+    'db_playerbots'               => 'Playerbots DB (optional)',
+    'help_playerbots_db'          => 'Database name for the Playerbots mod (same MySQL server as Char DB). Used for realm online counts and armory human/bot filters. Leave blank if you do not use Playerbots.',
 'db_char'                     => 'Char DB',
 'db_site'                     => 'Site DB',
 'label_db_host'               => 'Host',

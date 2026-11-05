@@ -8,6 +8,7 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
 }
 require_once __DIR__ . '/paths.php';
 require_once __DIR__ . '/realm_config.php';
+require_once __DIR__ . '/armory_playerbots.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -176,7 +177,10 @@ function playerbotsDatabaseAvailable($char_db, $playerbotsDb) {
 /**
  * Optimized single query with COALESCE to guarantee integer returns instead of NULL.
  */
-function getOnlinePlayerStats($char_db, $playerbotsDb = 'acore_playerbots') {
+function getOnlinePlayerStats($char_db, ?string $playerbotsDb = null) {
+    if ($playerbotsDb === null) {
+        $playerbotsDb = sahtout_playerbots_db_name();
+    }
     if (!$char_db) {
         return [
             'players' => 0,
@@ -199,6 +203,33 @@ function getOnlinePlayerStats($char_db, $playerbotsDb = 'acore_playerbots') {
      * support it may not exist at all. In that case every online character
      * is counted as a real player and the bot count is simply 0.
      */
+    if ($playerbotsDb === '') {
+        try {
+            $result = @$char_db->query("
+                SELECT
+                    COUNT(*) AS total,
+                    COUNT(*) AS real_players,
+                    0 AS bots,
+                    COALESCE(SUM(c.race IN (1, 3, 4, 7, 11)), 0) AS alliance,
+                    COALESCE(SUM(c.race IN (2, 5, 6, 8, 10)), 0) AS horde
+                FROM characters c
+                WHERE c.online = 1
+            ");
+            if ($result && ($row = $result->fetch_assoc())) {
+                return [
+                    'players' => (int) ($row['total'] ?? 0),
+                    'real_players' => (int) ($row['real_players'] ?? 0),
+                    'bots' => 0,
+                    'alliance' => (int) ($row['alliance'] ?? 0),
+                    'horde' => (int) ($row['horde'] ?? 0),
+                    'playerbots_missing' => false,
+                ];
+            }
+        } catch (Throwable $e) {
+            // fall through
+        }
+    }
+
     $playerbotsMissing = !playerbotsDatabaseAvailable($char_db, $playerbotsDb);
 
     // Query used when Playerbots support is NOT installed (no join).
@@ -374,7 +405,7 @@ function getRealmStatusData($realm, $char_db, $auth_db) {
         if ($online) {
             $playerStats = getOnlinePlayerStats(
                 $char_db,
-                $realm['playerbots_db'] ?? 'acore_playerbots'
+                isset($realm['playerbots_db']) ? (string) $realm['playerbots_db'] : null
             );
             $players = $playerStats['players'];
             $realPlayers = $playerStats['real_players'];

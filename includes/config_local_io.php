@@ -19,6 +19,7 @@ function sahtout_default_local_config(): array
             'world' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'acore_world'],
             'char' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'acore_characters'],
             'site' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'sahtout_site'],
+            'playerbots' => ['name' => 'acore_playerbots'],
         ],
         'smtp' => [
             'enabled' => false,
@@ -103,8 +104,9 @@ function sahtout_publish_local_config(array $config): void
         return;
     }
 
-    global $sahtout_local, $armoryConfig;
+    global $sahtout_local, $armoryConfig, $db_playerbots_name;
     $sahtout_local = $normalized;
+    $db_playerbots_name = trim((string) ($normalized['database']['playerbots']['name'] ?? 'acore_playerbots'));
     $armoryConfig = $normalized['armory'] ?? [
         'solo_pvp_display' => 'humans_only',
         'solo_pvp_include_scored_bots' => true,
@@ -478,6 +480,12 @@ function sahtout_installer_db_groups_to_local(array $dbGroups): array
 {
     $patch = ['database' => []];
     foreach ($dbGroups as $key => $g) {
+        if ($key === 'playerbots') {
+            $patch['database']['playerbots'] = [
+                'name' => trim((string) ($g['name'] ?? '')),
+            ];
+            continue;
+        }
         $patch['database'][$key] = [
             'host' => $g['host'] ?? 'localhost',
             'port' => (int) ($g['port'] ?? 3306),

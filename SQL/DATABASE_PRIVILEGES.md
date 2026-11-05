@@ -32,6 +32,16 @@ Legacy **`after_account_insert` / `after_account_update` triggers** are deprecat
 
 Exact table list depends on enabled features (SOAP vs direct SQL shop, stat rewards, token gifts).
 
+## `acore_playerbots` (optional)
+
+Configured as `database.playerbots.name` in `includes/config.local.php` (default `acore_playerbots`; empty name disables integration). Queries run on the **characters** connection; no separate mysqli link.
+
+| Privilege | Purpose |
+|-----------|---------|
+| **SELECT** on `playerbots_account_type` (typical) | Realm bot/human counts, armory “humans only” filters |
+
+RNDBOT username filtering in admin does **not** require this database.
+
 ## `acore_world` (read-heavy)
 
 | Privilege | Purpose |

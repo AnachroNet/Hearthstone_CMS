@@ -282,8 +282,8 @@ return [
     'bots' => 'Bots',
     'real_players' => 'Players',
     'playerbots_db_missing' => 'Playerbot database not found. Bot statistics are unavailable.',
-    'playerbots_db_table_missing' => 'Playerbots database/table not detected. Bot statistics are unavailable until acore_playerbots.playerbots_account_type is available.',
-    'warn_playerbots_missing' => 'Playerbots database/table not detected. The <code>humans_only</code> filter cannot exclude Playerbots until <code>acore_playerbots.playerbots_account_type</code> is available.',
+    'playerbots_db_table_missing' => 'Playerbots database/table not detected. Bot statistics are unavailable until the playerbots database (config.local.php → database.playerbots.name) and playerbots_account_type exist.',
+    'warn_playerbots_missing' => 'Playerbots database/table not detected. The <code>humans_only</code> filter cannot exclude Playerbots until the playerbots database is configured and playerbots_account_type is available.',
 
     'admin_pagination_aria' => 'Page navigation',
     'admin_pagination_first' => 'First',

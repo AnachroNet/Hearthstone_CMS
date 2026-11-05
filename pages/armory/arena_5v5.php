@@ -21,7 +21,7 @@ $botJoinClause = '';
 $botWhereClause = '';
 if ($arena5v5Display === 'humans_only' && isset($char_db)) {
     if (armory_playerbots_table_exists($char_db)) {
-        $botJoinClause = " LEFT JOIN `acore_playerbots`.`playerbots_account_type` pat ON pat.account_id = c.account ";
+        $botJoinClause = armory_playerbots_account_type_join_sql('c.account');
         $botWhereClause = " AND (pat.account_id IS NULL OR pat.account_type NOT IN (1, 2)) ";
     }
 }
