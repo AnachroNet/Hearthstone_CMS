@@ -5,6 +5,13 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/token_gift_settings.php';
+require_once $project_root . 'includes/token_gift_world.php';
+
+global $world_db, $site_db;
+$tokenGiftWorldIdSlots = [];
+if (isset($world_db, $site_db) && $world_db instanceof mysqli && $site_db instanceof mysqli && !$world_db->connect_error) {
+    $tokenGiftWorldIdSlots = sahtout_token_gift_world_id_availability($site_db, $world_db);
+}
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -361,22 +368,77 @@ include $project_root . 'includes/header.php';
                                                class="w-full px-3 py-2 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm"
                                                value="<?php echo (int) ($sahtout_site_settings['shop.token_gift_quest_template_ref'] ?? 123); ?>">
                                     </div>
-                                    <div>
-                                        <p class="text-xs text-gray-400 mb-1">
-                                            <?php echo translate('label_token_gift_world_ids', 'Token gift world IDs'); ?>
-                                        </p>
-                                        <p class="text-sm text-gray-300 font-mono px-3 py-2 bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm">
-                                            <?php echo translate(
-                                                'token_gift_world_id_range_value',
-                                                'Item & quest %1$d–%2$d (max %3$d promos, display %4$d)',
-                                                sahtout_token_gift_world_id_first(),
-                                                sahtout_token_gift_world_id_last(),
-                                                sahtout_token_gift_max_promos(),
-                                                sahtout_token_gift_item_display_id()
-                                            ); ?>
-                                        </p>
-                                    </div>
                                 </div>
+                                <label for="shop_token_gift_world_ids" class="text-sm text-gray-300 block mb-1 mt-3">
+                                    <?php echo translate('label_token_gift_world_ids', 'Token gift world IDs'); ?>
+                                </label>
+                                <input type="text"
+                                       name="shop_token_gift_world_ids"
+                                       id="shop_token_gift_world_ids"
+                                       class="w-full max-w-xl px-4 py-3 text-[0.95rem] text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none font-mono text-sm"
+                                       maxlength="500"
+                                       value="<?php echo htmlspecialchars(trim((string) ($sahtout_site_settings['shop.token_gift_world_ids'] ?? sahtout_token_gift_default_world_ids_csv()))); ?>">
+                                <div class="text-[#6a7a8a] text-xs mt-1 mb-3 max-w-3xl">
+                                    <?php echo translate(
+                                        'help_token_gift_world_ids',
+                                        'Item and quest entry IDs the CMS may assign when you publish a token gift (one ID used for both). Comma-separated. Check the table below against your world database before publishing.'
+                                    ); ?>
+                                </div>
+                                <?php if ($tokenGiftWorldIdSlots !== []): ?>
+                                    <div class="max-w-3xl overflow-x-auto border border-[#c9a227]/20 rounded-sm mb-2">
+                                        <table class="w-full text-xs text-left">
+                                            <thead class="bg-[#0a0e16]/90 text-[#f2cf5b]">
+                                                <tr>
+                                                    <th class="px-3 py-2 font-semibold"><?php echo translate('token_gift_world_id_col_id', 'ID'); ?></th>
+                                                    <th class="px-3 py-2 font-semibold"><?php echo translate('token_gift_world_id_col_status', 'Status'); ?></th>
+                                                    <th class="px-3 py-2 font-semibold"><?php echo translate('token_gift_world_id_col_world', 'World DB'); ?></th>
+                                                    <th class="px-3 py-2 font-semibold"><?php echo translate('token_gift_world_id_col_site', 'Site promo'); ?></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="text-gray-300 divide-y divide-[#c9a227]/10">
+                                                <?php foreach ($tokenGiftWorldIdSlots as $slot): ?>
+                                                    <?php
+                                                    $statusKey = (string) ($slot['status'] ?? 'free');
+                                                    $statusLabel = match ($statusKey) {
+                                                        'in_use' => translate('token_gift_world_id_status_in_use', 'In use'),
+                                                        'world_only' => translate('token_gift_world_id_status_world_only', 'World rows only (orphan)'),
+                                                        default => translate('token_gift_world_id_status_free', 'Free'),
+                                                    };
+                                                    $worldBits = [];
+                                                    if (!empty($slot['has_item'])) {
+                                                        $worldBits[] = translate('token_gift_world_id_has_item', 'item');
+                                                    }
+                                                    if (!empty($slot['has_quest'])) {
+                                                        $worldBits[] = translate('token_gift_world_id_has_quest', 'quest');
+                                                    }
+                                                    $worldText = $worldBits === []
+                                                        ? translate('token_gift_world_id_world_empty', '—')
+                                                        : implode(', ', $worldBits);
+                                                    $siteText = '—';
+                                                    if (!empty($slot['gift_id'])) {
+                                                        $siteText = '#' . (int) $slot['gift_id'];
+                                                        if (!empty($slot['gift_name'])) {
+                                                            $siteText .= ' ' . htmlspecialchars((string) $slot['gift_name'], ENT_QUOTES, 'UTF-8');
+                                                        }
+                                                    }
+                                                    ?>
+                                                    <tr>
+                                                        <td class="px-3 py-2 font-mono"><?php echo (int) ($slot['world_id'] ?? 0); ?></td>
+                                                        <td class="px-3 py-2"><?php echo htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="px-3 py-2"><?php echo htmlspecialchars($worldText, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="px-3 py-2"><?php echo $siteText; ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="text-[#6a7a8a] text-xs max-w-3xl mb-2">
+                                        <?php echo translate(
+                                            'token_gift_world_id_verify_hint',
+                                            'World rows only means item_template and/or quest_template still exist without a site promo — delete the promo in A-Shop (full remove) or clear those rows manually to free the ID.'
+                                        ); ?>
+                                    </p>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Discord widget (home page) -->

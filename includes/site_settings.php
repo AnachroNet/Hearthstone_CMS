@@ -56,6 +56,7 @@ function sahtout_site_setting_defaults(): array
         'registration.signup_tokens_enabled' => '0',
         'registration.signup_tokens_amount' => '0',
         'shop.token_gift_loot_ids' => '2276,2277,2278,2279,2280,2284',
+        'shop.token_gift_world_ids' => '18270,18271,18272,18273,18274,18275,18276,18277,18278,18279',
         'shop.token_gift_item_template_ref' => '2223',
         'shop.token_gift_quest_template_ref' => '123',
         'shop.token_gift_id_base' => '18270',

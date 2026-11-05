@@ -13,6 +13,35 @@ const SAHTOUT_TOKEN_GIFT_MAX_PROMOS = 10;
 /** Sealed letter icon (item 2223 display). */
 const SAHTOUT_TOKEN_GIFT_DISPLAY_ID = 1102;
 
+function sahtout_token_gift_default_world_ids_csv(): string
+{
+    $ids = [];
+    for ($id = SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST; $id <= SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST; $id++) {
+        $ids[] = $id;
+    }
+
+    return implode(',', $ids);
+}
+
+/** @return list<int> */
+function sahtout_token_gift_configured_world_ids(): array
+{
+    global $sahtout_site_settings;
+
+    $raw = sahtout_token_gift_default_world_ids_csv();
+    if (isset($sahtout_site_settings) && is_array($sahtout_site_settings)) {
+        $stored = trim((string) ($sahtout_site_settings['shop.token_gift_world_ids'] ?? ''));
+        if ($stored !== '') {
+            $raw = $stored;
+        }
+    }
+
+    $ids = sahtout_parse_comma_int_list($raw);
+    sort($ids, SORT_NUMERIC);
+
+    return $ids;
+}
+
 /** @return list<int> */
 function sahtout_token_gift_world_chest_loot_ids(): array
 {
@@ -73,17 +102,26 @@ function sahtout_token_gift_quest_template_ref(): int
 
 function sahtout_token_gift_world_id_first(): int
 {
-    return SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST;
+    $ids = sahtout_token_gift_configured_world_ids();
+
+    return $ids !== [] ? $ids[0] : SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST;
 }
 
 function sahtout_token_gift_world_id_last(): int
 {
-    return SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST;
+    $ids = sahtout_token_gift_configured_world_ids();
+    if ($ids === []) {
+        return SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST;
+    }
+
+    return $ids[count($ids) - 1];
 }
 
 function sahtout_token_gift_max_promos(): int
 {
-    return SAHTOUT_TOKEN_GIFT_MAX_PROMOS;
+    $ids = sahtout_token_gift_configured_world_ids();
+
+    return $ids !== [] ? count($ids) : SAHTOUT_TOKEN_GIFT_MAX_PROMOS;
 }
 
 function sahtout_token_gift_item_display_id(): int
@@ -93,7 +131,16 @@ function sahtout_token_gift_item_display_id(): int
 
 function sahtout_token_gift_is_reserved_world_id(int $worldId): bool
 {
-    return $worldId >= SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST && $worldId <= SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST;
+    return sahtout_token_gift_is_configured_world_id($worldId);
+}
+
+function sahtout_token_gift_is_configured_world_id(int $worldId): bool
+{
+    if ($worldId <= 0) {
+        return false;
+    }
+
+    return in_array($worldId, sahtout_token_gift_configured_world_ids(), true);
 }
 
 /** @deprecated Legacy setting; reserved IDs are fixed at 18270–18279. */

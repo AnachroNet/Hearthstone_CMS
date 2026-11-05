@@ -336,7 +336,7 @@ function sahtout_token_gift_collect_char_db_quest_ids(array $gifts): array
 {
     $ids = sahtout_token_gift_collect_world_quest_ids($gifts);
     $indexed = array_fill_keys($ids, true);
-    for ($worldId = SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST; $worldId <= SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST; $worldId++) {
+    foreach (sahtout_token_gift_configured_world_ids() as $worldId) {
         $indexed[$worldId] = true;
     }
 

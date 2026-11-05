@@ -16,9 +16,7 @@ if (!defined('ALLOWED_ACCESS')) {
         <p class="text-gray-400 text-sm mb-4 max-w-3xl"><?php echo translate('admin_token_gifts_help', 'Create sealed-letter promos: publish an item and repeatable auto-complete quest to the world, optionally drop the letter into battered chest loot pools (site setting Token Gift Loot IDs), and grant shop tokens each time a character completes the quest again.'); ?></p>
         <p class="text-xs text-gray-500 mb-4 max-w-3xl"><?php echo translate(
             'admin_token_gifts_world_id_range',
-            'World item and quest IDs are assigned from the unused %1$d–%2$d range (%3$d promos max). Items use display ID %4$d; letter text is quest dialog only (PageText stays 0).',
-            sahtout_token_gift_world_id_first(),
-            sahtout_token_gift_world_id_last(),
+            'World item and quest IDs come from your General Settings list (%1$d configured slots; display icon %2$d). Publish picks the first free ID with no world rows and no other promo using it. Letter text is quest dialog only (PageText stays 0).',
             sahtout_token_gift_max_promos(),
             sahtout_token_gift_item_display_id()
         ); ?></p>

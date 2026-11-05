@@ -1229,7 +1229,7 @@ function sahtout_token_gift_can_assign_world_id(
     int $giftId,
     int $worldId
 ): bool {
-    if (!sahtout_token_gift_is_reserved_world_id($worldId)) {
+    if (!sahtout_token_gift_is_configured_world_id($worldId)) {
         return false;
     }
     if (sahtout_token_gift_gift_owns_world_id($siteDb, $giftId, $worldId)) {
@@ -1274,9 +1274,7 @@ function sahtout_token_gift_resolve_world_ids(
         ];
     }
 
-    $first = sahtout_token_gift_world_id_first();
-    $last = sahtout_token_gift_world_id_last();
-    for ($worldId = $first; $worldId <= $last; $worldId++) {
+    foreach (sahtout_token_gift_configured_world_ids() as $worldId) {
         if (!sahtout_token_gift_can_assign_world_id($siteDb, $worldDb, $giftId, $worldId)) {
             continue;
         }
@@ -1289,6 +1287,91 @@ function sahtout_token_gift_resolve_world_ids(
     }
 
     return ['ok' => false, 'message' => 'world_id_slots_exhausted'];
+}
+
+function sahtout_world_delete_row(mysqli $worldDb, string $table, int $id): void
+{
+    $pk = sahtout_world_table_pk_column($table);
+    if ($pk === null || $id <= 0 || $worldDb->connect_error) {
+        return;
+    }
+    $tableEsc = '`' . str_replace('`', '', $table) . '`';
+    $pkEsc = '`' . str_replace('`', '', $pk) . '`';
+    $worldDb->query("DELETE FROM {$tableEsc} WHERE {$pkEsc} = " . (int) $id);
+}
+
+/** Remove item/quest rows (and related tables) written for a published token gift promo. */
+function sahtout_token_gift_delete_world_promo(mysqli $worldDb, int $worldId): void
+{
+    if ($worldId <= 0 || $worldDb->connect_error) {
+        return;
+    }
+    if (!sahtout_token_gift_is_configured_world_id($worldId)) {
+        return;
+    }
+
+    foreach (['quest_offer_reward', 'quest_request_items', 'quest_details', 'quest_template_addon'] as $table) {
+        sahtout_world_delete_row($worldDb, $table, $worldId);
+    }
+    sahtout_token_gift_clear_world_locale_rows($worldDb, 'quest_template_locale', $worldId);
+    sahtout_token_gift_clear_world_locale_rows($worldDb, 'item_template_locale', $worldId);
+    sahtout_world_delete_row($worldDb, 'quest_template', $worldId);
+    sahtout_world_delete_row($worldDb, 'item_template', $worldId);
+}
+
+/**
+ * @return list<array{
+ *   world_id:int,
+ *   status:string,
+ *   gift_id:?int,
+ *   gift_name:?string,
+ *   has_item:bool,
+ *   has_quest:bool
+ * }>
+ */
+function sahtout_token_gift_world_id_availability(mysqli $siteDb, mysqli $worldDb): array
+{
+    $rows = [];
+    foreach (sahtout_token_gift_configured_world_ids() as $worldId) {
+        $hasItem = sahtout_world_row_exists($worldDb, 'item_template', $worldId);
+        $hasQuest = sahtout_world_row_exists($worldDb, 'quest_template', $worldId);
+        $giftId = null;
+        $giftName = null;
+        if (sahtout_token_gifts_table_exists($siteDb)) {
+            $stmt = $siteDb->prepare(
+                'SELECT id, name FROM token_gifts WHERE item_entry = ? OR quest_id = ? LIMIT 1'
+            );
+            if ($stmt) {
+                $stmt->bind_param('ii', $worldId, $worldId);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                if ($giftRow = $res->fetch_assoc()) {
+                    $giftId = (int) ($giftRow['id'] ?? 0) ?: null;
+                    $giftName = trim((string) ($giftRow['name'] ?? '')) ?: null;
+                }
+                $stmt->close();
+            }
+        }
+
+        if ($giftId !== null) {
+            $status = 'in_use';
+        } elseif ($hasItem || $hasQuest) {
+            $status = 'world_only';
+        } else {
+            $status = 'free';
+        }
+
+        $rows[] = [
+            'world_id' => $worldId,
+            'status' => $status,
+            'gift_id' => $giftId,
+            'gift_name' => $giftName,
+            'has_item' => $hasItem,
+            'has_quest' => $hasQuest,
+        ];
+    }
+
+    return $rows;
 }
 
 /**

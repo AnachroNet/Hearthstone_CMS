@@ -317,28 +317,50 @@ function sahtout_admin_delete_token_gift(mysqli $siteDb, ?mysqli $worldDb, int $
     if ($giftId <= 0) {
         return ['ok' => false, 'message' => 'invalid_id'];
     }
+
+    $worldId = 0;
+    $pageFirst = 0;
+    $pageCount = 0;
+    $load = $siteDb->prepare(
+        'SELECT item_entry, quest_id, page_text_id, page_text_page_count FROM token_gifts WHERE id = ? LIMIT 1'
+    );
+    if ($load) {
+        $load->bind_param('i', $giftId);
+        $load->execute();
+        if ($giftRow = $load->get_result()->fetch_assoc()) {
+            $itemEntry = (int) ($giftRow['item_entry'] ?? 0);
+            $questId = (int) ($giftRow['quest_id'] ?? 0);
+            if ($itemEntry > 0 && $itemEntry === $questId) {
+                $worldId = $itemEntry;
+            } elseif ($itemEntry > 0) {
+                $worldId = $itemEntry;
+            } elseif ($questId > 0) {
+                $worldId = $questId;
+            }
+            $pageFirst = (int) ($giftRow['page_text_id'] ?? 0);
+            $pageCount = (int) ($giftRow['page_text_page_count'] ?? 0);
+        }
+        $load->close();
+    }
+
     $reload = null;
     if ($worldDb instanceof mysqli && !$worldDb->connect_error) {
         sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId);
-        $pageLoad = $siteDb->prepare('SELECT page_text_id, page_text_page_count FROM token_gifts WHERE id = ? LIMIT 1');
-        if ($pageLoad) {
-            $pageLoad->bind_param('i', $giftId);
-            $pageLoad->execute();
-            $pageRow = $pageLoad->get_result()->fetch_assoc();
-            $pageLoad->close();
-            if ($pageRow) {
-                sahtout_token_gift_delete_page_text_chain(
-                    $worldDb,
-                    (int) ($pageRow['page_text_id'] ?? 0),
-                    (int) ($pageRow['page_text_page_count'] ?? 0)
-                );
-            }
+        if ($pageFirst > 0) {
+            sahtout_token_gift_delete_page_text_chain($worldDb, $pageFirst, $pageCount);
+        }
+        if ($worldId > 0) {
+            sahtout_token_gift_delete_world_promo($worldDb, $worldId);
         }
         $reload = sahtout_soap_merge_reload_results(
-            sahtout_soap_reload_loot_tables(),
-            sahtout_soap_try_reload_commands(['.reload page_text'])
+            sahtout_soap_reload_token_gift_content(),
+            sahtout_soap_reload_loot_tables()
         );
     }
+
+    $siteDb->query('DELETE FROM token_gift_grants WHERE token_gift_id = ' . (int) $giftId);
+    $siteDb->query('DELETE FROM token_gift_reward_sync_state WHERE token_gift_id = ' . (int) $giftId);
+
     $stmt = $siteDb->prepare('DELETE FROM token_gifts WHERE id = ?');
     if (!$stmt) {
         return ['ok' => false, 'message' => 'delete_failed'];

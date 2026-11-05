@@ -110,6 +110,8 @@ $registration_signup_tokens_amount_new = max(0, min(9999999, (int) ($_POST['regi
 
 $shop_token_gift_loot_ids_raw = trim((string) ($_POST['shop_token_gift_loot_ids'] ?? ''));
 $shop_token_gift_loot_ids_new = preg_replace('/[^0-9,\s;]+/', '', $shop_token_gift_loot_ids_raw) ?? '';
+$shop_token_gift_world_ids_raw = trim((string) ($_POST['shop_token_gift_world_ids'] ?? ''));
+$shop_token_gift_world_ids_new = preg_replace('/[^0-9,\s;]+/', '', $shop_token_gift_world_ids_raw) ?? '';
 $shop_token_gift_item_template_ref_new = max(1, min(9999999, (int) ($_POST['shop_token_gift_item_template_ref'] ?? 2223)));
 $shop_token_gift_quest_template_ref_new = max(0, min(9999999, (int) ($_POST['shop_token_gift_quest_template_ref'] ?? 0)));
 $site_timezone_new = trim((string) ($_POST['site_timezone'] ?? ''));
@@ -135,6 +137,7 @@ if (empty($errors)) {
         $ok = $ok && sahtout_site_setting_set($site_db, 'registration.signup_tokens_enabled', $registration_signup_tokens_enabled_new, 'bool', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'registration.signup_tokens_amount', $registration_signup_tokens_amount_new, 'int', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_loot_ids', $shop_token_gift_loot_ids_new, 'string', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_world_ids', $shop_token_gift_world_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_item_template_ref', $shop_token_gift_item_template_ref_new, 'int', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_quest_template_ref', $shop_token_gift_quest_template_ref_new, 'int', $editorId);
 
