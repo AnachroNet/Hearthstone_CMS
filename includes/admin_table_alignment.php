@@ -33,11 +33,13 @@ function sahtout_admin_table_alignment_css(): void
         .wow-table td.actions-cell {
             text-align: right;
             vertical-align: middle;
+            min-width: 11.5rem;
         }
         .table-dark .action-buttons,
         .wow-table .action-buttons {
             display: inline-flex;
-            flex-wrap: wrap;
+            flex-direction: row;
+            flex-wrap: nowrap;
             gap: 0.5rem;
             justify-content: flex-end;
             align-items: center;
@@ -51,6 +53,12 @@ function sahtout_admin_table_alignment_css(): void
         .table-dark td.actions-cell,
         .wow-table td.actions-cell {
             white-space: nowrap;
+        }
+        .table-dark td.col-schedule,
+        .wow-table td.col-schedule {
+            max-width: 16rem;
+            white-space: normal;
+            line-height: 1.35;
         }
     <?php
 }

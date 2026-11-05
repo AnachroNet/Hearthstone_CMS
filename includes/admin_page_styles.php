@@ -268,6 +268,28 @@ function sahtout_admin_page_styles(): void
         .admin-subtab { display: none; }
         .admin-subtab.active { display: block; }
         .sub-tab-link { padding: 0.5rem 1rem; font-size: 0.9rem; }
+
+        .admin-form-actions {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            padding-top: 0.5rem;
+        }
+
+        .event-recurrence-days {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .event-recurrence-days > label {
+            display: inline-flex;
+            width: auto;
+            margin: 0;
+        }
 </style>
     <?php
 }

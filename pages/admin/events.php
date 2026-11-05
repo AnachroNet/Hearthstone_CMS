@@ -15,7 +15,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'mode
     exit;
 }
 
-$page_class = 'events';
+$page_class = 'admin_events';
 global $site_db;
 
 $tableReady = isset($site_db) && $site_db instanceof mysqli && sahtout_site_calendar_events_table_exists($site_db);
@@ -299,7 +299,7 @@ function sahtout_admin_format_event_dates(array $row): string
                                     <div class="text-xs text-gray-500 mt-1"><?php echo htmlspecialchars($descPreview); ?></div>
                                 <?php endif; ?>
                             </td>
-                            <td class="text-[#f2cf5b] text-sm whitespace-nowrap"><?php echo htmlspecialchars(sahtout_admin_format_event_dates($row)); ?></td>
+                            <td class="col-schedule text-[#f2cf5b] text-sm"><?php echo htmlspecialchars(sahtout_admin_format_event_dates($row)); ?></td>
                             <td class="align-center">
                                 <?php if ((int) ($row['is_active'] ?? 0) === 1): ?>
                                     <span class="badge-active"><?php echo translate('admin_events_status_active', 'Active'); ?></span>
@@ -378,7 +378,7 @@ function sahtout_admin_format_event_dates(array $row): string
                             <input type="checkbox" name="is_active" value="1" <?php echo $rowActive ? 'checked' : ''; ?>>
                             <?php echo translate('admin_events_label_active', 'Published (visible on home calendar)'); ?>
                         </label>
-                        <div class="flex gap-3 pt-2">
+                        <div class="admin-form-actions">
                             <button type="submit" class="btn-gold"><?php echo translate('admin_events_save', 'Save changes'); ?></button>
                             <button type="button" class="btn-iron btn-iron-sm" onclick="closeModal('editModal-<?php echo $rid; ?>')"><?php echo translate('admin_downloads_cancel_btn', 'Cancel'); ?></button>
                         </div>
@@ -390,7 +390,7 @@ function sahtout_admin_format_event_dates(array $row): string
                 <div class="panel w-full max-w-md p-6 relative">
                     <h3 class="wow-title text-lg mb-4"><?php echo translate('admin_events_delete_heading', 'Delete event'); ?></h3>
                     <p class="text-gray-400 text-sm mb-6"><?php echo translate('admin_events_confirm_delete', 'Remove this event from the calendar?'); ?></p>
-                    <form method="post" action="<?php echo $formAction; ?>" class="flex gap-3">
+                    <form method="post" action="<?php echo $formAction; ?>" class="admin-form-actions">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="id" value="<?php echo $rid; ?>">
