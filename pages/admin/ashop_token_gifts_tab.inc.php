@@ -140,10 +140,7 @@ if (!defined('ALLOWED_ACCESS')) {
                                     <i class="fas fa-globe-americas" aria-hidden="true"></i>
                                     <?php echo translate('admin_token_gifts_republish', 'Republish to world'); ?>
                                 </button>
-                                <button type="submit" name="action" value="tg_redeploy_loot" class="btn-game btn-edit-action text-xs py-2 px-3">
-                                    <i class="fas fa-dice" aria-hidden="true"></i>
-                                    <?php echo translate('admin_token_gifts_redeploy_loot', 'Update templates & loot'); ?>
-                                </button>
+                                <p class="w-full text-xs text-gray-500 mt-1"><?php echo translate('admin_token_gifts_republish_help', 'Rewrites the letter item and quest in the world database, redeploys loot rows, reloads via SOAP when configured, and runs verify.'); ?></p>
                                 <?php endif; ?>
                                 <button type="submit" name="action" value="tg_delete" class="btn-game btn-danger text-xs py-2 px-3"
                                     onclick="return confirm(<?php echo json_encode(translate('admin_token_gifts_delete_confirm', 'Delete this token gift and remove its loot rows?')); ?>);">

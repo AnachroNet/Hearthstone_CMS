@@ -208,7 +208,16 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
             ];
         }
         $giftId = (int) ($_POST['gift_id'] ?? 0);
-        if ($action === 'tg_publish') {
+        $wasPublished = false;
+        if ($action === 'tg_publish' && $giftId > 0) {
+            $check = $siteDb->prepare('SELECT published_at FROM token_gifts WHERE id = ? LIMIT 1');
+            if ($check) {
+                $check->bind_param('i', $giftId);
+                $check->execute();
+                $checkRow = $check->get_result()->fetch_assoc();
+                $check->close();
+                $wasPublished = !empty($checkRow['published_at']);
+            }
             $result = sahtout_token_gift_publish_to_world($siteDb, $worldDb, $giftId);
         } else {
             $result = sahtout_token_gift_redeploy_loot($siteDb, $worldDb, $giftId);
@@ -240,6 +249,9 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
 
         $status = $action === 'tg_publish' ? 'published' : 'loot_redeployed';
         $query = ['tg_status' => $status];
+        if ($action === 'tg_publish' && $wasPublished) {
+            $query['tg_republish'] = '1';
+        }
         $query = array_merge($query, sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
         if (($action === 'tg_publish' || $action === 'tg_redeploy_loot')
             && !empty($result['verify']) && is_array($result['verify'])) {
@@ -272,7 +284,10 @@ function sahtout_admin_shop_token_gifts_status_flash_from_get(): string
             translate('admin_token_gifts_deleted', 'Token gift removed.'),
             $reload
         ),
-        'published' => 'success:' . sahtout_admin_token_gift_published_status_flash($reload),
+        'published' => 'success:' . sahtout_admin_token_gift_published_status_flash(
+            $reload,
+            (string) ($_GET['tg_republish'] ?? '') === '1'
+        ),
         'loot_redeployed' => 'success:' . sahtout_admin_token_gift_loot_redeployed_status_flash($reload),
         default => '',
     };
@@ -296,14 +311,21 @@ function sahtout_admin_token_gift_loot_redeployed_status_flash(string $reloadFla
     return $base;
 }
 
-function sahtout_admin_token_gift_published_status_flash(string $reloadFlag): string
+function sahtout_admin_token_gift_published_status_flash(string $reloadFlag, bool $isRepublish = false): string
 {
-    $base = translate('admin_token_gifts_published', 'Published to world and enabled for website grants.')
-        . ' '
-        . translate(
-            'admin_token_gifts_item_restart_hint',
-            'Restart the worldserver so the new letter item is loaded (required on AzerothCore for item_template).'
+    if ($isRepublish) {
+        $base = translate(
+            'admin_token_gifts_republished',
+            'Republished: letter item, quest templates, and loot rows were written to the world database.'
         );
+    } else {
+        $base = translate('admin_token_gifts_published', 'Published to world and enabled for website grants.')
+            . ' '
+            . translate(
+                'admin_token_gifts_item_restart_hint',
+                'Restart the worldserver so the new letter item is loaded (required on AzerothCore for item_template).'
+            );
+    }
     $base = sahtout_admin_token_gift_flash_with_reload($base, $reloadFlag);
 
     $verify = $_SESSION['token_gift_verify_report'] ?? null;
