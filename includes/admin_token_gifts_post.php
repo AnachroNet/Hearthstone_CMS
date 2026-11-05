@@ -251,6 +251,10 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
                     'admin_token_gifts_quest_ref_missing',
                     'Reference quest is missing. Set shop.token_gift_quest_template_ref in site settings.'
                 ),
+                'quest_addon_failed' => translate(
+                    'admin_token_gifts_quest_addon_failed',
+                    'Could not write quest_template_addon (ProvidedItemCount must be 1 for the letter StartItem). Check PHP error log and world DB schema.'
+                ),
                 'world_id_slots_exhausted' => translate(
                     'admin_token_gifts_world_id_slots_exhausted',
                     'No free world IDs left in the %1$d–%2$d range (max %3$d promos). Delete an unused gift or free a slot in item_template / quest_template.',

@@ -68,6 +68,7 @@ return [
     'admin_token_gifts_world_db' => 'World database connection is not available.',
     'admin_token_gifts_item_ref_missing' => 'Reference item is missing in the world database. Set shop.token_gift_item_template_ref in site settings.',
     'admin_token_gifts_quest_ref_missing' => 'Reference quest is missing. Set shop.token_gift_quest_template_ref in site settings.',
+    'admin_token_gifts_quest_addon_failed' => 'Could not write quest_template_addon (ProvidedItemCount must be 1 for the letter StartItem). Check PHP error log and world DB schema.',
     'admin_token_gifts_not_published' => 'Publish the gift to the world before redeploying loot.',
     'admin_token_gifts_publish_failed' => 'World publish or loot deploy failed.',
     'admin_token_gifts_added' => 'Token gift created.',
