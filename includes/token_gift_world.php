@@ -918,6 +918,85 @@ function sahtout_world_row_exists(mysqli $worldDb, string $table, int $id): bool
     return $res && $res->num_rows > 0;
 }
 
+/** Copy a world row with INSERT…SELECT so numeric columns stay intact (clone_row binds all as strings). */
+function sahtout_world_copy_row_insert_select(
+    mysqli $worldDb,
+    string $table,
+    int $fromId,
+    int $toId
+): bool {
+    $pk = sahtout_world_table_pk_column($table);
+    if ($pk === null || $fromId <= 0 || $toId <= 0 || !sahtout_world_row_exists($worldDb, $table, $fromId)) {
+        return false;
+    }
+
+    $tableEsc = '`' . str_replace('`', '', $table) . '`';
+    $worldDb->query("DELETE FROM {$tableEsc} WHERE `{$pk}` = " . (int) $toId);
+
+    $colsRes = $worldDb->query("SHOW COLUMNS FROM {$tableEsc}");
+    if (!$colsRes) {
+        return false;
+    }
+    $cols = [];
+    while ($colRow = $colsRes->fetch_assoc()) {
+        $cols[] = (string) ($colRow['Field'] ?? '');
+    }
+    $colsRes->free();
+    if ($cols === []) {
+        return false;
+    }
+
+    $selectParts = [];
+    foreach ($cols as $col) {
+        if ($col === $pk) {
+            $selectParts[] = (string) (int) $toId;
+        } else {
+            $selectParts[] = '`' . str_replace('`', '', $col) . '`';
+        }
+    }
+    $colList = '`' . implode('`,`', array_map(static fn (string $c): string => str_replace('`', '', $c), $cols)) . '`';
+    $sql = 'INSERT INTO ' . $tableEsc . ' (' . $colList . ') SELECT ' . implode(',', $selectParts)
+        . ' FROM ' . $tableEsc . ' WHERE `' . $pk . '` = ' . (int) $fromId . ' LIMIT 1';
+
+    return (bool) $worldDb->query($sql);
+}
+
+/**
+ * @param array<string, scalar|null> $overrides
+ */
+function sahtout_world_apply_row_overrides(
+    mysqli $worldDb,
+    string $table,
+    int $id,
+    array $overrides
+): bool {
+    $pk = sahtout_world_table_pk_column($table);
+    if ($pk === null || $id <= 0 || $overrides === []) {
+        return false;
+    }
+    $sets = [];
+    $types = '';
+    $values = [];
+    foreach ($overrides as $column => $value) {
+        $sets[] = '`' . str_replace('`', '', (string) $column) . '` = ?';
+        $types .= is_int($value) ? 'i' : 's';
+        $values[] = $value;
+    }
+    $types .= 'i';
+    $values[] = $id;
+    $tableEsc = '`' . str_replace('`', '', $table) . '`';
+    $sql = 'UPDATE ' . $tableEsc . ' SET ' . implode(', ', $sets) . ' WHERE `' . $pk . '` = ?';
+    $stmt = $worldDb->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param($types, ...$values);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return $ok;
+}
+
 /**
  * @param array<string, scalar|null> $overrides
  */
@@ -1006,6 +1085,103 @@ function sahtout_token_gift_next_quest_id(mysqli $siteDb, mysqli $worldDb): int
     return max($base, $siteMax, $worldMax) + 1;
 }
 
+/**
+ * Writes item_template, quest_template, locale, and dialog rows for a published gift.
+ *
+ * @param array<string, mixed> $giftRow
+ * @return array{ok:bool, message:string, item_entry?:int, quest_id?:int, name?:string}
+ */
+function sahtout_token_gift_write_published_world_templates(
+    mysqli $siteDb,
+    mysqli $worldDb,
+    array $giftRow
+): array {
+    $giftId = (int) ($giftRow['id'] ?? 0);
+    $itemEntry = (int) ($giftRow['item_entry'] ?? 0);
+    $questId = (int) ($giftRow['quest_id'] ?? 0);
+    $name = trim((string) ($giftRow['name'] ?? ''));
+    if ($giftId <= 0 || $itemEntry <= 0 || $questId <= 0 || $name === '') {
+        return ['ok' => false, 'message' => 'invalid'];
+    }
+    if ($worldDb->connect_error) {
+        return ['ok' => false, 'message' => 'world_db_unavailable'];
+    }
+
+    $itemRef = sahtout_token_gift_item_template_ref();
+    if (!sahtout_world_row_exists($worldDb, 'item_template', $itemRef)) {
+        return ['ok' => false, 'message' => 'item_ref_missing'];
+    }
+    $questRef = sahtout_token_gift_resolve_quest_template_ref(
+        $worldDb,
+        sahtout_token_gift_quest_template_ref_setting()
+    );
+    if ($questRef <= 0) {
+        return ['ok' => false, 'message' => 'quest_ref_missing'];
+    }
+
+    $letter = trim((string) ($giftRow['letter_text'] ?? ''));
+    if ($letter === '') {
+        $letter = translate('token_gift_default_letter', 'Thank you for playing on our server. Claim your shop tokens on the website after reading this letter.');
+    }
+    $tokens = (int) ($giftRow['tokens'] ?? 0);
+    $formattedLetterBody = sahtout_token_gift_build_quest_letter_body($letter, $tokens);
+    sahtout_token_gift_detach_page_text($siteDb, $worldDb, $giftId);
+
+    if (!sahtout_world_copy_row_insert_select($worldDb, 'item_template', $itemRef, $itemEntry)) {
+        return ['ok' => false, 'message' => 'item_publish_failed'];
+    }
+    if (!sahtout_world_apply_row_overrides(
+        $worldDb,
+        'item_template',
+        $itemEntry,
+        sahtout_token_gift_item_publish_overrides($worldDb, $itemRef, $questId, $name)
+    ) || !sahtout_token_gift_finalize_item_template($worldDb, $itemEntry, $itemRef, $questId, $name)) {
+        return ['ok' => false, 'message' => 'item_publish_failed'];
+    }
+    sahtout_token_gift_sync_item_locale($worldDb, $itemEntry, $name);
+
+    if (!sahtout_world_copy_row_insert_select($worldDb, 'quest_template', $questRef, $questId)) {
+        return ['ok' => false, 'message' => 'quest_publish_failed'];
+    }
+    if (!sahtout_world_apply_row_overrides(
+        $worldDb,
+        'quest_template',
+        $questId,
+        sahtout_token_gift_quest_publish_overrides($itemEntry, $name, $formattedLetterBody)
+    )) {
+        return ['ok' => false, 'message' => 'quest_publish_failed'];
+    }
+
+    sahtout_token_gift_ensure_quest_template_addon($worldDb, $questId, $questRef);
+    sahtout_token_gift_sync_quest_dialog_tables(
+        $worldDb,
+        $questId,
+        $questRef,
+        $formattedLetterBody,
+        sahtout_token_gift_quest_reward_text()
+    );
+    $logDescription = translate(
+        'token_gift_quest_log_description',
+        'Read the letter to complete this promo and claim shop tokens on the website.'
+    );
+    sahtout_token_gift_sync_quest_locale(
+        $worldDb,
+        $questId,
+        $name,
+        $formattedLetterBody,
+        $logDescription,
+        $name
+    );
+
+    return [
+        'ok' => true,
+        'message' => 'templates_written',
+        'item_entry' => $itemEntry,
+        'quest_id' => $questId,
+        'name' => $name,
+    ];
+}
+
 /** @return array{ok:bool, message:string} */
 function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, int $giftId): array
 {
@@ -1046,71 +1222,13 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         $questId = sahtout_token_gift_next_quest_id($siteDb, $worldDb);
     }
 
-    $itemRef = sahtout_token_gift_item_template_ref();
-    if (!sahtout_world_row_exists($worldDb, 'item_template', $itemRef)) {
-        return ['ok' => false, 'message' => 'item_ref_missing'];
+    $gift['item_entry'] = $itemEntry;
+    $gift['quest_id'] = $questId;
+    $gift['name'] = $name;
+    $templateWrite = sahtout_token_gift_write_published_world_templates($siteDb, $worldDb, $gift);
+    if (!$templateWrite['ok']) {
+        return ['ok' => false, 'message' => $templateWrite['message'] ?? 'template_write_failed'];
     }
-
-    $questRef = sahtout_token_gift_resolve_quest_template_ref(
-        $worldDb,
-        sahtout_token_gift_quest_template_ref_setting()
-    );
-    if ($questRef <= 0) {
-        return ['ok' => false, 'message' => 'quest_ref_missing'];
-    }
-
-    $letter = trim((string) ($gift['letter_text'] ?? ''));
-    if ($letter === '') {
-        $letter = translate('token_gift_default_letter', 'Thank you for playing on our server. Claim your shop tokens on the website after reading this letter.');
-    }
-
-    $tokens = (int) ($gift['tokens'] ?? 0);
-    $formattedLetterBody = sahtout_token_gift_build_quest_letter_body($letter, $tokens);
-    sahtout_token_gift_detach_page_text($siteDb, $worldDb, $giftId);
-
-    $itemOk = sahtout_world_clone_row(
-        $worldDb,
-        'item_template',
-        $itemRef,
-        $itemEntry,
-        sahtout_token_gift_item_publish_overrides($worldDb, $itemRef, $questId, $name)
-    );
-    if (!$itemOk || !sahtout_token_gift_finalize_item_template($worldDb, $itemEntry, $itemRef, $questId, $name)) {
-        return ['ok' => false, 'message' => 'item_publish_failed'];
-    }
-    sahtout_token_gift_sync_item_locale($worldDb, $itemEntry, $name);
-
-    $questOk = sahtout_world_clone_row(
-        $worldDb,
-        'quest_template',
-        $questRef,
-        $questId,
-        sahtout_token_gift_quest_publish_overrides($itemEntry, $name, $formattedLetterBody)
-    );
-    if (!$questOk) {
-        return ['ok' => false, 'message' => 'quest_publish_failed'];
-    }
-
-    sahtout_token_gift_ensure_quest_template_addon($worldDb, $questId, $questRef);
-    sahtout_token_gift_sync_quest_dialog_tables(
-        $worldDb,
-        $questId,
-        $questRef,
-        $formattedLetterBody,
-        sahtout_token_gift_quest_reward_text()
-    );
-    $logDescription = translate(
-        'token_gift_quest_log_description',
-        'Read the letter to complete this promo and claim shop tokens on the website.'
-    );
-    sahtout_token_gift_sync_quest_locale(
-        $worldDb,
-        $questId,
-        $name,
-        $formattedLetterBody,
-        $logDescription,
-        $name
-    );
 
     $upd = $siteDb->prepare(
         'UPDATE token_gifts SET item_entry = ?, quest_id = ?, is_enabled = 1,
@@ -1154,9 +1272,32 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
     ];
 }
 
-/** @return array{ok:bool, message:string} */
+/**
+ * @return array{ok:bool, message:string, reload?:array, verify?:array}
+ */
 function sahtout_token_gift_redeploy_loot(mysqli $siteDb, mysqli $worldDb, int $giftId): array
 {
+    $loadFull = $siteDb->prepare(
+        'SELECT id, name, letter_text, tokens, item_entry, quest_id, deploy_world_chests, loot_chance,
+                extra_creature_entries, extra_go_loot_ids, published_at
+         FROM token_gifts WHERE id = ? LIMIT 1'
+    );
+    if (!$loadFull) {
+        return ['ok' => false, 'message' => 'load_failed'];
+    }
+    $loadFull->bind_param('i', $giftId);
+    $loadFull->execute();
+    $giftFull = $loadFull->get_result()->fetch_assoc();
+    $loadFull->close();
+    if (!$giftFull || empty($giftFull['published_at'])) {
+        return ['ok' => false, 'message' => 'not_published'];
+    }
+
+    $templateWrite = sahtout_token_gift_write_published_world_templates($siteDb, $worldDb, $giftFull);
+    if (!$templateWrite['ok']) {
+        return ['ok' => false, 'message' => $templateWrite['message'] ?? 'template_write_failed'];
+    }
+
     sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId);
 
     $stmt = $siteDb->prepare(
@@ -1209,10 +1350,30 @@ function sahtout_token_gift_redeploy_loot(mysqli $siteDb, mysqli $worldDb, int $
         sahtout_token_gift_record_loot_deployment($siteDb, $giftId, $kind, $lootEntry, $itemEntry, $chance);
     }
 
+    $itemEntry = (int) ($gift['item_entry'] ?? 0);
+    $questId = (int) ($giftFull['quest_id'] ?? 0);
+    $name = trim((string) ($giftFull['name'] ?? ''));
+    $expectLoot = (int) ($giftFull['deploy_world_chests'] ?? 0) === 1
+        || trim((string) ($giftFull['extra_creature_entries'] ?? '')) !== ''
+        || trim((string) ($giftFull['extra_go_loot_ids'] ?? '')) !== '';
+    $verify = sahtout_token_gift_verify_world_publish(
+        $worldDb,
+        $giftId,
+        $itemEntry,
+        $questId,
+        0,
+        $name,
+        $expectLoot
+    );
+
     return [
         'ok' => true,
         'message' => 'loot_deployed',
-        'reload' => sahtout_soap_reload_token_gift_loot(),
+        'reload' => sahtout_soap_merge_reload_results(
+            sahtout_soap_reload_token_gift_content(),
+            sahtout_soap_reload_token_gift_loot()
+        ),
+        'verify' => $verify,
     ];
 }
 
@@ -1307,60 +1468,17 @@ function sahtout_token_gift_update_world_content(
         return ['ok' => false, 'message' => 'invalid'];
     }
 
-    $formattedLetterBody = sahtout_token_gift_build_quest_letter_body($letter, $tokens);
-    sahtout_token_gift_detach_page_text($siteDb, $worldDb, $giftId);
-
-    $itemRef = sahtout_token_gift_item_template_ref();
-    $itemOk = sahtout_token_gift_finalize_item_template($worldDb, $itemEntry, $itemRef, $questId, $name);
-    sahtout_token_gift_sync_item_locale($worldDb, $itemEntry, $name);
-
-    $logDescription = translate(
-        'token_gift_quest_log_description',
-        'Read the letter to complete this promo and claim shop tokens on the website.'
-    );
-    $flags = sahtout_token_gift_quest_flags();
-    $questMethod = SAHTOUT_TOKEN_GIFT_QUEST_METHOD;
-    $questStmt = $worldDb->prepare(
-        'UPDATE quest_template SET LogTitle = ?, LogDescription = ?, QuestDescription = ?, QuestCompletionLog = ?,
-         StartItem = ?, QuestType = ?, Flags = ?, MinLevel = 0, QuestLevel = 1, RewardXPDifficulty = 0, RewardMoney = 0,
-         RequiredItemId1 = 0, RequiredItemCount1 = 0, RequiredItemId2 = 0, RequiredItemCount2 = 0,
-         RequiredItemId3 = 0, RequiredItemCount3 = 0, RequiredItemId4 = 0, RequiredItemCount4 = 0,
-         RequiredItemId5 = 0, RequiredItemCount5 = 0, RequiredItemId6 = 0, RequiredItemCount6 = 0,
-         RequiredNpcOrGo1 = 0, RequiredNpcOrGoCount1 = 0, RequiredNpcOrGo2 = 0, RequiredNpcOrGoCount2 = 0,
-         RequiredNpcOrGo3 = 0, RequiredNpcOrGoCount3 = 0, RequiredNpcOrGo4 = 0, RequiredNpcOrGoCount4 = 0
-         WHERE ID = ?'
-    );
-    if (!$questStmt) {
-        return ['ok' => false, 'message' => 'quest_update_failed'];
+    $templateWrite = sahtout_token_gift_write_published_world_templates($siteDb, $worldDb, [
+        'id' => $giftId,
+        'item_entry' => $itemEntry,
+        'quest_id' => $questId,
+        'name' => $name,
+        'letter_text' => $letter,
+        'tokens' => $tokens,
+    ]);
+    if (!$templateWrite['ok']) {
+        return ['ok' => false, 'message' => $templateWrite['message'] ?? 'update_failed'];
     }
-    $questStmt->bind_param('ssssiiii', $name, $logDescription, $formattedLetterBody, $name, $itemEntry, $questMethod, $flags, $questId);
-    $questOk = $questStmt->execute();
-    $questStmt->close();
-
-    if (!$itemOk || !$questOk) {
-        return ['ok' => false, 'message' => 'update_failed'];
-    }
-
-    $questRef = sahtout_token_gift_resolve_quest_template_ref(
-        $worldDb,
-        sahtout_token_gift_quest_template_ref_setting()
-    );
-    sahtout_token_gift_sync_quest_dialog_tables(
-        $worldDb,
-        $questId,
-        $questRef,
-        $formattedLetterBody,
-        sahtout_token_gift_quest_reward_text()
-    );
-    sahtout_token_gift_ensure_quest_template_addon($worldDb, $questId, $questRef);
-    sahtout_token_gift_sync_quest_locale(
-        $worldDb,
-        $questId,
-        $name,
-        $formattedLetterBody,
-        $logDescription,
-        $name
-    );
 
     return [
         'ok' => true,

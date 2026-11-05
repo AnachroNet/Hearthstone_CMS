@@ -68,7 +68,7 @@ function sahtout_token_gift_quest_template_ref(): int
 function sahtout_token_gift_id_base(): int
 {
     global $sahtout_site_settings;
-    $base = 9100000;
+    $base = 600001;
     if (isset($sahtout_site_settings) && is_array($sahtout_site_settings)) {
         $base = (int) ($sahtout_site_settings['shop.token_gift_id_base'] ?? $base);
     }

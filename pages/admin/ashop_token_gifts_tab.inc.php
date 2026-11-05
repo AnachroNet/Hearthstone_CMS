@@ -136,9 +136,13 @@ if (!defined('ALLOWED_ACCESS')) {
                                     <?php echo translate('admin_token_gifts_publish', 'Publish to world'); ?>
                                 </button>
                                 <?php else: ?>
+                                <button type="submit" name="action" value="tg_publish" class="btn-game btn-success text-xs py-2 px-3">
+                                    <i class="fas fa-globe-americas" aria-hidden="true"></i>
+                                    <?php echo translate('admin_token_gifts_republish', 'Republish to world'); ?>
+                                </button>
                                 <button type="submit" name="action" value="tg_redeploy_loot" class="btn-game btn-edit-action text-xs py-2 px-3">
                                     <i class="fas fa-dice" aria-hidden="true"></i>
-                                    <?php echo translate('admin_token_gifts_redeploy_loot', 'Redeploy loot'); ?>
+                                    <?php echo translate('admin_token_gifts_redeploy_loot', 'Update templates & loot'); ?>
                                 </button>
                                 <?php endif; ?>
                                 <button type="submit" name="action" value="tg_delete" class="btn-game btn-danger text-xs py-2 px-3"

@@ -241,7 +241,8 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
         $status = $action === 'tg_publish' ? 'published' : 'loot_redeployed';
         $query = ['tg_status' => $status];
         $query = array_merge($query, sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
-        if ($action === 'tg_publish' && !empty($result['verify']) && is_array($result['verify'])) {
+        if (($action === 'tg_publish' || $action === 'tg_redeploy_loot')
+            && !empty($result['verify']) && is_array($result['verify'])) {
             $_SESSION['token_gift_verify_report'] = $result['verify'];
             $query = array_merge($query, sahtout_admin_token_gift_verify_query_params($result['verify']));
         }
@@ -272,12 +273,27 @@ function sahtout_admin_shop_token_gifts_status_flash_from_get(): string
             $reload
         ),
         'published' => 'success:' . sahtout_admin_token_gift_published_status_flash($reload),
-        'loot_redeployed' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
-            translate('admin_token_gifts_loot_redeployed', 'Chest and creature loot rows updated.'),
-            $reload
-        ),
+        'loot_redeployed' => 'success:' . sahtout_admin_token_gift_loot_redeployed_status_flash($reload),
         default => '',
     };
+}
+
+function sahtout_admin_token_gift_loot_redeployed_status_flash(string $reloadFlag): string
+{
+    $base = sahtout_admin_token_gift_flash_with_reload(
+        translate(
+            'admin_token_gifts_loot_redeployed',
+            'Letter item, quest templates, and chest/creature loot rows were updated.'
+        ),
+        $reloadFlag
+    );
+    $verify = $_SESSION['token_gift_verify_report'] ?? null;
+    unset($_SESSION['token_gift_verify_report']);
+    if (is_array($verify) && $verify !== []) {
+        $base = sahtout_admin_token_gift_append_verify_flash($base, $verify);
+    }
+
+    return $base;
 }
 
 function sahtout_admin_token_gift_published_status_flash(string $reloadFlag): string

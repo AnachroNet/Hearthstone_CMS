@@ -67,7 +67,7 @@ return [
     'help_token_gift_loot_ids' => 'Gameobject loot template Entry values (chest data1 / LootId) where published letter items may drop. Comma-separated.',
     'label_token_gift_item_ref' => 'Item clone reference (world entry, default 2223 The Collector\'s Schedule)',
     'label_token_gift_quest_ref' => 'Quest clone reference (world ID, default 123; 0 = auto)',
-    'label_token_gift_id_base' => 'Custom item/quest ID base',
+    'label_token_gift_id_base' => 'Custom item/quest ID base (use a range your client supports; avoid 9M+ if icons show as red ?)',
 
     // Buttons
     'btn_save_settings' => 'Save All Settings',
