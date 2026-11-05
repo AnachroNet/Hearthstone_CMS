@@ -168,7 +168,7 @@ if (!empty($_SESSION['user_id']) && isset($_SESSION['last_purchase_time'])) {
     }
 }
 
-$page_title = $site_title_name ." ".translate('shop_page_title', '- Shop');
+$page_title = $site_title_name . ' ' . translate('shop_page_title', 'Realm Shop');
 $page_meta_description = translate('shop_meta_description', 'Browse and purchase items, mounts, pets, gold, and services for '.$site_title_name . ' WoW Server');
 
 ob_start();
@@ -417,7 +417,7 @@ include_once $project_root . 'includes/header.php';
             <!-- Header -->
             <h1 class="wow-title text-3xl md:text-5xl font-bold text-center mb-6 force-wrap">
                 <i class="fas fa-store text-[#f2cf5b] mr-2"></i>
-                <?php echo $site_title_name ." ". translate('shop_title', 'Server Shop'); ?>
+                <?php echo $site_title_name . ' ' . translate('shop_title', 'Realm Shop'); ?>
             </h1>
             
             <!-- User Balance -->

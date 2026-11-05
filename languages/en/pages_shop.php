@@ -1,8 +1,8 @@
 <?php
 return [
-    'shop_page_title' => ' - Shop',
+    'shop_page_title' => 'Realm Shop',
     'shop_meta_description' => 'Browse and purchase items, mounts, pets, gold, and services',
-    'shop_title' => 'Server Shop',
+    'shop_title' => 'Realm Shop',
     'shop_tokens' => 'Tokens',
     'shop_free' => 'Free',
     'shop_login_prompt' => 'Please <a href="{base_path}login">log in</a> to purchase items.',
