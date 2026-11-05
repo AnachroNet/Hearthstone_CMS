@@ -76,7 +76,7 @@ ob_start();
             cursor: pointer;
             padding: 0.75rem;
             text-align: center;
-            min-height: 120px;
+            min-height: 200px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -97,8 +97,10 @@ ob_start();
         .bg-upload-card .bg-preview {
             width: 100%;
             max-width: 220px;
-            max-height: 80px;
-            object-fit: cover;
+            height: 160px;
+            max-height: 160px;
+            object-fit: contain;
+            object-position: center;
             border: 1px solid rgba(201,162,39,.25);
             display: none;
         }
