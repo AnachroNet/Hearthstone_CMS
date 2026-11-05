@@ -706,25 +706,38 @@ $statTypeLabels = [
     'hours_played' => translate('admin_stat_reward_type_hours_played', 'Hours Played'),
 ];
 $rewards_subtab = 'configured';
+$tokenGiftsPanel = 'active';
 if ($shop_tab === 'rewards') {
     $rewards_subtab = sahtout_admin_resolve_subtab(['configured', 'add', 'character', 'token_gifts'], 'configured');
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if (sahtout_admin_shop_is_token_gifts_post()) {
             $rewards_subtab = 'token_gifts';
+            $tgPostAction = (string) ($_POST['action'] ?? '');
+            $tokenGiftsPanel = $tgPostAction === 'tg_add' ? 'add' : 'active';
         } elseif (sahtout_admin_shop_is_stat_rewards_post()) {
             $rewards_subtab = 'character';
         } elseif (sahtout_admin_shop_is_rewards_post()) {
             $rewards_subtab = ((string) ($_POST['action'] ?? '')) === 'add' ? 'add' : 'configured';
         }
+    } elseif ($rewards_subtab === 'token_gifts') {
+        $tgPanelRaw = isset($_GET['tg_panel']) ? (string) $_GET['tg_panel'] : 'active';
+        $tokenGiftsPanel = in_array($tgPanelRaw, ['active', 'add'], true) ? $tgPanelRaw : 'active';
     }
 }
 $tokenGiftsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_token_gifts_table_exists($site_db);
 $allTokenGifts = $tokenGiftsReady ? sahtout_admin_fetch_token_gifts($site_db) : [];
 $tokenGiftCount = $tokenGiftsReady ? sahtout_admin_token_gift_count($site_db) : 0;
 $tokenGiftAtMax = $tokenGiftCount >= sahtout_token_gift_max_promos();
+$tokenGiftCanAddNew = $tokenGiftsReady
+    && isset($site_db, $world_db)
+    && $world_db instanceof mysqli
+    && sahtout_token_gift_can_create_new_promo($site_db, $world_db, $tokenGiftCount);
 $canPublishTokenGifts = sahtout_admin_can_publish_token_gifts();
 $tokenGiftChestLootIds = sahtout_token_gift_world_chest_loot_ids();
 $rewardsTabQuery = ['tab' => 'rewards', 'subtab' => $rewards_subtab];
+if ($rewards_subtab === 'token_gifts') {
+    $rewardsTabQuery['tg_panel'] = $tokenGiftsPanel;
+}
 if ($reward_page > 1 && $rewards_subtab === 'configured') {
     $rewardsTabQuery['reward_page'] = $reward_page;
 }

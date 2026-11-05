@@ -32,7 +32,8 @@ function sahtout_admin_render_subtab_nav(
     string $basePath,
     string $route,
     array $persistQuery = [],
-    ?string $ariaLabel = null
+    ?string $ariaLabel = null,
+    string $subtabQueryKey = 'subtab'
 ): void {
     echo '<div class="border-b border-[rgba(201,162,39,.12)] mb-4 md:mb-6">';
     echo '<nav class="flex gap-0 overflow-x-auto"';
@@ -46,7 +47,7 @@ function sahtout_admin_render_subtab_nav(
             continue;
         }
         $query = $persistQuery;
-        $query['subtab'] = $id;
+        $query[$subtabQueryKey] = $id;
         $href = sahtout_admin_page_url($basePath, $route, $query);
         $activeClass = $activeSubtab === $id ? ' active' : '';
         echo '<a class="tab-link sub-tab-link whitespace-nowrap' . $activeClass . '" href="'

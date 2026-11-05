@@ -133,7 +133,7 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
     $action = (string) ($_POST['action'] ?? '');
     $subtabUrl = static fn (array $extra = []): string => sahtout_admin_shop_rewards_tab_url(
         $basePath,
-        array_merge(['subtab' => 'token_gifts'], $extra)
+        array_merge(['subtab' => 'token_gifts', 'tg_panel' => 'active'], $extra)
     );
 
     if ($action === 'tg_add') {

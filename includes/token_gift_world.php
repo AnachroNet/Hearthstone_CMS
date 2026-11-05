@@ -1289,6 +1289,24 @@ function sahtout_token_gift_resolve_world_ids(
     return ['ok' => false, 'message' => 'world_id_slots_exhausted'];
 }
 
+/** Whether the site can create another token gift (catalog count + free configured world ID). */
+function sahtout_token_gift_can_create_new_promo(mysqli $siteDb, mysqli $worldDb, int $currentGiftCount): bool
+{
+    if ($currentGiftCount >= sahtout_token_gift_max_promos()) {
+        return false;
+    }
+    if ($worldDb->connect_error) {
+        return true;
+    }
+    foreach (sahtout_token_gift_configured_world_ids() as $worldId) {
+        if (sahtout_token_gift_can_assign_world_id($siteDb, $worldDb, 0, $worldId)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function sahtout_world_delete_row(mysqli $worldDb, string $table, int $id): void
 {
     $pk = sahtout_world_table_pk_column($table);
