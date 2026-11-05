@@ -598,12 +598,17 @@ function sahtout_token_gift_verify_world_publish(
 
     if (sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
         $addonRes = $worldDb->query(
-            'SELECT SpecialFlags FROM quest_template_addon WHERE ID = ' . (int) $questId . ' LIMIT 1'
+            'SELECT ProvidedItemCount, SpecialFlags FROM quest_template_addon WHERE ID = ' . (int) $questId . ' LIMIT 1'
         );
         if (!$addonRes || !($addonRow = $addonRes->fetch_assoc())) {
             $dbIssues[] = 'quest_addon';
-        } elseif (((int) ($addonRow['SpecialFlags'] ?? 0) & SAHTOUT_QUEST_SPECIAL_FLAG_REPEATABLE) === 0) {
-            $dbIssues[] = 'quest_repeatable';
+        } else {
+            if ((int) ($addonRow['ProvidedItemCount'] ?? 0) < 1) {
+                $dbIssues[] = 'quest_startitem_count';
+            }
+            if (((int) ($addonRow['SpecialFlags'] ?? 0) & SAHTOUT_QUEST_SPECIAL_FLAG_REPEATABLE) === 0) {
+                $dbIssues[] = 'quest_repeatable';
+            }
         }
         $addonRes?->free();
     } else {
@@ -844,39 +849,27 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
 
 function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $questId, int $questRef): void
 {
+    unset($questRef);
     if ($questId <= 0) {
         return;
     }
-    if (!sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
-        if ($questRef > 0 && sahtout_world_row_exists($worldDb, 'quest_template_addon', $questRef)) {
-            sahtout_world_clone_row($worldDb, 'quest_template_addon', $questRef, $questId, [
-                'PrevQuestID' => 0,
-                'NextQuestID' => 0,
-                'ExclusiveGroup' => 0,
-                'BreadcrumbForQuestId' => 0,
-                'ProvidedItemCount' => 1,
-                'SpecialFlags' => 1,
-            ]);
-        } else {
-            $stmt = $worldDb->prepare(
-                'INSERT INTO quest_template_addon (ID, ProvidedItemCount, SpecialFlags) VALUES (?, 1, 1)'
-            );
-            if ($stmt) {
-                $stmt->bind_param('i', $questId);
-                $stmt->execute();
-                $stmt->close();
-            }
-        }
-    }
 
-    $upd = $worldDb->prepare(
-        'UPDATE quest_template_addon SET PrevQuestID = 0, NextQuestID = 0, ExclusiveGroup = 0,
-         BreadcrumbForQuestId = 0, ProvidedItemCount = 1, SpecialFlags = 1 WHERE ID = ?'
+    // StartItemCount in the core comes from ProvidedItemCount here (must be 1 when StartItem is set).
+    $stmt = $worldDb->prepare(
+        'INSERT INTO quest_template_addon (ID, PrevQuestID, NextQuestID, ExclusiveGroup, BreadcrumbForQuestId, ProvidedItemCount, SpecialFlags)
+         VALUES (?, 0, 0, 0, 0, 1, 1)
+         ON DUPLICATE KEY UPDATE
+           PrevQuestID = 0,
+           NextQuestID = 0,
+           ExclusiveGroup = 0,
+           BreadcrumbForQuestId = 0,
+           ProvidedItemCount = 1,
+           SpecialFlags = 1'
     );
-    if ($upd) {
-        $upd->bind_param('i', $questId);
-        $upd->execute();
-        $upd->close();
+    if ($stmt) {
+        $stmt->bind_param('i', $questId);
+        $stmt->execute();
+        $stmt->close();
     }
 }
 

@@ -25,6 +25,7 @@ return [
     'admin_token_gifts_verify_issue_quest_flags' => 'quest is missing tracking flag (auto-reward)',
     'admin_token_gifts_verify_issue_quest_addon' => 'quest_template_addon row missing',
     'admin_token_gifts_verify_issue_quest_repeatable' => 'quest is not repeatable (quest_template_addon SpecialFlags must include 1 — republish after upgrade)',
+    'admin_token_gifts_verify_issue_quest_startitem_count' => 'quest_template_addon ProvidedItemCount must be 1 (maps to StartItemCount for the letter item)',
     'admin_token_gifts_verify_issue_quest_method' => 'quest QuestType/Method is not 2 (quest dialog text)',
     'admin_token_gifts_verify_issue_quest_required_item' => 'quest still has RequiredItem objectives (breaks item turn-in on AC)',
     'admin_token_gifts_verify_issue_quest_reward_xp' => 'quest still has RewardXPDifficulty (shows misleading XP reward)',
