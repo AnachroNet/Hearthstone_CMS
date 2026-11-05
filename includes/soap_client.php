@@ -350,8 +350,8 @@ function sahtout_soap_world_has_item_template(int $itemEntry, string $itemName):
     }
 
     $commands = [
-        '.lookup item id ' . $itemEntry,
         '.lookup item ' . sahtout_soap_quote_command_arg($namePart),
+        '.lookup item ' . $itemEntry,
     ];
 
     $last = ['ok' => false, 'command' => $commands[0], 'output' => '', 'error' => 'not_found'];

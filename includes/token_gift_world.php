@@ -646,6 +646,7 @@ function sahtout_token_gift_verify_world_publish(
     $soapConfigured = sahtout_soap_is_configured();
     $soapOk = null;
 
+    $soapPendingRestart = false;
     if ($soapConfigured) {
         $soapOk = true;
         $itemSoap = sahtout_soap_world_has_item_template($itemEntry, $itemName);
@@ -658,12 +659,22 @@ function sahtout_token_gift_verify_world_publish(
             $soapIssues[] = 'soap_quest';
             $soapOk = false;
         }
+
+        // AzerothCore only loads new item_template rows on worldserver start; quests with StartItem
+        // are not usable in memory until that item exists — SOAP lookup failures are expected until restart.
+        if ($dbOk && !$itemSoap['ok']) {
+            $soapPendingRestart = true;
+            $soapIssues = array_values(array_diff($soapIssues, ['soap_item', 'soap_quest']));
+            $soapIssues[] = 'soap_restart_pending';
+            $soapOk = null;
+        }
     }
 
     return [
         'db_ok' => $dbOk,
         'soap_ok' => $soapOk,
         'soap_configured' => $soapConfigured,
+        'soap_pending_restart' => $soapPendingRestart,
         'issues' => array_values(array_merge($dbIssues, $soapIssues)),
         'item_entry' => $itemEntry,
         'quest_id' => $questId,

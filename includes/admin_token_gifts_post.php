@@ -14,6 +14,9 @@ function sahtout_admin_token_gift_verify_query_params(array $verify): array
     }
     $dbOk = !empty($verify['db_ok']);
     $soapOk = $verify['soap_ok'] ?? null;
+    if ($dbOk && !empty($verify['soap_pending_restart'])) {
+        return ['tg_verify' => 'restart'];
+    }
     if ($dbOk && ($soapOk === null || $soapOk)) {
         return ['tg_verify' => 'ok'];
     }
@@ -28,6 +31,15 @@ function sahtout_admin_token_gift_append_verify_flash(string $baseMessage, array
     $soapOk = $verify['soap_ok'] ?? null;
     $itemEntry = (int) ($verify['item_entry'] ?? 0);
     $questId = (int) ($verify['quest_id'] ?? 0);
+
+    if ($dbOk && !empty($verify['soap_pending_restart'])) {
+        return $baseMessage . ' ' . translate(
+            'admin_token_gifts_verify_restart_pending',
+            'World database checks passed for item %1$d and quest %2$d. The running worldserver will not know them until you restart it (AzerothCore loads new item_template entries at startup; the letter quest depends on that item). SOAP reload alone is not enough for a first publish.',
+            $itemEntry,
+            $questId
+        );
+    }
 
     if ($dbOk && ($soapOk === null || $soapOk)) {
         return $baseMessage . ' ' . translate(
