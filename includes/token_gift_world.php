@@ -774,7 +774,19 @@ function sahtout_token_gift_item_short_description(): string
 
 function sahtout_token_gift_reference_item_display_id(mysqli $worldDb, int $itemRef): int
 {
-    unset($worldDb, $itemRef);
+    if ($itemRef > 0 && !$worldDb->connect_error) {
+        $res = $worldDb->query(
+            'SELECT displayid FROM item_template WHERE entry = ' . (int) $itemRef . ' LIMIT 1'
+        );
+        if ($res && ($row = $res->fetch_assoc())) {
+            $displayId = (int) ($row['displayid'] ?? 0);
+            $res->free();
+            if ($displayId > 0) {
+                return $displayId;
+            }
+        }
+        $res?->free();
+    }
 
     return sahtout_token_gift_item_display_id();
 }

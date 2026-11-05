@@ -551,25 +551,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 global $char_db;
                                 if (isset($site_db, $char_db) && $char_db instanceof mysqli && !$char_db->connect_error) {
-                                    $rewardSync = sahtout_sync_achievement_rewards(
+                                    $combined = sahtout_sync_all_website_rewards(
                                         $site_db,
                                         $char_db,
                                         (int) $account['id']
                                     );
-                                    $statSync = sahtout_sync_character_stat_rewards(
-                                        $site_db,
-                                        $char_db,
-                                        (int) $account['id']
-                                    );
-                                    $totalRewardTokens = (int) ($rewardSync['tokens_added'] ?? 0)
-                                        + (int) ($statSync['tokens_added'] ?? 0);
-                                    if ($totalRewardTokens > 0) {
-                                        $_SESSION['achievement_reward_notice'] = [
-                                            'tokens_added' => $totalRewardTokens,
-                                            'granted' => $rewardSync['granted'] ?? [],
-                                            'stat_granted' => $statSync['granted'] ?? [],
-                                            'stat_tokens_added' => (int) ($statSync['tokens_added'] ?? 0),
-                                        ];
+                                    if ((int) ($combined['tokens_added'] ?? 0) > 0) {
+                                        $statTokens = 0;
+                                        foreach ($combined['stat_granted'] ?? [] as $row) {
+                                            $statTokens += (int) ($row['tokens'] ?? 0);
+                                        }
+                                        $giftTokens = 0;
+                                        foreach ($combined['token_gift_granted'] ?? [] as $row) {
+                                            $giftTokens += (int) ($row['tokens'] ?? 0);
+                                        }
+                                        sahtout_apply_website_reward_notice_session([
+                                            'tokens_added' => (int) $combined['tokens_added'],
+                                            'granted' => $combined['granted'] ?? [],
+                                            'stat_granted' => $combined['stat_granted'] ?? [],
+                                            'stat_tokens_added' => $statTokens,
+                                            'token_gift_granted' => $combined['token_gift_granted'] ?? [],
+                                            'token_gift_tokens_added' => $giftTokens,
+                                        ]);
                                     }
                                 }
 

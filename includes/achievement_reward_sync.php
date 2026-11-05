@@ -214,6 +214,58 @@ function sahtout_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, int $a
     ];
 }
 
+/**
+ * Run achievement, stat, and token-gift reward sync (no session throttle).
+ *
+ * @return array{
+ *   ok: bool,
+ *   granted: list<mixed>,
+ *   tokens_added: int,
+ *   message: string,
+ *   stat_granted?: list<mixed>,
+ *   token_gift_granted?: list<mixed>,
+ *   token_gift_message?: string
+ * }
+ */
+function sahtout_sync_all_website_rewards(mysqli $siteDb, mysqli $charDb, int $accountId): array
+{
+    $result = sahtout_sync_achievement_rewards($siteDb, $charDb, $accountId);
+    $statResult = sahtout_sync_character_stat_rewards($siteDb, $charDb, $accountId);
+    $giftResult = sahtout_sync_token_gifts($siteDb, $charDb, $accountId);
+
+    $totalTokens = (int) ($result['tokens_added'] ?? 0)
+        + (int) ($statResult['tokens_added'] ?? 0)
+        + (int) ($giftResult['tokens_added'] ?? 0);
+
+    return [
+        'ok' => ($result['ok'] ?? false) && ($statResult['ok'] ?? false) && ($giftResult['ok'] ?? false),
+        'granted' => $result['granted'] ?? [],
+        'tokens_added' => $totalTokens,
+        'message' => $totalTokens > 0 ? 'granted' : ($giftResult['message'] ?? $result['message'] ?? 'none'),
+        'stat_granted' => $statResult['granted'] ?? [],
+        'token_gift_granted' => $giftResult['granted'] ?? [],
+        'token_gift_message' => (string) ($giftResult['message'] ?? ''),
+    ];
+}
+
+/** @param array{tokens_added?:int, granted?:list<mixed>, stat_granted?:list<mixed>, stat_tokens_added?:int, token_gift_granted?:list<mixed>, token_gift_tokens_added?:int} $combined */
+function sahtout_apply_website_reward_notice_session(array $combined): void
+{
+    $totalTokens = (int) ($combined['tokens_added'] ?? 0);
+    if ($totalTokens <= 0) {
+        return;
+    }
+
+    $_SESSION['achievement_reward_notice'] = [
+        'tokens_added' => $totalTokens,
+        'granted' => $combined['granted'] ?? [],
+        'stat_granted' => $combined['stat_granted'] ?? [],
+        'stat_tokens_added' => (int) ($combined['stat_tokens_added'] ?? 0),
+        'token_gift_granted' => $combined['token_gift_granted'] ?? [],
+        'token_gift_tokens_added' => (int) ($combined['token_gift_tokens_added'] ?? 0),
+    ];
+}
+
 /** Throttled sync for active sessions (default 5 minutes). */
 function sahtout_maybe_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, int $accountId, int $minIntervalSeconds = 300): array
 {
@@ -229,32 +281,27 @@ function sahtout_maybe_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, 
     }
 
     $_SESSION['achievement_rewards_sync_at'] = $now;
-    $result = sahtout_sync_achievement_rewards($siteDb, $charDb, $accountId);
-    $statResult = sahtout_sync_character_stat_rewards($siteDb, $charDb, $accountId);
-    $giftResult = sahtout_sync_token_gifts($siteDb, $charDb, $accountId);
-
-    $totalTokens = (int) ($result['tokens_added'] ?? 0)
-        + (int) ($statResult['tokens_added'] ?? 0)
-        + (int) ($giftResult['tokens_added'] ?? 0);
-    if ($totalTokens > 0) {
-        $_SESSION['achievement_reward_notice'] = [
-            'tokens_added' => $totalTokens,
-            'granted' => $result['granted'] ?? [],
-            'stat_granted' => $statResult['granted'] ?? [],
-            'stat_tokens_added' => (int) ($statResult['tokens_added'] ?? 0),
-            'token_gift_granted' => $giftResult['granted'] ?? [],
-            'token_gift_tokens_added' => (int) ($giftResult['tokens_added'] ?? 0),
-        ];
+    $combined = sahtout_sync_all_website_rewards($siteDb, $charDb, $accountId);
+    if ((int) ($combined['tokens_added'] ?? 0) > 0) {
+        $statTokens = 0;
+        foreach ($combined['stat_granted'] ?? [] as $row) {
+            $statTokens += (int) ($row['tokens'] ?? 0);
+        }
+        $giftTokens = 0;
+        foreach ($combined['token_gift_granted'] ?? [] as $row) {
+            $giftTokens += (int) ($row['tokens'] ?? 0);
+        }
+        sahtout_apply_website_reward_notice_session([
+            'tokens_added' => (int) $combined['tokens_added'],
+            'granted' => $combined['granted'] ?? [],
+            'stat_granted' => $combined['stat_granted'] ?? [],
+            'stat_tokens_added' => $statTokens,
+            'token_gift_granted' => $combined['token_gift_granted'] ?? [],
+            'token_gift_tokens_added' => $giftTokens,
+        ]);
     }
 
-    return [
-        'ok' => ($result['ok'] ?? false) && ($statResult['ok'] ?? false) && ($giftResult['ok'] ?? false),
-        'granted' => $result['granted'] ?? [],
-        'tokens_added' => $totalTokens,
-        'message' => $totalTokens > 0 ? 'granted' : ($result['message'] ?? 'none'),
-        'stat_granted' => $statResult['granted'] ?? [],
-        'token_gift_granted' => $giftResult['granted'] ?? [],
-    ];
+    return $combined;
 }
 
 /**

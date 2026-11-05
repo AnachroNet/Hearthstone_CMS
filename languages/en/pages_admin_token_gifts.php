@@ -37,7 +37,7 @@ return [
     'admin_token_gifts_verify_issue_soap_item' => 'SOAP lookup: worldserver does not know this item entry (restart or wrong DB)',
     'admin_token_gifts_verify_issue_soap_quest' => 'SOAP lookup: worldserver does not know this quest ID',
     'admin_token_gifts_verify_issue_soap_restart_pending' => 'restart worldserver to load new letter item (expected after first publish)',
-    'admin_token_gifts_verify_restart_pending' => 'World database checks passed for item %1$d and quest %2$d. The running worldserver will not know them until you restart it (AzerothCore loads new item_template entries at startup; the letter quest depends on that item). SOAP reload alone is not enough for a first publish.',
+    'admin_token_gifts_verify_restart_pending' => 'World database checks passed for item %1$d and quest %2$d. Restart the worldserver before testing in-game: AzerothCore only loads new item_template rows at startup, so until then the client shows a red ? bag icon and SOAP reload cannot fix it. The letter quest also requires that item in memory.',
     'admin_token_gifts_table_missing' => 'Run token_gifts.sql on the website database first.',
     'admin_token_gifts_chest_ids' => 'World chest loot IDs from settings:',
     'admin_token_gifts_name' => 'Promo name / letter title',
