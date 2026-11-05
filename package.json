@@ -1,7 +1,7 @@
 {
-  "name": "sahtoutcms",
+  "name": "hearthstone-cms",
   "version": "1.0.0",
-  "description": "<div align=\"center\">\r   <img width=\"612\" height=\"408\" alt=\"logo\" src=\"https://github.com/user-attachments/assets/54293d96-03eb-4dda-9f22-e1c013d6053b\" />\r </div>\r #SahtoutCMS",
+  "description": "Hearthstone CMS — website CMS for AzerothCore private servers",
   "main": "index.js",
   "scripts": {
     "dev": "tailwindcss -i ./assets/css/tailwind.input.css -o ./assets/css/tailwind.css --watch",
@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blodyiheb/SahtoutCMS.git"
+    "url": "git+https://github.com/AnachroNet/Hearthstone_CMS.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/blodyiheb/SahtoutCMS/issues"
+    "url": "https://github.com/AnachroNet/Hearthstone_CMS/issues"
   },
-  "homepage": "https://github.com/blodyiheb/SahtoutCMS#readme",
+  "homepage": "https://github.com/AnachroNet/Hearthstone_CMS#readme",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@tailwindcss/cli": "^4.3.3",
