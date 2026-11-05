@@ -8,6 +8,12 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 
 /** Auto-reward on complete (no NPC turn-in); required for item-started promos on AzerothCore. */
 const SAHTOUT_QUEST_FLAG_TRACKING = 1024;
+/**
+ * AzerothCore maps quest_template.QuestType to Quest::Method. Method 0 allows auto-completion on accept
+ * (see Player::CanCompleteQuest). Item quest givers cannot turn in via the client Complete button because
+ * Item::hasInvolvedQuest() is always false in core.
+ */
+const SAHTOUT_TOKEN_GIFT_QUEST_METHOD = 0;
 const SAHTOUT_TOKEN_GIFT_PAGE_TEXT_MAX_CHARS = 1800;
 
 function sahtout_world_item_startquest_column(mysqli $worldDb): string
@@ -354,7 +360,8 @@ function sahtout_token_gift_verify_world_publish(
     $itemRes?->free();
 
     $questRes = $worldDb->query(
-        'SELECT StartItem, Flags FROM quest_template WHERE ID = ' . (int) $questId . ' LIMIT 1'
+        'SELECT StartItem, Flags, QuestType, RequiredItemId1, RequiredItemCount1, RewardXPDifficulty
+         FROM quest_template WHERE ID = ' . (int) $questId . ' LIMIT 1'
     );
     if (!$questRes || !($questRow = $questRes->fetch_assoc())) {
         $dbIssues[] = 'quest_row';
@@ -364,6 +371,15 @@ function sahtout_token_gift_verify_world_publish(
         }
         if (((int) ($questRow['Flags'] ?? 0) & SAHTOUT_QUEST_FLAG_TRACKING) === 0) {
             $dbIssues[] = 'quest_flags';
+        }
+        if ((int) ($questRow['QuestType'] ?? -1) !== SAHTOUT_TOKEN_GIFT_QUEST_METHOD) {
+            $dbIssues[] = 'quest_method';
+        }
+        if ((int) ($questRow['RequiredItemId1'] ?? 0) !== 0 || (int) ($questRow['RequiredItemCount1'] ?? 0) !== 0) {
+            $dbIssues[] = 'quest_required_item';
+        }
+        if ((int) ($questRow['RewardXPDifficulty'] ?? 0) !== 0) {
+            $dbIssues[] = 'quest_reward_xp';
         }
     }
     $questRes?->free();
@@ -578,10 +594,11 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
         'QuestDescription' => $formattedQuestDescription,
         'QuestCompletionLog' => $name,
         'StartItem' => $itemEntry,
-        'QuestType' => 2,
+        'QuestType' => SAHTOUT_TOKEN_GIFT_QUEST_METHOD,
         'Flags' => sahtout_token_gift_quest_flags(),
         'MinLevel' => 0,
         'QuestLevel' => 1,
+        'RewardXPDifficulty' => 0,
         'RewardMoney' => 0,
         'RewardMoneyDifficulty' => 0,
         'RewardHonor' => 0,
@@ -589,15 +606,13 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
         'RewardTalents' => 0,
         'RewardArenaPoints' => 0,
         'AllowableRaces' => 0,
-        'RequiredItemId1' => $itemEntry,
-        'RequiredItemCount1' => 1,
     ];
 
     for ($slot = 1; $slot <= 4; $slot++) {
         $overrides['RequiredNpcOrGo' . $slot] = 0;
         $overrides['RequiredNpcOrGoCount' . $slot] = 0;
     }
-    for ($slot = 2; $slot <= 6; $slot++) {
+    for ($slot = 1; $slot <= 6; $slot++) {
         $overrides['RequiredItemId' . $slot] = 0;
         $overrides['RequiredItemCount' . $slot] = 0;
     }
@@ -612,23 +627,40 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
 
 function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $questId, int $questRef): void
 {
-    if ($questId <= 0 || sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
+    if ($questId <= 0) {
         return;
     }
-    if ($questRef > 0 && sahtout_world_row_exists($worldDb, 'quest_template_addon', $questRef)) {
-        sahtout_world_clone_row($worldDb, 'quest_template_addon', $questRef, $questId, []);
+    if (!sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
+        if ($questRef > 0 && sahtout_world_row_exists($worldDb, 'quest_template_addon', $questRef)) {
+            sahtout_world_clone_row($worldDb, 'quest_template_addon', $questRef, $questId, [
+                'PrevQuestId' => 0,
+                'NextQuestId' => 0,
+                'ExclusiveGroup' => 0,
+                'BreadcrumbForQuestId' => 0,
+                'ProvidedItemCount' => 1,
+                'SpecialFlags' => 0,
+            ]);
+        } else {
+            $stmt = $worldDb->prepare(
+                'INSERT INTO quest_template_addon (ID, ProvidedItemCount, SpecialFlags) VALUES (?, 1, 0)'
+            );
+            if ($stmt) {
+                $stmt->bind_param('i', $questId);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+    }
 
-        return;
-    }
-    $stmt = $worldDb->prepare(
-        'INSERT INTO quest_template_addon (ID, ProvidedItemCount, SpecialFlags) VALUES (?, 1, 0)'
+    $upd = $worldDb->prepare(
+        'UPDATE quest_template_addon SET PrevQuestId = 0, NextQuestId = 0, ExclusiveGroup = 0,
+         BreadcrumbForQuestId = 0, ProvidedItemCount = 1, SpecialFlags = 0 WHERE ID = ?'
     );
-    if (!$stmt) {
-        return;
+    if ($upd) {
+        $upd->bind_param('i', $questId);
+        $upd->execute();
+        $upd->close();
     }
-    $stmt->bind_param('i', $questId);
-    $stmt->execute();
-    $stmt->close();
 }
 
 function sahtout_token_gift_resolve_quest_template_ref(mysqli $worldDb, int $preferredRef): int
@@ -1086,16 +1118,21 @@ function sahtout_token_gift_update_world_content(
         'Read the letter to complete this promo and claim shop tokens on the website.'
     );
     $flags = sahtout_token_gift_quest_flags();
+    $questMethod = SAHTOUT_TOKEN_GIFT_QUEST_METHOD;
     $questStmt = $worldDb->prepare(
         'UPDATE quest_template SET LogTitle = ?, LogDescription = ?, QuestDescription = ?, QuestCompletionLog = ?,
-         StartItem = ?, QuestType = 2, Flags = ?, MinLevel = 0, QuestLevel = 1, RewardMoney = 0,
-         RequiredItemId1 = ?, RequiredItemCount1 = 1, RequiredNpcOrGo1 = 0, RequiredNpcOrGoCount1 = 0
+         StartItem = ?, QuestType = ?, Flags = ?, MinLevel = 0, QuestLevel = 1, RewardXPDifficulty = 0, RewardMoney = 0,
+         RequiredItemId1 = 0, RequiredItemCount1 = 0, RequiredItemId2 = 0, RequiredItemCount2 = 0,
+         RequiredItemId3 = 0, RequiredItemCount3 = 0, RequiredItemId4 = 0, RequiredItemCount4 = 0,
+         RequiredItemId5 = 0, RequiredItemCount5 = 0, RequiredItemId6 = 0, RequiredItemCount6 = 0,
+         RequiredNpcOrGo1 = 0, RequiredNpcOrGoCount1 = 0, RequiredNpcOrGo2 = 0, RequiredNpcOrGoCount2 = 0,
+         RequiredNpcOrGo3 = 0, RequiredNpcOrGoCount3 = 0, RequiredNpcOrGo4 = 0, RequiredNpcOrGoCount4 = 0
          WHERE ID = ?'
     );
     if (!$questStmt) {
         return ['ok' => false, 'message' => 'quest_update_failed'];
     }
-    $questStmt->bind_param('ssssiiii', $name, $logDescription, $formattedLetterBody, $name, $itemEntry, $flags, $itemEntry, $questId);
+    $questStmt->bind_param('ssssiiii', $name, $logDescription, $formattedLetterBody, $name, $itemEntry, $questMethod, $flags, $questId);
     $questOk = $questStmt->execute();
     $questStmt->close();
 
@@ -1114,6 +1151,7 @@ function sahtout_token_gift_update_world_content(
         $formattedLetterBody,
         sahtout_token_gift_quest_reward_text()
     );
+    sahtout_token_gift_ensure_quest_template_addon($worldDb, $questId, $questRef);
 
     return [
         'ok' => true,

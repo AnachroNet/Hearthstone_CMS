@@ -3,7 +3,7 @@
 return [
     'admin_rewards_subtab_token_gifts' => 'Token Gifts',
     'admin_token_gifts_heading' => 'Token gift letters',
-    'admin_token_gifts_help' => 'Create sealed-letter promos modeled on item 2223 / quest 123. Publish writes page_text (right-click the letter to read), quest dialog text, and a tracking quest tied to the letter item. Players accept the promo from the letter, then the quest completes and rewards in-game automatically (no NPC). Chest loot uses Token Gift Loot IDs in site settings. Website shop tokens grant once per account after the quest is rewarded on any character.',
+    'admin_token_gifts_help' => 'Create sealed-letter promos modeled on item 2223 / quest 123. Publish writes page_text (right-click the letter to read), quest dialog text, and a tracking quest tied to the letter item. Players use the letter to accept the promo; AzerothCore then auto-completes and rewards the quest immediately (the in-game Complete button on item-started quests does not work on AC). Chest loot uses Token Gift Loot IDs in site settings. Website shop tokens grant once per account after the quest is rewarded on any character. After changing quest logic, republish and abandon the old in-game quest before retesting.',
     'admin_token_gifts_world_restart_notice' => 'AzerothCore does not fully reload new item_template entries over SOAP. After the first publish (or when you change item stats), restart the worldserver so the letter item loads in-game. Without that, the quest tracker may show a red question mark until the client knows the item. Quest, page_text, and loot still reload via SOAP when configured. Each publish runs a verify step (world DB rows plus SOAP .lookup when configured) and reports the result in the success message.',
     'admin_token_gifts_verify_ok' => 'Verify OK: world DB rows and (when SOAP is configured) live item %1$d / quest %2$d lookups succeeded.',
     'admin_token_gifts_verify_failed' => 'Verify reported problems: %1$s.%2$s Republish after fixing the world DB connection or restart the worldserver if SOAP item lookup failed.',
@@ -19,6 +19,9 @@ return [
     'admin_token_gifts_verify_issue_quest_row' => 'quest_template row missing',
     'admin_token_gifts_verify_issue_quest_startitem' => 'quest StartItem does not match letter item',
     'admin_token_gifts_verify_issue_quest_flags' => 'quest is missing tracking flag (auto-reward)',
+    'admin_token_gifts_verify_issue_quest_method' => 'quest QuestType/Method is not 0 (auto-complete on accept)',
+    'admin_token_gifts_verify_issue_quest_required_item' => 'quest still has RequiredItem objectives (breaks item turn-in on AC)',
+    'admin_token_gifts_verify_issue_quest_reward_xp' => 'quest still has RewardXPDifficulty (shows misleading XP reward)',
     'admin_token_gifts_verify_issue_page_text_row' => 'page_text row missing or empty',
     'admin_token_gifts_verify_issue_quest_request_items' => 'quest_request_items dialog text missing',
     'admin_token_gifts_verify_issue_quest_offer_reward' => 'quest_offer_reward text missing',
