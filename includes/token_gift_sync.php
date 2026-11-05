@@ -58,6 +58,21 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
     $res->free();
 
     if ($gifts === []) {
+        $diag = $siteDb->query(
+            'SELECT id, quest_id, item_entry, tokens, is_enabled, published_at IS NOT NULL AS published
+             FROM token_gifts ORDER BY id ASC LIMIT 10'
+        );
+        if ($diag) {
+            $rows = [];
+            while ($r = $diag->fetch_assoc()) {
+                $rows[] = (int) ($r['id'] ?? 0) . ':q' . (int) ($r['quest_id'] ?? 0)
+                    . '/i' . (int) ($r['item_entry'] ?? 0) . '/t' . (int) ($r['tokens'] ?? 0)
+                    . '/en' . (int) ($r['is_enabled'] ?? 0) . '/pub' . (int) ($r['published'] ?? 0);
+            }
+            $diag->free();
+            error_log('token_gift_sync no_active_gifts account=' . $accountId . ' catalog=' . implode(',', $rows));
+        }
+
         return $empty('no_active_gifts');
     }
 
@@ -83,7 +98,8 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
         return $empty('no_characters');
     }
 
-    $questIds = sahtout_token_gift_collect_world_quest_ids($gifts);
+    $activePublishedGiftCount = count($gifts);
+    $questIds = sahtout_token_gift_collect_char_db_quest_ids($gifts);
     $rewardedActiveByQuestGuid = sahtout_token_gift_rewarded_active_map($charDb, $guids, $questIds);
     $rewardedExistsByQuestGuid = sahtout_token_gift_rewarded_exists_map($charDb, $guids, $questIds);
     $incompleteByQuestGuid = sahtout_token_gift_incomplete_quest_map($charDb, $guids, $questIds);
@@ -131,11 +147,11 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
                     continue;
                 }
                 $snap = sahtout_token_gift_char_reward_snapshot(
-                    $questId,
-                    $itemEntry,
+                    $row,
                     $bootstrapGuid,
                     $rewardedExistsByQuestGuid,
-                    $rewardedActiveByQuestGuid
+                    $rewardedActiveByQuestGuid,
+                    $activePublishedGiftCount
                 );
                 $activeByGuid[$bootstrapGuid] = $snap['active'];
             }
@@ -155,11 +171,11 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
             }
 
             $snap = sahtout_token_gift_char_reward_snapshot(
-                $questId,
-                $itemEntry,
+                $row,
                 $guid,
                 $rewardedExistsByQuestGuid,
-                $rewardedActiveByQuestGuid
+                $rewardedActiveByQuestGuid,
+                $activePublishedGiftCount
             );
             if (!$snap['rewarded']) {
                 continue;
@@ -167,9 +183,10 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
 
             $active = $snap['active'];
             $grantQuestId = $snap['matched_quest_id'] > 0 ? $snap['matched_quest_id'] : $questId;
+            sahtout_token_gift_repair_site_world_ids($siteDb, $giftId, $grantQuestId, $questId, $itemEntry);
             $inProgress = sahtout_token_gift_guid_quest_in_progress(
-                $questId,
-                $itemEntry,
+                $grantQuestId,
+                $grantQuestId,
                 $guid,
                 $incompleteByQuestGuid
             );
@@ -200,12 +217,9 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
                 }
             }
 
-            if ($useSyncState) {
-                $shouldGrant = $charGrantCount === 0 || ($active === 1 && $lastSeen === 0);
-            } else {
-                $shouldGrant = $charGrantCount === 0
-                    && !sahtout_token_gift_has_legacy_account_grant($siteDb, $accountId, $giftId);
-            }
+            // Per-character grants (character_guid > 0) are independent of old account-level rows (character_guid = 0).
+            $shouldGrant = $charGrantCount === 0
+                || ($useSyncState && $active === 1 && $lastSeen === 0);
 
             if ($useSyncState && !$shouldGrant && $lastSeen !== $active && $charGrantCount > 0) {
                 $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $active);
@@ -270,11 +284,16 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
     $upsertState?->close();
 
     if ($tokensAdded === 0 && $gifts !== []) {
+        $catalog = [];
+        foreach ($gifts as $gid => $grow) {
+            $catalog[] = $gid . ':' . (int) ($grow['quest_id'] ?? 0) . '/' . (int) ($grow['item_entry'] ?? 0);
+        }
         error_log(
             'token_gift_sync none_eligible account=' . $accountId
             . ' char_count=' . count($guids)
             . ' use_sync_state=' . ($useSyncState ? '1' : '0')
-            . ' quest_ids=' . implode(',', $questIds)
+            . ' catalog=' . implode(',', $catalog)
+            . ' char_db_quest_ids=' . implode(',', $questIds)
         );
     }
 
@@ -308,27 +327,121 @@ function sahtout_token_gift_collect_world_quest_ids(array $gifts): array
 }
 
 /**
+ * Quest ids to read from the character DB (site catalog + reserved promo band).
+ *
+ * @param array<int, array<string, mixed>> $gifts
+ * @return list<int>
+ */
+function sahtout_token_gift_collect_char_db_quest_ids(array $gifts): array
+{
+    $ids = sahtout_token_gift_collect_world_quest_ids($gifts);
+    $indexed = array_fill_keys($ids, true);
+    for ($worldId = SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST; $worldId <= SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST; $worldId++) {
+        $indexed[$worldId] = true;
+    }
+
+    return array_map('intval', array_keys($indexed));
+}
+
+/**
+ * @param array<string, mixed> $giftRow
+ */
+function sahtout_token_gift_site_catalog_uses_legacy_world_ids(array $giftRow): bool
+{
+    $siteQuest = (int) ($giftRow['quest_id'] ?? 0);
+    $siteItem = (int) ($giftRow['item_entry'] ?? 0);
+    if ($siteQuest >= 9100000 || $siteItem >= 9100000) {
+        return true;
+    }
+    if ($siteQuest > 0 && $siteItem > 0 && $siteQuest !== $siteItem) {
+        return true;
+    }
+    if ($siteQuest > 0 && !sahtout_token_gift_is_reserved_world_id($siteQuest)) {
+        return true;
+    }
+    if ($siteItem > 0 && !sahtout_token_gift_is_reserved_world_id($siteItem)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * @param array<string, mixed> $giftRow
+ */
+function sahtout_token_gift_rewarded_quest_matches_gift(
+    array $giftRow,
+    int $rewardedQuestId,
+    int $activePublishedGiftCount
+): bool {
+    if ($rewardedQuestId <= 0) {
+        return false;
+    }
+
+    $siteQuest = (int) ($giftRow['quest_id'] ?? 0);
+    $siteItem = (int) ($giftRow['item_entry'] ?? 0);
+    if ($rewardedQuestId === $siteQuest || $rewardedQuestId === $siteItem) {
+        return true;
+    }
+
+    if ($activePublishedGiftCount !== 1) {
+        return false;
+    }
+    if (!sahtout_token_gift_is_reserved_world_id($rewardedQuestId)) {
+        return false;
+    }
+
+    return sahtout_token_gift_site_catalog_uses_legacy_world_ids($giftRow);
+}
+
+function sahtout_token_gift_repair_site_world_ids(
+    mysqli $siteDb,
+    int $giftId,
+    int $matchedWorldQuestId,
+    int $currentQuestId,
+    int $currentItemEntry
+): void {
+    if ($giftId <= 0 || !sahtout_token_gift_is_reserved_world_id($matchedWorldQuestId)) {
+        return;
+    }
+    if ($currentQuestId === $matchedWorldQuestId && $currentItemEntry === $matchedWorldQuestId) {
+        return;
+    }
+
+    $stmt = $siteDb->prepare(
+        'UPDATE token_gifts SET quest_id = ?, item_entry = ? WHERE id = ?'
+    );
+    if (!$stmt) {
+        return;
+    }
+    $stmt->bind_param('iii', $matchedWorldQuestId, $matchedWorldQuestId, $giftId);
+    $stmt->execute();
+    $stmt->close();
+}
+
+/**
+ * @param array<string, mixed> $giftRow
  * @param array<int, array<int, true>> $rewardedExistsByQuestGuid
  * @param array<int, array<int, int>> $rewardedActiveByQuestGuid
  * @return array{rewarded: bool, active: int, matched_quest_id: int}
  */
 function sahtout_token_gift_char_reward_snapshot(
-    int $siteQuestId,
-    int $itemEntry,
+    array $giftRow,
     int $guid,
     array $rewardedExistsByQuestGuid,
-    array $rewardedActiveByQuestGuid
+    array $rewardedActiveByQuestGuid,
+    int $activePublishedGiftCount
 ): array {
-    $candidates = array_values(array_unique(array_filter(
-        [$siteQuestId, $itemEntry],
-        static fn (int $id): bool => $id > 0
-    )));
-
     $rewarded = false;
     $active = 0;
     $matchedQuestId = 0;
-    foreach ($candidates as $candidateQuestId) {
-        if (empty($rewardedExistsByQuestGuid[$candidateQuestId][$guid])) {
+
+    foreach ($rewardedExistsByQuestGuid as $candidateQuestId => $byGuid) {
+        $candidateQuestId = (int) $candidateQuestId;
+        if ($candidateQuestId <= 0 || empty($byGuid[$guid])) {
+            continue;
+        }
+        if (!sahtout_token_gift_rewarded_quest_matches_gift($giftRow, $candidateQuestId, $activePublishedGiftCount)) {
             continue;
         }
         $rewarded = true;
@@ -359,26 +472,6 @@ function sahtout_token_gift_guid_quest_in_progress(
     }
 
     return false;
-}
-
-function sahtout_token_gift_has_legacy_account_grant(mysqli $siteDb, int $accountId, int $giftId): bool
-{
-    if ($accountId <= 0 || $giftId <= 0) {
-        return false;
-    }
-    $stmt = $siteDb->prepare(
-        'SELECT 1 FROM token_gift_grants
-         WHERE account_id = ? AND token_gift_id = ? AND character_guid = 0 LIMIT 1'
-    );
-    if (!$stmt) {
-        return false;
-    }
-    $stmt->bind_param('ii', $accountId, $giftId);
-    $stmt->execute();
-    $has = $stmt->get_result()->num_rows > 0;
-    $stmt->close();
-
-    return $has;
 }
 
 /**
