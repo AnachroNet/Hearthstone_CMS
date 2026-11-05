@@ -186,64 +186,67 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
                 $completionCount = 1;
             }
 
-            // Repeatable promos: grant once per tracked in-game completion (quest_tracker), not via rewarded.active
-            // (AzerothCore keeps active=1 for repeatables; the old active/lastSeen edge never fires offline).
-            $shouldGrant = $completionCount > $charGrantCount;
-
-            if ($useSyncState && $upsertState && $charGrantCount > 0 && !$shouldGrant && $snap['rewarded']) {
+            // Repeatable promos: one site grant per tracked in-game completion (quest_tracker).
+            if ($useSyncState && $upsertState && $charGrantCount > 0 && $completionCount <= $charGrantCount && $snap['rewarded']) {
                 $seenActive = $active > 0 ? 1 : 0;
                 $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $seenActive);
                 $upsertState->execute();
             }
 
-            if (!$shouldGrant) {
+            if ($completionCount <= $charGrantCount) {
                 continue;
             }
 
-            $siteDb->begin_transaction();
-            try {
-                $insertGrant->bind_param('iiiii', $accountId, $giftId, $guid, $grantQuestId, $tokenAmount);
-                if (!$insertGrant->execute()) {
-                    throw new RuntimeException('grant_insert');
-                }
-                if (!sahtout_token_gift_add_tokens($siteDb, $addTokens, $tokenAmount, $accountId)) {
-                    throw new RuntimeException('token_update');
-                }
-                if ($useSyncState && $upsertState) {
-                    $seenAfterGrant = 1;
-                    $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $seenAfterGrant);
-                    if (!$upsertState->execute()) {
-                        throw new RuntimeException('sync_state');
+            $charName = $charNames[$guid] ?? '';
+            $detailName = trim($giftName) !== '' ? $giftName : ('Promo #' . $giftId);
+            while ($charGrantCount < $completionCount) {
+                $siteDb->begin_transaction();
+                try {
+                    $insertGrant->bind_param('iiiii', $accountId, $giftId, $guid, $grantQuestId, $tokenAmount);
+                    if (!$insertGrant->execute()) {
+                        throw new RuntimeException('grant_insert');
                     }
+                    if (!sahtout_token_gift_add_tokens($siteDb, $addTokens, $tokenAmount, $accountId)) {
+                        throw new RuntimeException('token_update');
+                    }
+                    if ($useSyncState && $upsertState) {
+                        $seenAfterGrant = 1;
+                        $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $seenAfterGrant);
+                        if (!$upsertState->execute()) {
+                            throw new RuntimeException('sync_state');
+                        }
+                    }
+                    $siteDb->commit();
+
+                    $charGrantCount++;
+                    $charGrantCounts[$giftId][$guid] = $charGrantCount;
+
+                    sahtout_log_website_activity(
+                        $siteDb,
+                        $accountId,
+                        'Token Gift Reward',
+                        '+' . number_format($tokenAmount) . ' tokens — ' . $detailName,
+                        $charName !== '' ? $charName : null
+                    );
+
+                    $granted[] = [
+                        'token_gift_id' => $giftId,
+                        'quest_id' => $grantQuestId,
+                        'tokens' => $tokenAmount,
+                        'name' => $giftName,
+                        'character_guid' => $guid,
+                    ];
+                    $tokensAdded += $tokenAmount;
+                } catch (Throwable $e) {
+                    $siteDb->rollback();
+                    error_log(
+                        'token_gift_sync grant failed account=' . $accountId
+                        . ' gift=' . $giftId . ' guid=' . $guid . ' quest=' . $grantQuestId
+                        . ' completion_count=' . $completionCount . ' grants_before=' . ($charGrantCount - 1)
+                        . ': ' . $e->getMessage()
+                    );
+                    break;
                 }
-                $siteDb->commit();
-
-                $charGrantCounts[$giftId][$guid] = $charGrantCount + 1;
-
-                $charName = $charNames[$guid] ?? '';
-                $detailName = trim($giftName) !== '' ? $giftName : ('Promo #' . $giftId);
-                sahtout_log_website_activity(
-                    $siteDb,
-                    $accountId,
-                    'Token Gift Reward',
-                    '+' . number_format($tokenAmount) . ' tokens — ' . $detailName,
-                    $charName !== '' ? $charName : null
-                );
-
-                $granted[] = [
-                    'token_gift_id' => $giftId,
-                    'quest_id' => $grantQuestId,
-                    'tokens' => $tokenAmount,
-                    'name' => $giftName,
-                    'character_guid' => $guid,
-                ];
-                $tokensAdded += $tokenAmount;
-            } catch (Throwable $e) {
-                $siteDb->rollback();
-                error_log(
-                    'token_gift_sync grant failed account=' . $accountId
-                    . ' gift=' . $giftId . ' guid=' . $guid . ' quest=' . $grantQuestId . ': ' . $e->getMessage()
-                );
             }
         }
     }
