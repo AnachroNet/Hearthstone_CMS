@@ -327,3 +327,104 @@ function sahtout_soap_reload_token_gift_content(): array
         '.reload all item',
     ]);
 }
+
+/**
+ * Check whether the running worldserver has an item template loaded (post-reload).
+ *
+ * @return array{ok: bool, command: string, output: string, error: ?string}
+ */
+function sahtout_soap_world_has_item_template(int $itemEntry, string $itemName): array
+{
+    if ($itemEntry <= 0) {
+        return ['ok' => false, 'command' => '', 'output' => '', 'error' => 'invalid_entry'];
+    }
+
+    $namePart = trim($itemName);
+    if ($namePart === '') {
+        $namePart = (string) $itemEntry;
+    }
+    if (mb_strlen($namePart) > 24) {
+        $namePart = mb_substr($namePart, 0, 24);
+    }
+
+    $commands = [
+        '.lookup item id ' . $itemEntry,
+        '.lookup item ' . sahtout_soap_quote_command_arg($namePart),
+    ];
+
+    $last = ['ok' => false, 'command' => $commands[0], 'output' => '', 'error' => 'not_found'];
+    foreach ($commands as $command) {
+        $result = sahtout_soap_execute_command($command);
+        if (!$result['ok']) {
+            $last = [
+                'ok' => false,
+                'command' => $command,
+                'output' => sahtout_soap_extract_command_message($result['output'], true),
+                'error' => $result['error'] ?? 'soap_failed',
+            ];
+            continue;
+        }
+
+        $message = sahtout_soap_extract_command_message($result['output'], true);
+        $lower = strtolower($message);
+        if (str_contains($lower, 'itemidinvalid')
+            || str_contains($lower, 'no item found')
+            || str_contains($lower, 'could not find')
+            || str_contains($lower, 'no such command')) {
+            $last = ['ok' => false, 'command' => $command, 'output' => $message, 'error' => 'not_in_memory'];
+            continue;
+        }
+
+        if (preg_match('/\b' . preg_quote((string) $itemEntry, '/') . '\b/', $message)) {
+            return ['ok' => true, 'command' => $command, 'output' => $message, 'error' => null];
+        }
+
+        $last = ['ok' => false, 'command' => $command, 'output' => $message, 'error' => 'entry_not_listed'];
+    }
+
+    return $last;
+}
+
+/**
+ * @return array{ok: bool, command: string, output: string, error: ?string}
+ */
+function sahtout_soap_world_has_quest_template(int $questId, string $questTitle): array
+{
+    if ($questId <= 0) {
+        return ['ok' => false, 'command' => '', 'output' => '', 'error' => 'invalid_quest'];
+    }
+
+    $titlePart = trim($questTitle);
+    if ($titlePart === '') {
+        $titlePart = (string) $questId;
+    }
+    if (mb_strlen($titlePart) > 24) {
+        $titlePart = mb_substr($titlePart, 0, 24);
+    }
+
+    $command = '.lookup quest ' . sahtout_soap_quote_command_arg($titlePart);
+    $result = sahtout_soap_execute_command($command);
+    if (!$result['ok']) {
+        return [
+            'ok' => false,
+            'command' => $command,
+            'output' => sahtout_soap_extract_command_message($result['output'], true),
+            'error' => $result['error'] ?? 'soap_failed',
+        ];
+    }
+
+    $message = sahtout_soap_extract_command_message($result['output'], true);
+    $lower = strtolower($message);
+    if (str_contains($lower, 'could not find') || str_contains($lower, 'no quest found')) {
+        return ['ok' => false, 'command' => $command, 'output' => $message, 'error' => 'not_in_memory'];
+    }
+
+    $ok = preg_match('/\b' . preg_quote((string) $questId, '/') . '\b/', $message) === 1;
+
+    return [
+        'ok' => $ok,
+        'command' => $command,
+        'output' => $message,
+        'error' => $ok ? null : 'quest_id_not_listed',
+    ];
+}

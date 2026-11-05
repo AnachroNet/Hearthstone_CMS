@@ -6,6 +6,65 @@ if (!defined('ALLOWED_ACCESS')) {
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_token_gifts.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_shop_rewards_post.php';
 
+/** @param array{db_ok?:bool, soap_ok?:bool|null, issues?:list<string>} $verify */
+function sahtout_admin_token_gift_verify_query_params(array $verify): array
+{
+    if ($verify === [] || !array_key_exists('db_ok', $verify)) {
+        return [];
+    }
+    $dbOk = !empty($verify['db_ok']);
+    $soapOk = $verify['soap_ok'] ?? null;
+    if ($dbOk && ($soapOk === null || $soapOk)) {
+        return ['tg_verify' => 'ok'];
+    }
+
+    return ['tg_verify' => 'fail'];
+}
+
+/** @param array{db_ok?:bool, soap_ok?:bool|null, soap_configured?:bool, issues?:list<string>, item_entry?:int, quest_id?:int} $verify */
+function sahtout_admin_token_gift_append_verify_flash(string $baseMessage, array $verify): string
+{
+    $dbOk = !empty($verify['db_ok']);
+    $soapOk = $verify['soap_ok'] ?? null;
+    $itemEntry = (int) ($verify['item_entry'] ?? 0);
+    $questId = (int) ($verify['quest_id'] ?? 0);
+
+    if ($dbOk && ($soapOk === null || $soapOk)) {
+        return $baseMessage . ' ' . translate(
+            'admin_token_gifts_verify_ok',
+            'Verify OK: world DB rows and (when SOAP is configured) live item %1$d / quest %2$d lookups succeeded.',
+            $itemEntry,
+            $questId
+        );
+    }
+
+    $issueLabels = [];
+    foreach ($verify['issues'] ?? [] as $code) {
+        $issueLabels[] = translate(
+            'admin_token_gifts_verify_issue_' . $code,
+            (string) $code
+        );
+    }
+    $issueText = $issueLabels !== [] ? implode('; ', $issueLabels) : translate(
+        'admin_token_gifts_verify_unknown',
+        'unknown issue'
+    );
+
+    $soapNote = empty($verify['soap_configured'])
+        ? ' ' . translate(
+            'admin_token_gifts_verify_soap_skipped',
+            'SOAP is not configured, so only the world database was checked.'
+        )
+        : '';
+
+    return $baseMessage . ' ' . translate(
+        'admin_token_gifts_verify_failed',
+        'Verify reported problems: %s.%s Republish after fixing the world DB connection or restart the worldserver if SOAP item lookup failed.',
+        $issueText,
+        $soapNote
+    );
+}
+
 /** @param array{configured?:bool, ok?:bool} $reload */
 function sahtout_admin_token_gift_reload_query_params(array $reload): array
 {
@@ -180,7 +239,12 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
         }
 
         $status = $action === 'tg_publish' ? 'published' : 'loot_redeployed';
-        $query = array_merge(['tg_status' => $status], sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
+        $query = ['tg_status' => $status];
+        $query = array_merge($query, sahtout_admin_token_gift_reload_query_params($result['reload'] ?? []));
+        if ($action === 'tg_publish' && !empty($result['verify']) && is_array($result['verify'])) {
+            $_SESSION['token_gift_verify_report'] = $result['verify'];
+            $query = array_merge($query, sahtout_admin_token_gift_verify_query_params($result['verify']));
+        }
 
         return ['redirect' => $subtabUrl($query), 'flash' => ''];
     }
@@ -207,21 +271,32 @@ function sahtout_admin_shop_token_gifts_status_flash_from_get(): string
             translate('admin_token_gifts_deleted', 'Token gift removed.'),
             $reload
         ),
-        'published' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
-            translate('admin_token_gifts_published', 'Published to world and enabled for website grants.')
-                . ' '
-                . translate(
-                    'admin_token_gifts_item_restart_hint',
-                    'Restart the worldserver so the new letter item is loaded (required on AzerothCore for item_template).'
-                ),
-            $reload
-        ),
+        'published' => 'success:' . sahtout_admin_token_gift_published_status_flash($reload),
         'loot_redeployed' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
             translate('admin_token_gifts_loot_redeployed', 'Chest and creature loot rows updated.'),
             $reload
         ),
         default => '',
     };
+}
+
+function sahtout_admin_token_gift_published_status_flash(string $reloadFlag): string
+{
+    $base = translate('admin_token_gifts_published', 'Published to world and enabled for website grants.')
+        . ' '
+        . translate(
+            'admin_token_gifts_item_restart_hint',
+            'Restart the worldserver so the new letter item is loaded (required on AzerothCore for item_template).'
+        );
+    $base = sahtout_admin_token_gift_flash_with_reload($base, $reloadFlag);
+
+    $verify = $_SESSION['token_gift_verify_report'] ?? null;
+    unset($_SESSION['token_gift_verify_report']);
+    if (is_array($verify) && $verify !== []) {
+        $base = sahtout_admin_token_gift_append_verify_flash($base, $verify);
+    }
+
+    return $base;
 }
 
 function sahtout_admin_token_gift_flash_with_reload(string $baseMessage, string $reloadFlag): string

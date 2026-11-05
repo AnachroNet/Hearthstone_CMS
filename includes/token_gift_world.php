@@ -291,6 +291,171 @@ function sahtout_token_gift_quest_reward_text(): string
     );
 }
 
+/**
+ * @return array{
+ *   db_ok: bool,
+ *   soap_ok: ?bool,
+ *   soap_configured: bool,
+ *   issues: list<string>,
+ *   item_entry: int,
+ *   quest_id: int,
+ *   page_text_id: int
+ * }
+ */
+function sahtout_token_gift_verify_world_publish(
+    mysqli $worldDb,
+    int $giftId,
+    int $itemEntry,
+    int $questId,
+    int $pageTextId,
+    string $itemName,
+    bool $expectLootRows
+): array {
+    $dbIssues = [];
+    $soapIssues = [];
+    if ($worldDb->connect_error || $itemEntry <= 0 || $questId <= 0) {
+        return [
+            'db_ok' => false,
+            'soap_ok' => null,
+            'soap_configured' => sahtout_soap_is_configured(),
+            'issues' => ['invalid_args'],
+            'item_entry' => $itemEntry,
+            'quest_id' => $questId,
+            'page_text_id' => $pageTextId,
+        ];
+    }
+
+    $startQuestKey = sahtout_world_item_startquest_column($worldDb);
+    $pageTextKey = sahtout_world_item_pagetext_column($worldDb);
+
+    $itemSql = 'SELECT name, class, displayid, `' . $startQuestKey . '`, `' . $pageTextKey
+        . '` FROM item_template WHERE entry = ' . (int) $itemEntry . ' LIMIT 1';
+    $itemRes = $worldDb->query($itemSql);
+    if (!$itemRes || !($itemRow = $itemRes->fetch_assoc())) {
+        $dbIssues[] = 'item_row';
+    } else {
+        if ((int) ($itemRow['class'] ?? 0) !== 12) {
+            $dbIssues[] = 'item_class';
+        }
+        if ((int) ($itemRow['displayid'] ?? 0) <= 0) {
+            $dbIssues[] = 'item_display';
+        }
+        if ((int) ($itemRow[$startQuestKey] ?? 0) !== $questId) {
+            $dbIssues[] = 'item_startquest';
+        }
+        if ($pageTextId > 0 && (int) ($itemRow[$pageTextKey] ?? 0) !== $pageTextId) {
+            $dbIssues[] = 'item_pagetext';
+        }
+        $dbName = trim((string) ($itemRow['name'] ?? ''));
+        if ($dbName !== '' && trim($itemName) !== '' && $dbName !== trim($itemName)) {
+            $dbIssues[] = 'item_name';
+        }
+    }
+    $itemRes?->free();
+
+    $questRes = $worldDb->query(
+        'SELECT StartItem, Flags FROM quest_template WHERE ID = ' . (int) $questId . ' LIMIT 1'
+    );
+    if (!$questRes || !($questRow = $questRes->fetch_assoc())) {
+        $dbIssues[] = 'quest_row';
+    } else {
+        if ((int) ($questRow['StartItem'] ?? 0) !== $itemEntry) {
+            $dbIssues[] = 'quest_startitem';
+        }
+        if (((int) ($questRow['Flags'] ?? 0) & SAHTOUT_QUEST_FLAG_TRACKING) === 0) {
+            $dbIssues[] = 'quest_flags';
+        }
+    }
+    $questRes?->free();
+
+    if ($pageTextId > 0) {
+        $pageRes = $worldDb->query(
+            'SELECT CHAR_LENGTH(Text) AS text_len FROM page_text WHERE ID = ' . (int) $pageTextId . ' LIMIT 1'
+        );
+        if (!$pageRes || !($pageRow = $pageRes->fetch_assoc()) || (int) ($pageRow['text_len'] ?? 0) <= 0) {
+            $dbIssues[] = 'page_text_row';
+        }
+        $pageRes?->free();
+    } else {
+        $dbIssues[] = 'page_text_row';
+    }
+
+    if (sahtout_world_row_exists($worldDb, 'quest_request_items', $questId)) {
+        $req = $worldDb->query(
+            'SELECT CHAR_LENGTH(CompletionText) AS text_len FROM quest_request_items WHERE ID = '
+            . (int) $questId . ' LIMIT 1'
+        );
+        if (!$req || !($reqRow = $req->fetch_assoc()) || (int) ($reqRow['text_len'] ?? 0) <= 0) {
+            $dbIssues[] = 'quest_request_items';
+        }
+        $req?->free();
+    } else {
+        $dbIssues[] = 'quest_request_items';
+    }
+
+    if (sahtout_world_row_exists($worldDb, 'quest_offer_reward', $questId)) {
+        $rew = $worldDb->query(
+            'SELECT CHAR_LENGTH(RewardText) AS text_len FROM quest_offer_reward WHERE ID = '
+            . (int) $questId . ' LIMIT 1'
+        );
+        if (!$rew || !($rewRow = $rew->fetch_assoc()) || (int) ($rewRow['text_len'] ?? 0) <= 0) {
+            $dbIssues[] = 'quest_offer_reward';
+        }
+        $rew?->free();
+    } else {
+        $dbIssues[] = 'quest_offer_reward';
+    }
+
+    if ($expectLootRows && $giftId > 0) {
+        $comment = sahtout_token_gift_loot_comment($giftId);
+        $commentEsc = $worldDb->real_escape_string($comment);
+        $lootFound = false;
+        foreach (['gameobject_loot_template', 'creature_loot_template'] as $table) {
+            $res = $worldDb->query(
+                "SELECT 1 FROM `{$table}` WHERE `Item` = " . (int) $itemEntry
+                . " AND `Comment` = '" . $commentEsc . "' LIMIT 1"
+            );
+            if ($res && $res->num_rows > 0) {
+                $lootFound = true;
+                $res->free();
+                break;
+            }
+            $res?->free();
+        }
+        if (!$lootFound) {
+            $dbIssues[] = 'loot_rows';
+        }
+    }
+
+    $dbOk = $dbIssues === [];
+    $soapConfigured = sahtout_soap_is_configured();
+    $soapOk = null;
+
+    if ($soapConfigured) {
+        $soapOk = true;
+        $itemSoap = sahtout_soap_world_has_item_template($itemEntry, $itemName);
+        if (!$itemSoap['ok']) {
+            $soapIssues[] = 'soap_item';
+            $soapOk = false;
+        }
+        $questSoap = sahtout_soap_world_has_quest_template($questId, $itemName);
+        if (!$questSoap['ok']) {
+            $soapIssues[] = 'soap_quest';
+            $soapOk = false;
+        }
+    }
+
+    return [
+        'db_ok' => $dbOk,
+        'soap_ok' => $soapOk,
+        'soap_configured' => $soapConfigured,
+        'issues' => array_values(array_merge($dbIssues, $soapIssues)),
+        'item_entry' => $itemEntry,
+        'quest_id' => $questId,
+        'page_text_id' => $pageTextId,
+    ];
+}
+
 function sahtout_token_gift_sync_quest_dialog_tables(
     mysqli $worldDb,
     int $questId,
@@ -722,10 +887,25 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         return ['ok' => false, 'message' => $deployResult['message'] ?? 'loot_deploy_failed'];
     }
 
+    $reload = sahtout_soap_reload_token_gift_publish();
+    $expectLoot = (int) ($gift['deploy_world_chests'] ?? 0) === 1
+        || trim((string) ($gift['extra_creature_entries'] ?? '')) !== ''
+        || trim((string) ($gift['extra_go_loot_ids'] ?? '')) !== '';
+    $verify = sahtout_token_gift_verify_world_publish(
+        $worldDb,
+        $giftId,
+        $itemEntry,
+        $questId,
+        $pageTextId,
+        $name,
+        $expectLoot
+    );
+
     return [
         'ok' => true,
         'message' => 'published',
-        'reload' => sahtout_soap_reload_token_gift_publish(),
+        'reload' => $reload,
+        'verify' => $verify,
     ];
 }
 
