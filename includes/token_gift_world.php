@@ -690,6 +690,13 @@ function sahtout_token_gift_verify_world_publish(
         }
     }
 
+    $worldDbName = '';
+    $dbRes = $worldDb->query('SELECT DATABASE() AS db_name');
+    if ($dbRes && ($dbRow = $dbRes->fetch_assoc())) {
+        $worldDbName = (string) ($dbRow['db_name'] ?? '');
+    }
+    $dbRes?->free();
+
     return [
         'db_ok' => $dbOk,
         'soap_ok' => $soapOk,
@@ -699,6 +706,7 @@ function sahtout_token_gift_verify_world_publish(
         'item_entry' => $itemEntry,
         'quest_id' => $questId,
         'page_text_id' => $pageTextId,
+        'world_db_name' => $worldDbName,
     ];
 }
 
@@ -854,7 +862,14 @@ function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $qu
         return false;
     }
 
+    if (!sahtout_world_row_exists($worldDb, 'quest_template', $questId)) {
+        error_log('token gift publish: quest_template row missing for quest ' . $questId . ' before addon write');
+
+        return false;
+    }
+
     $table = 'quest_template_addon';
+    $tableEsc = '`' . str_replace('`', '', $table) . '`';
     $columnMap = sahtout_world_table_column_map($worldDb, $table);
     if ($columnMap === []) {
         error_log('token gift publish: quest_template_addon columns unavailable');
@@ -863,50 +878,45 @@ function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $qu
     }
 
     $pk = $columnMap['id'] ?? sahtout_world_table_pk_column($table) ?? 'ID';
-    if (!sahtout_world_row_exists($worldDb, $table, $questId)) {
-        $ins = $worldDb->prepare('INSERT INTO `' . str_replace('`', '', $table) . '` (`' . $pk . '`) VALUES (?)');
-        if (!$ins) {
-            error_log('token gift publish: quest_template_addon insert prepare failed: ' . $worldDb->error);
-
-            return false;
-        }
-        $ins->bind_param('i', $questId);
-        if (!$ins->execute()) {
-            error_log('token gift publish: quest_template_addon insert failed: ' . $ins->error);
-            $ins->close();
-
-            return false;
-        }
-        $ins->close();
-    }
-
-    // StartItemCount in the core is loaded from ProvidedItemCount (field 16 in LoadQuestTemplateAddon).
-    $overrides = sahtout_world_filter_table_overrides($worldDb, $table, [
-        'PrevQuestID' => 0,
-        'NextQuestID' => 0,
-        'ExclusiveGroup' => 0,
-        'BreadcrumbForQuestId' => 0,
-        'ProvidedItemCount' => 1,
-        'SpecialFlags' => 1,
-    ]);
     $providedCol = $columnMap['provideditemcount'] ?? null;
-    if ($providedCol === null) {
-        error_log('token gift publish: quest_template_addon.ProvidedItemCount column missing');
+    $specialCol = $columnMap['specialflags'] ?? null;
+    if ($providedCol === null || $specialCol === null) {
+        error_log('token gift publish: quest_template_addon missing ProvidedItemCount or SpecialFlags column');
 
         return false;
     }
-    if (!sahtout_world_apply_row_overrides($worldDb, $table, $questId, $overrides)) {
-        error_log('token gift publish: quest_template_addon update failed for quest ' . $questId);
+
+    $insertCols = [$pk, $providedCol, $specialCol];
+    $insertVals = [(string) (int) $questId, '1', '1'];
+    $updateParts = [
+        '`' . $providedCol . '` = 1',
+        '`' . $specialCol . '` = 1',
+    ];
+    foreach (['prevquestid', 'nextquestid', 'exclusivegroup', 'breadcrumbforquestid'] as $lower) {
+        if (isset($columnMap[$lower])) {
+            $col = $columnMap[$lower];
+            $insertCols[] = $col;
+            $insertVals[] = '0';
+            $updateParts[] = '`' . $col . '` = 0';
+        }
+    }
+
+    $insertColList = implode(', ', array_map(static fn (string $c): string => '`' . str_replace('`', '', $c) . '`', $insertCols));
+    $sql = 'INSERT INTO ' . $tableEsc . ' (' . $insertColList . ') VALUES (' . implode(', ', $insertVals)
+        . ') ON DUPLICATE KEY UPDATE ' . implode(', ', $updateParts);
+
+    if (!$worldDb->query($sql)) {
+        error_log('token gift publish: quest_template_addon upsert failed for quest ' . $questId . ': ' . $worldDb->error);
 
         return false;
     }
 
     $check = $worldDb->query(
-        'SELECT `' . str_replace('`', '', $providedCol) . '` AS pic FROM `' . str_replace('`', '', $table)
-        . '` WHERE `' . $pk . '` = ' . (int) $questId . ' LIMIT 1'
+        'SELECT `' . str_replace('`', '', $providedCol) . '` AS pic FROM ' . $tableEsc
+        . ' WHERE `' . $pk . '` = ' . (int) $questId . ' LIMIT 1'
     );
     if (!$check || !($row = $check->fetch_assoc())) {
-        error_log('token gift publish: quest_template_addon row missing after update for quest ' . $questId);
+        error_log('token gift publish: quest_template_addon row missing after upsert for quest ' . $questId);
         $check?->free();
 
         return false;

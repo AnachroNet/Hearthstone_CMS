@@ -69,11 +69,21 @@ function sahtout_admin_token_gift_append_verify_flash(string $baseMessage, array
         )
         : '';
 
+    $worldDbNote = '';
+    $worldDbName = trim((string) ($verify['world_db_name'] ?? ''));
+    if ($worldDbName !== '') {
+        $worldDbNote = ' ' . translate(
+            'admin_token_gifts_verify_world_db',
+            'CMS world DB checked: %s.',
+            $worldDbName
+        );
+    }
+
     return $baseMessage . ' ' . translate(
         'admin_token_gifts_verify_failed',
         'Verify reported problems: %s.%s Republish after fixing the world DB connection or restart the worldserver if SOAP item lookup failed.',
         $issueText,
-        $soapNote
+        $soapNote . $worldDbNote
     );
 }
 
