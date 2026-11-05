@@ -19,6 +19,7 @@ $page_class = 'events';
 global $site_db;
 
 $tableReady = isset($site_db) && $site_db instanceof mysqli && sahtout_site_calendar_events_table_exists($site_db);
+$recurrenceSchemaReady = $tableReady && sahtout_site_calendar_events_supports_recurrence($site_db);
 $formAction = htmlspecialchars($base_path . 'admin/events', ENT_QUOTES, 'UTF-8');
 $flash = '';
 
@@ -51,14 +52,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             $flash = 'error:' . translate('admin_events_validation_title', 'Title is required.');
         } else {
             $dateError = sahtout_site_calendar_events_validate_dates($startDate, $endDate);
+            $recurrence = sahtout_site_calendar_events_recurrence_from_request($_POST);
+            $recurrenceError = $recurrenceSchemaReady
+                ? sahtout_site_calendar_events_validate_recurrence(
+                    $recurrence['is_recurring'],
+                    $recurrence['recurrence_days'],
+                    $startDate,
+                    $endDate
+                )
+                : null;
             if ($dateError !== null) {
                 $flash = 'error:' . $dateError;
+            } elseif ($recurrenceError !== null) {
+                $flash = 'error:' . $recurrenceError;
             } elseif ($action === 'add') {
-                $stmt = $site_db->prepare(
-                    'INSERT INTO site_calendar_events (title, description, start_date, end_date, is_active)
-                     VALUES (?, ?, ?, ?, ?)'
-                );
-                $stmt->bind_param('ssssi', $title, $description, $startDate, $endDate, $isActive);
+                if ($recurrenceSchemaReady) {
+                    $stmt = $site_db->prepare(
+                        'INSERT INTO site_calendar_events (title, description, start_date, end_date, is_recurring, recurrence_days, is_active)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)'
+                    );
+                    $stmt->bind_param(
+                        'ssssiii',
+                        $title,
+                        $description,
+                        $startDate,
+                        $endDate,
+                        $recurrence['is_recurring'],
+                        $recurrence['recurrence_days'],
+                        $isActive
+                    );
+                } else {
+                    $stmt = $site_db->prepare(
+                        'INSERT INTO site_calendar_events (title, description, start_date, end_date, is_active)
+                         VALUES (?, ?, ?, ?, ?)'
+                    );
+                    $stmt->bind_param('ssssi', $title, $description, $startDate, $endDate, $isActive);
+                }
                 $ok = $stmt->execute();
                 $stmt->close();
                 if ($ok) {
@@ -69,10 +98,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
             } else {
                 $id = (int) ($_POST['id'] ?? 0);
                 if ($id > 0) {
-                    $stmt = $site_db->prepare(
-                        'UPDATE site_calendar_events SET title = ?, description = ?, start_date = ?, end_date = ?, is_active = ? WHERE id = ?'
-                    );
-                    $stmt->bind_param('ssssii', $title, $description, $startDate, $endDate, $isActive, $id);
+                    if ($recurrenceSchemaReady) {
+                        $stmt = $site_db->prepare(
+                            'UPDATE site_calendar_events SET title = ?, description = ?, start_date = ?, end_date = ?, is_recurring = ?, recurrence_days = ?, is_active = ? WHERE id = ?'
+                        );
+                        $stmt->bind_param(
+                            'ssssiiii',
+                            $title,
+                            $description,
+                            $startDate,
+                            $endDate,
+                            $recurrence['is_recurring'],
+                            $recurrence['recurrence_days'],
+                            $isActive,
+                            $id
+                        );
+                    } else {
+                        $stmt = $site_db->prepare(
+                            'UPDATE site_calendar_events SET title = ?, description = ?, start_date = ?, end_date = ?, is_active = ? WHERE id = ?'
+                        );
+                        $stmt->bind_param('ssssii', $title, $description, $startDate, $endDate, $isActive, $id);
+                    }
                     $ok = $stmt->execute();
                     $stmt->close();
                     if ($ok) {
@@ -133,16 +179,7 @@ if ($flash !== '') {
 
 function sahtout_admin_format_event_dates(array $row): string
 {
-    $start = (string) ($row['start_date'] ?? '');
-    $end = (string) ($row['end_date'] ?? '');
-    if ($start === '' || $end === '') {
-        return '';
-    }
-    if ($start === $end) {
-        return date('M j, Y', strtotime($start));
-    }
-
-    return date('M j, Y', strtotime($start)) . ' – ' . date('M j, Y', strtotime($end));
+    return sahtout_site_calendar_events_format_schedule($row);
 }
 ?>
 <div class="flex relative min-h-screen">
@@ -160,6 +197,12 @@ function sahtout_admin_format_event_dates(array $row): string
                     <?php echo translate('admin_events_table_missing', 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_calendar_events.sql on the site database first.'); ?>
                 </div>
             <?php else: ?>
+
+            <?php if (!$recurrenceSchemaReady): ?>
+                <div class="panel p-4 text-amber-300 border border-amber-500/30 mb-4">
+                    <?php echo translate('admin_events_recurrence_migration', 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_calendar_events_recurrence.sql to enable weekly recurring events.'); ?>
+                </div>
+            <?php endif; ?>
 
             <?php
             sahtout_admin_render_subtab_nav(
@@ -202,6 +245,14 @@ function sahtout_admin_format_event_dates(array $row): string
                             <input type="date" name="end_date" class="input-dark" required>
                         </div>
                     </div>
+
+                    <?php if ($recurrenceSchemaReady): ?>
+                        <?php
+                        $recurrence_form_is_recurring = false;
+                        $recurrence_form_days = 0;
+                        include $project_root . 'includes/admin_event_recurrence_fields.inc.php';
+                        ?>
+                    <?php endif; ?>
 
                     <label class="flex items-center gap-2 text-sm text-gray-300">
                         <input type="checkbox" name="is_active" value="1" checked>
@@ -316,6 +367,13 @@ function sahtout_admin_format_event_dates(array $row): string
                                 <input type="date" name="end_date" class="input-dark" required value="<?php echo htmlspecialchars($row['end_date']); ?>">
                             </div>
                         </div>
+                        <?php if ($recurrenceSchemaReady): ?>
+                            <?php
+                            $recurrence_form_is_recurring = (int) ($row['is_recurring'] ?? 0) === 1;
+                            $recurrence_form_days = (int) ($row['recurrence_days'] ?? 0);
+                            include $project_root . 'includes/admin_event_recurrence_fields.inc.php';
+                            ?>
+                        <?php endif; ?>
                         <label class="flex items-center gap-2 text-sm text-gray-300">
                             <input type="checkbox" name="is_active" value="1" <?php echo $rowActive ? 'checked' : ''; ?>>
                             <?php echo translate('admin_events_label_active', 'Published (visible on home calendar)'); ?>
@@ -366,6 +424,19 @@ function closeModal(id) {
         modal.classList.remove('flex');
     }
 }
+function sahtoutSyncEventRecurrenceForm(form) {
+    const toggle = form.querySelector('.event-is-recurring');
+    const panel = form.querySelector('.event-recurrence-days');
+    if (!toggle || !panel) {
+        return;
+    }
+    const on = toggle.checked;
+    panel.classList.toggle('hidden', !on);
+    panel.querySelectorAll('.event-recurrence-day').forEach(function (cb) {
+        cb.disabled = !on;
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.modal-backdrop[id]').forEach(function (modal) {
         document.body.appendChild(modal);
@@ -375,6 +446,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (e.target === modal) {
                 closeModal(modal.id);
             }
+        });
+    });
+    document.querySelectorAll('form').forEach(function (form) {
+        const toggle = form.querySelector('.event-is-recurring');
+        if (!toggle) {
+            return;
+        }
+        sahtoutSyncEventRecurrenceForm(form);
+        toggle.addEventListener('change', function () {
+            sahtoutSyncEventRecurrenceForm(form);
         });
     });
 });
