@@ -721,9 +721,28 @@ ob_start();
             color: #6b7280 !important;
         }
 
+        .login-content {
+            min-height: calc(100vh - 112px);
+        }
+
+        /* Half the header-to-form gap vs. vertical center (0.5 : 1.5 flex ratio). */
+        .login-content-spacer-top {
+            flex: 0.5 1 0;
+            min-height: 0;
+        }
+
+        .login-content-spacer-bottom {
+            flex: 1.5 1 0;
+            min-height: 0;
+        }
+
         @media (max-width: 767px) {
             body {
                 padding-top: 96px;
+            }
+
+            .login-content {
+                min-height: calc(100vh - 96px);
             }
 
             .glass-container {
@@ -737,8 +756,9 @@ $page_head = ob_get_clean();
 
 include_once $project_root . 'includes/header.php';
 ?>
-<div class="login-content relative z-10 min-h-screen flex items-center justify-center px-4 py-8">
-    <div class="container mx-auto max-w-7xl px-2 sm:px-4 flex items-center justify-center">
+<div class="login-content relative z-10 flex flex-col px-4 pb-8">
+    <div class="login-content-spacer-top" aria-hidden="true"></div>
+    <div class="container mx-auto max-w-7xl px-2 sm:px-4 flex justify-center shrink-0">
         <div class="glass-container p-6 md:p-10">
 
             <div class="text-center mb-4">
@@ -852,6 +872,7 @@ include_once $project_root . 'includes/header.php';
             </form>
         </div>
     </div>
+    <div class="login-content-spacer-bottom" aria-hidden="true"></div>
 </div>
 
 <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
