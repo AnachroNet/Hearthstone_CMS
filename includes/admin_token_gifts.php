@@ -48,9 +48,12 @@ function sahtout_token_gift_grants_table_exists(mysqli $siteDb): bool
     return $exists;
 }
 
-function sahtout_token_gift_reward_sync_state_table_exists(mysqli $siteDb): bool
+function sahtout_token_gift_reward_sync_state_table_exists(mysqli $siteDb, bool $recheck = false): bool
 {
     static $exists = null;
+    if ($recheck) {
+        $exists = null;
+    }
     if ($exists !== null) {
         return $exists;
     }
@@ -59,6 +62,68 @@ function sahtout_token_gift_reward_sync_state_table_exists(mysqli $siteDb): bool
     $res?->free();
 
     return $exists;
+}
+
+function sahtout_token_gift_grants_has_character_guid_column(mysqli $siteDb): bool
+{
+    $res = $siteDb->query("SHOW COLUMNS FROM token_gift_grants LIKE 'character_guid'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
+
+/** Apply token_gift_grants_repeatable.sql changes when missing (safe to call repeatedly). */
+function sahtout_token_gift_grants_ensure_repeatable_schema(mysqli $siteDb): bool
+{
+    if (!sahtout_token_gift_grants_table_exists($siteDb)) {
+        return false;
+    }
+
+    if (!sahtout_token_gift_grants_has_character_guid_column($siteDb)) {
+        if (!$siteDb->query(
+            'ALTER TABLE token_gift_grants ADD COLUMN character_guid int unsigned NOT NULL DEFAULT 0 AFTER token_gift_id'
+        )) {
+            error_log('token_gift_grants: add character_guid failed: ' . $siteDb->error);
+
+            return false;
+        }
+    }
+
+    $idx = $siteDb->query("SHOW INDEX FROM token_gift_grants WHERE Key_name = 'uq_account_gift'");
+    if ($idx && $idx->num_rows > 0) {
+        $siteDb->query('ALTER TABLE token_gift_grants DROP INDEX uq_account_gift');
+    }
+    $idx?->free();
+
+    $idx2 = $siteDb->query("SHOW INDEX FROM token_gift_grants WHERE Key_name = 'idx_account_gift'");
+    if (!$idx2 || $idx2->num_rows === 0) {
+        $siteDb->query('ALTER TABLE token_gift_grants ADD KEY idx_account_gift (account_id, token_gift_id)');
+    }
+    $idx2?->free();
+
+    if (!sahtout_token_gift_reward_sync_state_table_exists($siteDb)) {
+        $ok = $siteDb->query(
+            'CREATE TABLE IF NOT EXISTS token_gift_reward_sync_state (
+                account_id int unsigned NOT NULL,
+                token_gift_id int unsigned NOT NULL,
+                character_guid int unsigned NOT NULL,
+                last_seen_rewarded_active tinyint unsigned NOT NULL DEFAULT 0,
+                updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (account_id, token_gift_id, character_guid),
+                KEY idx_gift (token_gift_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+        );
+        if (!$ok) {
+            error_log('token_gift_reward_sync_state create failed: ' . $siteDb->error);
+
+            return false;
+        }
+        sahtout_token_gift_reward_sync_state_table_exists($siteDb, true);
+    }
+
+    return sahtout_token_gift_grants_has_character_guid_column($siteDb)
+        && sahtout_token_gift_reward_sync_state_table_exists($siteDb, true);
 }
 
 function sahtout_admin_can_publish_token_gifts(): bool

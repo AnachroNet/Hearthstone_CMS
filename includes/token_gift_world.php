@@ -8,6 +8,7 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 
 /** Auto-reward on complete (no NPC turn-in); required for item-started promos on AzerothCore. */
 const SAHTOUT_QUEST_FLAG_TRACKING = 1024;
+const SAHTOUT_QUEST_SPECIAL_FLAG_REPEATABLE = 1;
 /**
  * AzerothCore maps quest_template.QuestType to Quest::Method. Method 2 shows quest letter text in the
  * quest dialog (SendQuestGiverQuestDetails). Method 0 skips that and opens the turn-in pane instead.
@@ -594,6 +595,20 @@ function sahtout_token_gift_verify_world_publish(
         }
     }
     $questRes?->free();
+
+    if (sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
+        $addonRes = $worldDb->query(
+            'SELECT SpecialFlags FROM quest_template_addon WHERE ID = ' . (int) $questId . ' LIMIT 1'
+        );
+        if (!$addonRes || !($addonRow = $addonRes->fetch_assoc())) {
+            $dbIssues[] = 'quest_addon';
+        } elseif (((int) ($addonRow['SpecialFlags'] ?? 0) & SAHTOUT_QUEST_SPECIAL_FLAG_REPEATABLE) === 0) {
+            $dbIssues[] = 'quest_repeatable';
+        }
+        $addonRes?->free();
+    } else {
+        $dbIssues[] = 'quest_addon';
+    }
 
     if (sahtout_world_row_exists($worldDb, 'quest_request_items', $questId)) {
         $req = $worldDb->query(

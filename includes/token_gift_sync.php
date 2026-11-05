@@ -33,7 +33,10 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
         return $empty('char_db_unavailable');
     }
 
-    $useSyncState = sahtout_token_gift_reward_sync_state_table_exists($siteDb);
+    sahtout_token_gift_grants_ensure_repeatable_schema($siteDb);
+    $syncStateTable = $siteDb->query("SHOW TABLES LIKE 'token_gift_reward_sync_state'");
+    $useSyncState = $syncStateTable && $syncStateTable->num_rows > 0;
+    $syncStateTable?->free();
 
     $res = $siteDb->query(
         'SELECT id, name, quest_id, tokens FROM token_gifts
