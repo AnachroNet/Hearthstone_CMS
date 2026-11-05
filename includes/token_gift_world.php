@@ -284,30 +284,61 @@ function sahtout_token_gift_autocomplete_quest_flags(): int
 }
 
 /** @return array<string, scalar|null> */
+function sahtout_token_gift_item_short_description(): string
+{
+    return translate(
+        'token_gift_item_description',
+        'A sealed letter. Right-click to read.'
+    );
+}
+
+function sahtout_token_gift_reference_item_display_id(mysqli $worldDb, int $itemRef): int
+{
+    if ($itemRef <= 0) {
+        return 1102;
+    }
+    $res = $worldDb->query(
+        'SELECT displayid FROM item_template WHERE entry = ' . (int) $itemRef . ' LIMIT 1'
+    );
+    if ($res && ($row = $res->fetch_assoc())) {
+        $displayId = (int) ($row['displayid'] ?? 0);
+        $res->free();
+        if ($displayId > 0) {
+            return $displayId;
+        }
+    }
+    $res?->free();
+
+    return 1102;
+}
+
 function sahtout_token_gift_item_publish_overrides(
     mysqli $worldDb,
+    int $itemRef,
     int $questId,
     int $pageTextId,
-    string $name,
-    string $letter
+    string $name
 ): array {
     $startQuestKey = sahtout_world_item_startquest_column($worldDb);
     $pageTextKey = sahtout_world_item_pagetext_column($worldDb);
 
     return [
         'name' => $name,
-        'description' => $letter,
+        'displayid' => sahtout_token_gift_reference_item_display_id($worldDb, $itemRef),
+        'description' => sahtout_token_gift_item_short_description(),
         'class' => 12,
+        'subclass' => 0,
         'bonding' => 4,
         'maxcount' => 1,
         'stackable' => 1,
+        'Flags' => 1,
         $startQuestKey => $questId,
         $pageTextKey => $pageTextId,
     ];
 }
 
 /** @return array<string, scalar|null> */
-function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name, string $letter): array
+function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name, string $formattedQuestDescription): array
 {
     $logDescription = translate(
         'token_gift_quest_log_description',
@@ -317,7 +348,7 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
     $overrides = [
         'LogTitle' => $name,
         'LogDescription' => $logDescription,
-        'QuestDescription' => $letter,
+        'QuestDescription' => $formattedQuestDescription,
         'QuestCompletionLog' => $name,
         'StartItem' => $itemEntry,
         'Flags' => sahtout_token_gift_autocomplete_quest_flags(),
@@ -348,6 +379,27 @@ function sahtout_token_gift_quest_publish_overrides(int $itemEntry, string $name
     }
 
     return $overrides;
+}
+
+function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $questId, int $questRef): void
+{
+    if ($questId <= 0 || sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
+        return;
+    }
+    if ($questRef > 0 && sahtout_world_row_exists($worldDb, 'quest_template_addon', $questRef)) {
+        sahtout_world_clone_row($worldDb, 'quest_template_addon', $questRef, $questId, []);
+
+        return;
+    }
+    $stmt = $worldDb->prepare(
+        'INSERT INTO quest_template_addon (ID, ProvidedItemCount, SpecialFlags) VALUES (?, 1, 0)'
+    );
+    if (!$stmt) {
+        return;
+    }
+    $stmt->bind_param('i', $questId);
+    $stmt->execute();
+    $stmt->close();
 }
 
 function sahtout_token_gift_resolve_quest_template_ref(mysqli $worldDb, int $preferredRef): int
@@ -548,6 +600,7 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
     }
 
     $tokens = (int) ($gift['tokens'] ?? 0);
+    $formattedLetterBody = sahtout_token_gift_build_letter_page_body($letter, $tokens);
     $pageTextResult = sahtout_token_gift_sync_letter_page_text($siteDb, $worldDb, $giftId, $letter, $tokens);
     if (!$pageTextResult['ok']) {
         return ['ok' => false, 'message' => $pageTextResult['message'] ?? 'page_text_sync_failed'];
@@ -559,7 +612,7 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         'item_template',
         $itemRef,
         $itemEntry,
-        sahtout_token_gift_item_publish_overrides($worldDb, $questId, $pageTextId, $name, $letter)
+        sahtout_token_gift_item_publish_overrides($worldDb, $itemRef, $questId, $pageTextId, $name)
     );
     if (!$itemOk) {
         return ['ok' => false, 'message' => 'item_publish_failed'];
@@ -570,15 +623,13 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         'quest_template',
         $questRef,
         $questId,
-        sahtout_token_gift_quest_publish_overrides($itemEntry, $name, $letter)
+        sahtout_token_gift_quest_publish_overrides($itemEntry, $name, $formattedLetterBody)
     );
     if (!$questOk) {
         return ['ok' => false, 'message' => 'quest_publish_failed'];
     }
 
-    if (sahtout_world_row_exists($worldDb, 'quest_template_addon', $questRef)) {
-        sahtout_world_clone_row($worldDb, 'quest_template_addon', $questRef, $questId, []);
-    }
+    sahtout_token_gift_ensure_quest_template_addon($worldDb, $questId, $questRef);
 
     $upd = $siteDb->prepare(
         'UPDATE token_gifts SET item_entry = ?, quest_id = ?, is_enabled = 1,
@@ -760,6 +811,7 @@ function sahtout_token_gift_update_world_content(
         return ['ok' => false, 'message' => 'invalid'];
     }
 
+    $formattedLetterBody = sahtout_token_gift_build_letter_page_body($letter, $tokens);
     $pageTextResult = sahtout_token_gift_sync_letter_page_text($siteDb, $worldDb, $giftId, $letter, $tokens);
     if (!$pageTextResult['ok']) {
         return ['ok' => false, 'message' => $pageTextResult['message'] ?? 'page_text_sync_failed'];
@@ -768,12 +820,13 @@ function sahtout_token_gift_update_world_content(
 
     $startQuestKey = sahtout_world_item_startquest_column($worldDb);
     $pageTextKey = sahtout_world_item_pagetext_column($worldDb);
+    $itemDescription = sahtout_token_gift_item_short_description();
     $itemSql = "UPDATE item_template SET name = ?, description = ?, `{$startQuestKey}` = ?, `{$pageTextKey}` = ? WHERE entry = ?";
     $itemStmt = $worldDb->prepare($itemSql);
     if (!$itemStmt) {
         return ['ok' => false, 'message' => 'item_update_failed'];
     }
-    $itemStmt->bind_param('ssiii', $name, $letter, $questId, $pageTextId, $itemEntry);
+    $itemStmt->bind_param('ssiii', $name, $itemDescription, $questId, $pageTextId, $itemEntry);
     $itemOk = $itemStmt->execute();
     $itemStmt->close();
 
@@ -791,7 +844,7 @@ function sahtout_token_gift_update_world_content(
     if (!$questStmt) {
         return ['ok' => false, 'message' => 'quest_update_failed'];
     }
-    $questStmt->bind_param('ssssiii', $name, $logDescription, $letter, $name, $itemEntry, $flags, $questId);
+    $questStmt->bind_param('ssssiii', $name, $logDescription, $formattedLetterBody, $name, $itemEntry, $flags, $questId);
     $questOk = $questStmt->execute();
     $questStmt->close();
 

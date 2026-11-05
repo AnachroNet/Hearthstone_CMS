@@ -208,7 +208,12 @@ function sahtout_admin_shop_token_gifts_status_flash_from_get(): string
             $reload
         ),
         'published' => 'success:' . sahtout_admin_token_gift_flash_with_reload(
-            translate('admin_token_gifts_published', 'Published to world and enabled for website grants.'),
+            translate('admin_token_gifts_published', 'Published to world and enabled for website grants.')
+                . ' '
+                . translate(
+                    'admin_token_gifts_item_restart_hint',
+                    'Restart the worldserver so the new letter item is loaded (required on AzerothCore for item_template).'
+                ),
             $reload
         ),
         'loot_redeployed' => 'success:' . sahtout_admin_token_gift_flash_with_reload(

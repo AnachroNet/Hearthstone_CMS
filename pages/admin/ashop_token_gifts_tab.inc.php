@@ -11,7 +11,8 @@ if (!defined('ALLOWED_ACCESS')) {
 <div id="token-gifts-panel" class="space-y-4 md:space-y-6 scroll-mt-24">
     <div class="wow-panel p-4 md:p-6 lg:p-8">
         <h2 class="section-title text-lg md:text-xl mb-2"><?php echo translate('admin_token_gifts_heading', 'Token gift letters'); ?></h2>
-        <p class="text-gray-400 text-sm mb-6 max-w-3xl"><?php echo translate('admin_token_gifts_help', 'Create sealed-letter promos: publish an item and auto-complete quest to the world, optionally drop the letter into battered chest loot pools (site setting Token Gift Loot IDs), and grant shop tokens once per account when any character completes the quest.'); ?></p>
+        <p class="text-gray-400 text-sm mb-4 max-w-3xl"><?php echo translate('admin_token_gifts_help', 'Create sealed-letter promos: publish an item and auto-complete quest to the world, optionally drop the letter into battered chest loot pools (site setting Token Gift Loot IDs), and grant shop tokens once per account when any character completes the quest.'); ?></p>
+        <p class="text-amber-200/90 text-sm mb-6 max-w-3xl border border-amber-500/25 bg-amber-950/20 rounded-sm px-3 py-2"><?php echo translate('admin_token_gifts_world_restart_notice', 'AzerothCore does not fully reload new item_template entries over SOAP. After the first publish (or when you change item stats), restart the worldserver so the letter item loads in-game. Without that, the quest tracker may show a red question mark until the client knows the item. Quest, page_text, and loot still reload via SOAP when configured.'); ?></p>
 
         <?php if (!$tokenGiftsReady): ?>
             <p class="text-amber-300 text-sm"><?php echo translate('admin_token_gifts_table_missing', 'Run token_gifts.sql on the website database first.'); ?></p>
