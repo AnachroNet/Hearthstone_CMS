@@ -142,7 +142,7 @@ if ($flash !== '') {
 
             <?php if (!$tableReady): ?>
                 <div class="panel p-6 text-amber-300 border border-amber-500/30">
-                    <?php echo translate('admin_downloads_table_missing', 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_downloads.sql on the site database first.'); ?>
+                    <?php echo translate('admin_downloads_table_missing', 'Run SQL/Hearthstone_DATABASE/SINGLE_UPDATE/site_downloads.sql on the site database first.'); ?>
                 </div>
             <?php else: ?>
 

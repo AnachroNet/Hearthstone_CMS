@@ -194,13 +194,13 @@ function sahtout_admin_format_event_dates(array $row): string
 
             <?php if (!$tableReady): ?>
                 <div class="panel p-6 text-amber-300 border border-amber-500/30">
-                    <?php echo translate('admin_events_table_missing', 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_calendar_events.sql on the site database first.'); ?>
+                    <?php echo translate('admin_events_table_missing', 'Run SQL/Hearthstone_DATABASE/SINGLE_UPDATE/site_calendar_events.sql on the site database first.'); ?>
                 </div>
             <?php else: ?>
 
             <?php if (!$recurrenceSchemaReady): ?>
                 <div class="panel p-4 text-amber-300 border border-amber-500/30 mb-4">
-                    <?php echo translate('admin_events_recurrence_migration', 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/site_calendar_events_recurrence.sql to enable weekly recurring events.'); ?>
+                    <?php echo translate('admin_events_recurrence_migration', 'Run SQL/Hearthstone_DATABASE/SINGLE_UPDATE/site_calendar_events_recurrence.sql to enable weekly recurring events.'); ?>
                 </div>
             <?php endif; ?>
 

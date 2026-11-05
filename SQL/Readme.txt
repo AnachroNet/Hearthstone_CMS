@@ -1,9 +1,12 @@
 SahtoutCMS SQL layout
 =====================
 
-Sahtout_site DATABASE/
-  FULL UPDATE/     — full or demo sahtout_site imports
-  SINGLE UPDATE/   — incremental migrations on sahtout_site
+Hearthstone_DATABASE/
+  FULL_UPDATE/     — full or demo sahtout_site imports
+  SINGLE_UPDATE/   — incremental migrations on sahtout_site
+
+acore_world_DATABASE/
+  SINGLE_UPDATE/   — incremental migrations on acore_world
 
 Root SQL files:
   acore_world_*.sql              — import into acore_world as documented per file

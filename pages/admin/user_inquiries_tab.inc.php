@@ -15,7 +15,7 @@ if (!defined('ALLOWED_ACCESS')) {
 
     <?php if (!$inquiryData['available']): ?>
         <div class="panel p-6 text-center text-gray-400">
-            <?php echo translate('admin_inquiries_unavailable', 'The user_inquiries table is not available. Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/user_inquiries.sql on the website database.'); ?>
+            <?php echo translate('admin_inquiries_unavailable', 'The user_inquiries table is not available. Run SQL/Hearthstone_DATABASE/SINGLE_UPDATE/user_inquiries.sql on the website database.'); ?>
         </div>
     <?php else: ?>
         <div class="panel p-4 md:p-6 lg:p-8">

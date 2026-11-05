@@ -26,7 +26,7 @@ return [
     'admin_token_gifts_verify_issue_quest_row' => 'quest_template row missing',
     'admin_token_gifts_verify_issue_quest_startitem' => 'quest StartItem does not match letter item',
     'admin_token_gifts_verify_issue_quest_flags' => 'quest is missing tracking flag (auto-reward)',
-    'admin_token_gifts_verify_issue_quest_addon' => 'quest_template_addon row missing (run token_gift_quest_addon_fix.sql on the same DB as worldserver)',
+    'admin_token_gifts_verify_issue_quest_addon' => 'quest_template_addon row missing (run SQL/acore_world_DATABASE/SINGLE_UPDATE/token_gift_quest_addon_fix.sql on acore_world)',
     'admin_token_gifts_verify_world_db' => 'CMS world DB checked: %s.',
     'admin_token_gifts_verify_issue_quest_repeatable' => 'quest is not repeatable (quest_template_addon SpecialFlags must include 1 — republish after upgrade)',
     'admin_token_gifts_verify_issue_quest_startitem_count' => 'quest_template_addon ProvidedItemCount must be 1 (maps to StartItemCount for the letter item)',

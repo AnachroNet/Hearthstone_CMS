@@ -423,8 +423,8 @@ foreach ($presets as $i => $preset) {
     $presets[$i]['tokens'] = sahtout_suggest_tokens_for_preset($preset, $mapMetaById, $achievementMeta);
 }
 
-$outDir = $projectRoot . DIRECTORY_SEPARATOR . 'SQL' . DIRECTORY_SEPARATOR . 'Sahtout_site DATABASE'
-    . DIRECTORY_SEPARATOR . 'SINGLE UPDATE';
+$outDir = $projectRoot . DIRECTORY_SEPARATOR . 'SQL' . DIRECTORY_SEPARATOR . 'Hearthstone_DATABASE'
+    . DIRECTORY_SEPARATOR . 'SINGLE_UPDATE';
 $outFile = $outDir . DIRECTORY_SEPARATOR . 'achievement_catalog_import.sql';
 
 if (!is_dir($outDir) && !mkdir($outDir, 0775, true) && !is_dir($outDir)) {

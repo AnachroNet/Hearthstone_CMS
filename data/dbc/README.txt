@@ -14,7 +14,7 @@ Achievement catalog import (site DB reference table):
   - LFGDungeons.dbc (recommended — dungeon level on reward presets and admin UI)
 Run from Web/SahtoutCMS (uses includes/config.local.php world DB when present to map boss kills to instances):
   php tools/import_achievement_catalog.php
-Then apply SQL/Sahtout_site DATABASE/SINGLE UPDATE/achievement_catalog.sql (once)
+Then apply SQL/Hearthstone_DATABASE/SINGLE_UPDATE/achievement_catalog.sql (once)
 and achievement_catalog_import.sql (after each DBC refresh).
 
 The import also seeds achievement_token_rewards with presets: every 10 levels,

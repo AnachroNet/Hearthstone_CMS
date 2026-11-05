@@ -158,7 +158,7 @@ if (empty($errors)) {
         if ($ok && $registration_allow_shared_email_new) {
             if (!sahtout_pending_accounts_drop_unique_email($site_db)
                 || !sahtout_password_resets_ensure_username_column($site_db)) {
-                $errors[] = translate('error_shared_email_index', 'Could not update pending signups table for shared emails. Run SQL/SINGLE UPDATE/registration_allow_shared_email.sql on sahtout_site.');
+                $errors[] = translate('error_shared_email_index', 'Could not update pending signups table for shared emails. Run SQL/Hearthstone_DATABASE/SINGLE_UPDATE/registration_allow_shared_email.sql on sahtout_site.');
                 $ok = false;
             }
         }

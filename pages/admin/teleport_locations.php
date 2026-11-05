@@ -143,7 +143,7 @@ if ($flash !== '') {
 
             <?php if (!$tableReady): ?>
                 <div class="panel p-6 text-amber-300 border border-amber-500/30">
-                    <?php echo translate('admin_teleport_locations_table_missing', 'Run SQL/Sahtout_site DATABASE/SINGLE UPDATE/admin_teleport_locations.sql on the site database first.'); ?>
+                    <?php echo translate('admin_teleport_locations_table_missing', 'Run SQL/Hearthstone_DATABASE/SINGLE_UPDATE/admin_teleport_locations.sql on the site database first.'); ?>
                 </div>
             <?php else: ?>
 
