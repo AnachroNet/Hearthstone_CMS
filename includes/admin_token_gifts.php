@@ -22,32 +22,6 @@ function sahtout_admin_token_gift_count(mysqli $siteDb): int
     return $count;
 }
 
-function sahtout_token_gifts_table_exists(mysqli $siteDb): bool
-{
-    static $exists = null;
-    if ($exists !== null) {
-        return $exists;
-    }
-    $res = $siteDb->query("SHOW TABLES LIKE 'token_gifts'");
-    $exists = $res && $res->num_rows > 0;
-    $res?->free();
-
-    return $exists;
-}
-
-function sahtout_token_gift_grants_table_exists(mysqli $siteDb): bool
-{
-    static $exists = null;
-    if ($exists !== null) {
-        return $exists;
-    }
-    $res = $siteDb->query("SHOW TABLES LIKE 'token_gift_grants'");
-    $exists = $res && $res->num_rows > 0;
-    $res?->free();
-
-    return $exists;
-}
-
 function sahtout_token_gift_reward_sync_state_table_exists(mysqli $siteDb, bool $recheck = false): bool
 {
     static $exists = null;

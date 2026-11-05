@@ -166,3 +166,29 @@ function sahtout_parse_comma_int_list(string $raw): array
 
     return array_map('intval', array_keys($out));
 }
+
+function sahtout_token_gifts_table_exists(mysqli $siteDb): bool
+{
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    $res = $siteDb->query("SHOW TABLES LIKE 'token_gifts'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
+
+function sahtout_token_gift_grants_table_exists(mysqli $siteDb): bool
+{
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    $res = $siteDb->query("SHOW TABLES LIKE 'token_gift_grants'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
