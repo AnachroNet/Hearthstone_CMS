@@ -3,7 +3,7 @@
 return [
     'admin_rewards_subtab_token_gifts' => 'Token Gifts',
     'admin_token_gifts_heading' => 'Token gift letters',
-    'admin_token_gifts_help' => 'Create sealed-letter promos modeled on item 2223 / quest 123. Each publish uses a matching item and quest ID from the unused 18270–18279 range (10 promos max), display icon 1102, and PageText 0 (letter text lives in the quest dialog). Accepting auto-completes in-game (repeatable). Website tokens grant on each completion when the account sync runs. Republish after edits; restart the worldserver if verify reports SOAP item lookup failed.',
+    'admin_token_gifts_help' => 'Create sealed-letter promos modeled on item 2223 / quest 123. Each publish uses a matching item and quest ID from the unused 18270–18279 range (10 promos max), display icon 1102, and PageText 0 (letter text lives in the quest dialog). Accepting auto-completes in-game (repeatable). Website tokens grant on each completion when the account sync runs (requires Quests.EnableQuestTracker = 1 in worldserver.conf so repeat completions are counted). Republish after edits; restart the worldserver if verify reports SOAP item lookup failed.',
     'admin_token_gifts_world_id_range' => 'World item and quest IDs come from your General Settings list (%1$d configured slots; display icon %2$d). Publish picks the first free ID with no world rows and no other promo using it. Letter text is quest dialog only (PageText stays 0).',
     'admin_token_gifts_max_gifts' => 'You can have at most %d token gifts (world item/quest IDs %d–%d).',
     'admin_token_gifts_world_id_slots_exhausted' => 'No free world IDs left in the %1$d–%2$d range (max %3$d promos). Delete an unused gift or free a slot in item_template / quest_template.',

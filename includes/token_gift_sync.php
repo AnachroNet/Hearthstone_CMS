@@ -102,8 +102,8 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
     $questIds = sahtout_token_gift_collect_char_db_quest_ids($gifts);
     $rewardedActiveByQuestGuid = sahtout_token_gift_rewarded_active_map($charDb, $guids, $questIds);
     $rewardedExistsByQuestGuid = sahtout_token_gift_rewarded_exists_map($charDb, $guids, $questIds);
-    $incompleteByQuestGuid = sahtout_token_gift_incomplete_quest_map($charDb, $guids, $questIds);
     $charGrantCounts = sahtout_token_gift_char_grant_counts($siteDb, $accountId, array_keys($gifts));
+    $completionCountsByQuestGuid = sahtout_token_gift_char_completion_counts_map($charDb, $guids, $questIds);
 
     $insertGrant = $siteDb->prepare(
         'INSERT INTO token_gift_grants (account_id, token_gift_id, character_guid, quest_id, tokens_awarded) VALUES (?, ?, ?, ?, ?)'
@@ -116,16 +116,11 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
     }
 
     $upsertState = null;
-    $selectState = null;
     if ($useSyncState) {
         $upsertState = $siteDb->prepare(
             'INSERT INTO token_gift_reward_sync_state (account_id, token_gift_id, character_guid, last_seen_rewarded_active)
              VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE last_seen_rewarded_active = VALUES(last_seen_rewarded_active)'
-        );
-        $selectState = $siteDb->prepare(
-            'SELECT last_seen_rewarded_active FROM token_gift_reward_sync_state
-             WHERE account_id = ? AND token_gift_id = ? AND character_guid = ?'
         );
     }
 
@@ -184,45 +179,20 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
             $active = $snap['active'];
             $grantQuestId = $snap['matched_quest_id'] > 0 ? $snap['matched_quest_id'] : $questId;
             sahtout_token_gift_repair_site_world_ids($siteDb, $giftId, $grantQuestId, $questId, $itemEntry);
-            $inProgress = sahtout_token_gift_guid_quest_in_progress(
-                $grantQuestId,
-                $grantQuestId,
-                $guid,
-                $incompleteByQuestGuid
-            );
             $charGrantCount = (int) (($charGrantCounts[$giftId] ?? [])[$guid] ?? 0);
-
-            $lastSeen = 0;
-            if ($useSyncState && $selectState) {
-                $selectState->bind_param('iii', $accountId, $giftId, $guid);
-                $selectState->execute();
-                $stateRes = $selectState->get_result();
-                if ($stateRow = $stateRes->fetch_assoc()) {
-                    $lastSeen = (int) ($stateRow['last_seen_rewarded_active'] ?? 0) > 0 ? 1 : 0;
-                }
-                $stateRes->free();
-
-                if ($inProgress && $lastSeen === 1) {
-                    $resetSeen = 0;
-                    $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $resetSeen);
-                    $upsertState->execute();
-                    $lastSeen = 0;
-                }
-
-                if ($charGrantCount === 0 && $lastSeen === 1 && !$inProgress) {
-                    $resetSeen = 0;
-                    $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $resetSeen);
-                    $upsertState->execute();
-                    $lastSeen = 0;
-                }
+            $completionCount = (int) (($completionCountsByQuestGuid[$grantQuestId] ?? [])[$guid] ?? 0);
+            if ($completionCount <= 0 && $snap['rewarded']) {
+                // First completion is recorded in character_queststatus_rewarded even when quest_tracker is off.
+                $completionCount = 1;
             }
 
-            // Per-character grants (character_guid > 0) are independent of old account-level rows (character_guid = 0).
-            $shouldGrant = $charGrantCount === 0
-                || ($useSyncState && $active === 1 && $lastSeen === 0);
+            // Repeatable promos: grant once per tracked in-game completion (quest_tracker), not via rewarded.active
+            // (AzerothCore keeps active=1 for repeatables; the old active/lastSeen edge never fires offline).
+            $shouldGrant = $completionCount > $charGrantCount;
 
-            if ($useSyncState && !$shouldGrant && $lastSeen !== $active && $charGrantCount > 0) {
-                $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $active);
+            if ($useSyncState && $upsertState && $charGrantCount > 0 && !$shouldGrant && $snap['rewarded']) {
+                $seenActive = $active > 0 ? 1 : 0;
+                $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $seenActive);
                 $upsertState->execute();
             }
 
@@ -280,7 +250,6 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
 
     $insertGrant->close();
     $addTokens->close();
-    $selectState?->close();
     $upsertState?->close();
 
     if ($tokensAdded === 0 && $gifts !== []) {
@@ -292,6 +261,7 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
             'token_gift_sync none_eligible account=' . $accountId
             . ' char_count=' . count($guids)
             . ' use_sync_state=' . ($useSyncState ? '1' : '0')
+            . ' quest_tracker=' . (sahtout_char_quest_tracker_table_exists($charDb) ? '1' : '0')
             . ' catalog=' . implode(',', $catalog)
             . ' char_db_quest_ids=' . implode(',', $questIds)
         );
@@ -579,6 +549,70 @@ function sahtout_token_gift_add_tokens(mysqli $siteDb, mysqli_stmt $addTokens, i
  * @param list<int> $giftIds
  * @return array<int, array<int, int>> giftId => guid => grant count
  */
+function sahtout_char_quest_tracker_table_exists(mysqli $charDb): bool
+{
+    static $has = null;
+    if ($has !== null) {
+        return $has;
+    }
+    if ($charDb->connect_error) {
+        $has = false;
+
+        return false;
+    }
+    $res = $charDb->query("SHOW TABLES LIKE 'quest_tracker'");
+    $has = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $has;
+}
+
+/**
+ * Completed accept cycles from AzerothCore quest_tracker (requires Quests.EnableQuestTracker = 1).
+ *
+ * @param list<int> $guids
+ * @param list<int> $questIds
+ * @return array<int, array<int, int>> questId => guid => completion count
+ */
+function sahtout_token_gift_char_completion_counts_map(mysqli $charDb, array $guids, array $questIds): array
+{
+    $guids = array_values(array_filter(array_map('intval', $guids), static fn (int $g): bool => $g > 0));
+    $questIds = array_values(array_filter(array_map('intval', $questIds), static fn (int $q): bool => $q > 0));
+    $map = [];
+    foreach ($questIds as $q) {
+        $map[$q] = [];
+    }
+    if ($guids === [] || $questIds === [] || !sahtout_char_quest_tracker_table_exists($charDb)) {
+        return $map;
+    }
+
+    $guidPh = implode(',', array_fill(0, count($guids), '?'));
+    $questPh = implode(',', array_fill(0, count($questIds), '?'));
+    $sql = "SELECT id AS quest_id, character_guid AS guid, COUNT(*) AS c
+            FROM quest_tracker
+            WHERE character_guid IN ({$guidPh}) AND id IN ({$questPh})
+              AND quest_complete_time IS NOT NULL
+            GROUP BY id, character_guid";
+    $stmt = $charDb->prepare($sql);
+    if (!$stmt) {
+        return $map;
+    }
+    $types = str_repeat('i', count($guids) + count($questIds));
+    $stmt->bind_param($types, ...array_merge($guids, $questIds));
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $q = (int) ($row['quest_id'] ?? 0);
+        $g = (int) ($row['guid'] ?? 0);
+        if ($q > 0 && $g > 0) {
+            $map[$q][$g] = (int) ($row['c'] ?? 0);
+        }
+    }
+    $stmt->close();
+
+    return $map;
+}
+
 function sahtout_token_gift_char_grant_counts(mysqli $siteDb, int $accountId, array $giftIds): array
 {
     $giftIds = array_values(array_filter(array_map('intval', $giftIds), static fn (int $id): bool => $id > 0));
