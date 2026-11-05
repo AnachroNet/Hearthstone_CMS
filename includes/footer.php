@@ -57,6 +57,35 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
         text-shadow: 0 0 8px rgba(242,207,82,.4);
     }
 
+    .footer-nav-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem 0.75rem;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    @media (min-width: 768px) {
+        .footer-nav-links {
+            flex-wrap: nowrap;
+            gap: 0.5rem 1rem;
+        }
+
+        .footer-nav-link {
+            font-size: 0.8125rem;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .footer-nav-links {
+            gap: 0.5rem 1.25rem;
+        }
+    }
+
     /* ============ SOCIAL ICONS (SMALLER) ============ */
     .social-icon-btn {
         display: inline-flex;
@@ -137,6 +166,20 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
 
 <footer class="wow-footer">
     <div class="max-w-[1600px] mx-auto px-4 md:px-8 py-8 md:py-12">
+        <nav class="footer-nav-links mb-8 md:mb-10" aria-label="<?php echo htmlspecialchars(translate('footer_nav_aria', 'Footer navigation'), ENT_QUOTES, 'UTF-8'); ?>">
+            <a href="<?php echo $base_path; ?>" class="footer-nav-link"><?php echo translate('nav_home', 'Home'); ?></a>
+            <a href="<?php echo $base_path; ?>news" class="footer-nav-link"><?php echo translate('nav_news', 'News'); ?></a>
+            <a href="<?php echo $base_path; ?>events" class="footer-nav-link"><?php echo translate('nav_events', 'Events'); ?></a>
+            <a href="<?php echo $base_path; ?>armory/solo_pvp" class="footer-nav-link"><?php echo translate('nav_armory', 'Armory'); ?></a>
+            <a href="<?php echo $base_path; ?>shop" class="footer-nav-link"><?php echo translate('nav_shop', 'Shop'); ?></a>
+            <a href="<?php echo $base_path; ?>account" class="footer-nav-link"><?php echo translate('nav_account', 'Account'); ?></a>
+            <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="<?php echo $base_path; ?>contact" class="footer-nav-link"><?php echo translate('nav_contact', 'Contact Us'); ?></a>
+            <?php else: ?>
+            <a href="<?php echo $base_path; ?>login?return=<?php echo rawurlencode('contact'); ?>" class="footer-nav-link"><?php echo translate('nav_contact', 'Contact Us'); ?></a>
+            <?php endif; ?>
+        </nav>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
             
             <!-- Logo -->
@@ -148,21 +191,8 @@ if (file_exists($project_root . 'includes/config.settings.php')) {
                 </a>
             </div>
 
-            <!-- Quick Links / Copyright -->
+            <!-- Copyright -->
             <div class="flex flex-col items-center gap-4">
-                <div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
-                    <a href="<?php echo $base_path; ?>" class="footer-nav-link"><?php echo translate('nav_home', 'Home'); ?></a>
-                    <a href="<?php echo $base_path; ?>news" class="footer-nav-link"><?php echo translate('nav_news', 'News'); ?></a>
-                    <a href="<?php echo $base_path; ?>events" class="footer-nav-link"><?php echo translate('nav_events', 'Events'); ?></a>
-                    <a href="<?php echo $base_path; ?>armory/solo_pvp" class="footer-nav-link"><?php echo translate('nav_armory', 'Armory'); ?></a>
-                    <a href="<?php echo $base_path; ?>shop" class="footer-nav-link"><?php echo translate('nav_shop', 'Shop'); ?></a>
-                    <a href="<?php echo $base_path; ?>account" class="footer-nav-link"><?php echo translate('nav_account', 'Account'); ?></a>
-                    <?php if (isset($_SESSION['user_id'])): ?>
-                    <a href="<?php echo $base_path; ?>contact" class="footer-nav-link"><?php echo translate('nav_contact', 'Contact Us'); ?></a>
-                    <?php else: ?>
-                    <a href="<?php echo $base_path; ?>login?return=<?php echo rawurlencode('contact'); ?>" class="footer-nav-link"><?php echo translate('nav_contact', 'Contact Us'); ?></a>
-                    <?php endif; ?>
-                </div>
                 <div class="h-px w-48 bg-gradient-to-r from-transparent via-[#c9a227] to-transparent opacity-50"></div>
                 <p class="text-gray-500 text-xs tracking-wider uppercase font-semibold">
                     &copy; <?php echo date('Y') . " " . $site_title_name; ?>. <?php echo translate('footer_rights', 'All rights reserved.'); ?>
