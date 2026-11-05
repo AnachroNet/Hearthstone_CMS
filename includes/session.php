@@ -25,6 +25,7 @@ session_start();
 require_once __DIR__ . '/paths.php';
 // Include database configuration
 require_once $project_root . 'includes/config.php';
+require_once __DIR__ . '/site_account.php';
 
 // Initialize debug errors
 $_SESSION['debug_errors'] = $_SESSION['debug_errors'] ?? [];
@@ -71,13 +72,28 @@ if (in_array($current_page, $protected_pages) || in_array($current_page, $admin_
     }
     $stmt->close();
 
-    // Load user role
+    // Load user role (create site row on first visit if account predates CMS or was created outside the site)
     /** @var \mysqli_stmt|false $stmt */
     $stmt = $site_db->prepare("SELECT role FROM user_currencies WHERE account_id = ?");
     $stmt->bind_param('i', $_SESSION['user_id']);
     $stmt->execute();
     $result = $stmt->get_result();
-    $_SESSION['role'] = $result->num_rows === 1 ? $result->fetch_assoc()['role'] : 'player';
+    if ($result->num_rows === 1) {
+        $_SESSION['role'] = $result->fetch_assoc()['role'];
+    } else {
+        $_SESSION['role'] = 'player';
+        if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+            sahtout_site_account_ensure_from_auth($site_db, $auth_db, (int) $_SESSION['user_id']);
+            $stmt->close();
+            $stmt = $site_db->prepare("SELECT role FROM user_currencies WHERE account_id = ?");
+            $stmt->bind_param('i', $_SESSION['user_id']);
+            $stmt->execute();
+            $roleResult = $stmt->get_result();
+            if ($roleResult->num_rows === 1) {
+                $_SESSION['role'] = $roleResult->fetch_assoc()['role'];
+            }
+        }
+    }
     $stmt->close();
 
     // Load GM level

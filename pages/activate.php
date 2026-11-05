@@ -125,7 +125,7 @@ if (!$token) {
                 if ($stmt_insert->execute()) {
                     $newAccountId = (int) $auth_db->insert_id;
                     $stmt_insert->close();
-                    sahtout_apply_registration_signup_tokens($site_db, $newAccountId);
+                    sahtout_apply_registration_signup_tokens($site_db, $newAccountId, $auth_db);
 
                     // Delete from pending_accounts
                     $stmt_delete = $site_db->prepare("DELETE FROM pending_accounts WHERE token = ?");

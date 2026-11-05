@@ -74,11 +74,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $role = in_array($_POST['role'], ['player', 'moderator', 'admin']) ? $_POST['role'] : 'player';
             $email = trim($_POST['email']);
             
-            $stmt = $site_db->prepare("UPDATE " . DB_SITE . ".user_currencies SET tokens = ?, role = ? WHERE account_id = ?");
-            $stmt->bind_param("isi", $tokens, $role, $account_id);
+            require_once $project_root . 'includes/site_account.php';
+            sahtout_site_account_ensure_from_auth($site_db, $auth_db, $account_id);
+
+            $stmt = $site_db->prepare(
+                "UPDATE " . DB_SITE . ".user_currencies SET tokens = ?, role = ?, email = ? WHERE account_id = ?"
+            );
+            $stmt->bind_param("issi", $tokens, $role, $email, $account_id);
             $success = $stmt->execute();
             $stmt->close();
-            
+
             $stmt = $auth_db->prepare("UPDATE " . DB_AUTH . ".account SET email = ? WHERE id = ?");
             $stmt->bind_param("si", $email, $account_id);
             $success = $success && $stmt->execute();

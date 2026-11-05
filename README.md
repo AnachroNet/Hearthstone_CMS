@@ -453,17 +453,22 @@ Import sahtout_site SQL file.
 
 ## AzerothCore Databases
 
-Import the required additional SQL files into their corresponding AzerothCore databases.
+SahtoutCMS does **not** require triggers or schema changes on **`acore_auth`** for shop accounts. Site rows are synced in PHP when users register or log in.
 
-For example:
+Import world (and optional character) SQL shipped with this release as needed—for example:
 
 ```text
-acore_auth_sahtout_site.sql
-→ acore_auth
-
-acore_world_armory_spell.sql
-→ acore_world
+acore_world_armory_spell.sql  → acore_world
 ```
+
+If you upgraded from an older release that installed auth triggers or cross-database foreign keys, run:
+
+```text
+SQL/acore_auth_drop_sahtout_triggers.sql     → acore_auth (optional cleanup)
+SQL/.../site_drop_cross_db_foreign_keys.sql  → sahtout_site
+```
+
+See **`SQL/DATABASE_PRIVILEGES.md`** for minimal MySQL grants per database.
 
 > ⚠️ SQL filenames and database requirements may change between releases. Always check the SQL files included with the version you are installing.
 

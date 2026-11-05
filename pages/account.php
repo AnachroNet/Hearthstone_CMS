@@ -217,6 +217,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $stmt_update->close();
 
+            require_once $project_root . 'includes/site_account.php';
+            sahtout_site_account_sync_profile(
+                $site_db,
+                (int) $_SESSION['user_id'],
+                (string) $_SESSION['username'],
+                $new_email
+            );
+            $_SESSION['email'] = $new_email;
+
             // Log action
             $stmt_log = $site_db->prepare("INSERT INTO website_activity_log (account_id, character_name, action, timestamp, details) VALUES (?, NULL, ?, UNIX_TIMESTAMP(), ?)");
             $action = translate('action_email_changed', 'Email Changed');

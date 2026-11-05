@@ -91,12 +91,21 @@ function sahtout_registration_signup_tokens_amount(): int
     return max(0, min(9999999, (int) ($sahtout_site_settings['registration.signup_tokens_amount'] ?? 0)));
 }
 
-/** After account INSERT (trigger creates user_currencies with 0 tokens), apply admin signup token grant. */
-function sahtout_apply_registration_signup_tokens(mysqli $site_db, int $accountId): void
-{
+/** After account INSERT, ensure site row exists then apply admin signup token grant. */
+function sahtout_apply_registration_signup_tokens(
+    mysqli $site_db,
+    int $accountId,
+    ?mysqli $auth_db = null
+): void {
     if ($accountId <= 0) {
         return;
     }
+
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'site_account.php';
+    if ($auth_db instanceof mysqli && !$auth_db->connect_error) {
+        sahtout_site_account_ensure_from_auth($site_db, $auth_db, $accountId);
+    }
+
     $amount = sahtout_registration_signup_tokens_amount();
     if ($amount <= 0) {
         return;

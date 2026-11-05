@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/config.cap.php';
 require_once $project_root . 'includes/srp6.php';
 require_once $project_root . 'includes/achievement_reward_sync.php';
+require_once $project_root . 'includes/site_account.php';
 require_once $project_root . 'includes/redirect_helpers.php';
 
 define('MAX_LOGIN_ATTEMPTS', 5);
@@ -547,6 +548,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $site_db,
                                     $ip_address,
                                     $username
+                                );
+
+                                sahtout_site_account_ensure(
+                                    $site_db,
+                                    (int) $account['id'],
+                                    (string) $account['username'],
+                                    (string) ($account['email'] ?? '')
                                 );
 
                                 global $char_db;

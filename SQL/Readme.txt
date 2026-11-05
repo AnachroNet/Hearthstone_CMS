@@ -1,13 +1,14 @@
-import Sahtout_site DATABASE: the website database
-then 
-Run the SQL files from here 
-Example :
------acore_auth_sahtout_site.sql------ 
-means thats inside the acore_auth database
+SahtoutCMS SQL layout
+=====================
 
+Sahtout_site DATABASE/
+  FULL UPDATE/     — full or demo sahtout_site imports
+  SINGLE UPDATE/   — incremental migrations on sahtout_site
 
+Root SQL files:
+  acore_world_*.sql              — import into acore_world as documented per file
+  acore_characters_shopitem_trigger.sql — optional shop delivery (characters DB)
+  acore_auth_drop_sahtout_triggers.sql  — remove legacy auth triggers (optional)
+  acore_auth_sahtout_site.sql           — DEPRECATED stub; do not install triggers
 
-Important: Use the query in #acore_world_spellcharge# if you have 
-spellcharges_1 = 0
-it should be spellcharges_1 = -1 
-so when you buy mounts/pets from shop used=1 and then deleted
+Shop accounts: no acore_auth SQL required. See DATABASE_PRIVILEGES.md.
