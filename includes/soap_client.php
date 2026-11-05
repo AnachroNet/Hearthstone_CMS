@@ -300,14 +300,55 @@ function sahtout_soap_merge_reload_results(array $first, array $second): array
     ];
 }
 
-function sahtout_soap_reload_token_gift_publish(): array
+/**
+ * Reload item templates before quests so StartItem validation succeeds when SOAP can load the item.
+ *
+ * @return array{ok: bool, configured: bool, failed: list<string>, pending_restart?: bool}
+ */
+function sahtout_soap_reload_token_gift_world_content(int $itemEntry = 0, string $itemName = ''): array
 {
-    $core = sahtout_soap_try_reload_commands([
-        '.reload quest_template',
-        '.reload quest_template_locale',
-        '.reload item_template_locale',
+    $itemReload = sahtout_soap_try_reload_commands([
         '.reload all item',
+        '.reload item_template_locale',
     ]);
+
+    if ($itemEntry > 0) {
+        $lookup = sahtout_soap_world_has_item_template($itemEntry, $itemName);
+        if (!$lookup['ok']) {
+            return [
+                'ok' => !empty($itemReload['ok']),
+                'configured' => !empty($itemReload['configured']),
+                'failed' => array_values(array_unique(array_merge(
+                    $itemReload['failed'] ?? [],
+                    ['quest_reload_skipped_item_not_in_memory']
+                ))),
+                'pending_restart' => true,
+            ];
+        }
+    }
+
+    $questReload = sahtout_soap_try_reload_commands([
+        '.reload quest_template_locale',
+        '.reload quest_template',
+    ]);
+
+    return [
+        'ok' => !empty($itemReload['ok']) && !empty($questReload['ok']),
+        'configured' => !empty($itemReload['configured']) || !empty($questReload['configured']),
+        'failed' => array_values(array_unique(array_merge(
+            $itemReload['failed'] ?? [],
+            $questReload['failed'] ?? []
+        ))),
+    ];
+}
+
+function sahtout_soap_reload_token_gift_publish(int $itemEntry = 0, string $itemName = ''): array
+{
+    $core = sahtout_soap_reload_token_gift_world_content($itemEntry, $itemName);
+    if (!empty($core['pending_restart'])) {
+        return $core;
+    }
+
     $loot = sahtout_soap_reload_loot_tables();
 
     return sahtout_soap_merge_reload_results($core, $loot);
@@ -319,15 +360,10 @@ function sahtout_soap_reload_token_gift_loot(): array
     return sahtout_soap_reload_loot_tables();
 }
 
-/** @return array{ok: bool, configured: bool, failed: list<string>} */
-function sahtout_soap_reload_token_gift_content(): array
+/** @return array{ok: bool, configured: bool, failed: list<string>, pending_restart?: bool} */
+function sahtout_soap_reload_token_gift_content(int $itemEntry = 0, string $itemName = ''): array
 {
-    return sahtout_soap_try_reload_commands([
-        '.reload quest_template',
-        '.reload quest_template_locale',
-        '.reload item_template_locale',
-        '.reload all item',
-    ]);
+    return sahtout_soap_reload_token_gift_world_content($itemEntry, $itemName);
 }
 
 /**

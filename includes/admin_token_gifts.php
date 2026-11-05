@@ -303,7 +303,7 @@ function sahtout_admin_update_token_gift(
 
             return [
                 'ok' => true,
-                'reload' => $worldUpdate['reload'] ?? sahtout_soap_reload_token_gift_content(),
+                'reload' => $worldUpdate['reload'] ?? sahtout_soap_reload_token_gift_content($itemEntry, $name),
             ];
         }
     }
@@ -345,7 +345,7 @@ function sahtout_admin_delete_token_gift(mysqli $siteDb, ?mysqli $worldDb, int $
 
     $reload = null;
     if ($worldDb instanceof mysqli && !$worldDb->connect_error) {
-        sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId);
+        sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId, $worldId);
         if ($pageFirst > 0) {
             sahtout_token_gift_delete_page_text_chain($worldDb, $pageFirst, $pageCount);
         }

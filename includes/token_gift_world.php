@@ -1541,7 +1541,7 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         return ['ok' => false, 'message' => $deployResult['message'] ?? 'loot_deploy_failed'];
     }
 
-    $reload = sahtout_soap_reload_token_gift_publish();
+    $reload = sahtout_soap_reload_token_gift_publish($itemEntry, $name);
     $expectLoot = (int) ($gift['deploy_world_chests'] ?? 0) === 1
         || trim((string) ($gift['extra_creature_entries'] ?? '')) !== ''
         || trim((string) ($gift['extra_go_loot_ids'] ?? '')) !== '';
@@ -1589,7 +1589,8 @@ function sahtout_token_gift_redeploy_loot(mysqli $siteDb, mysqli $worldDb, int $
         return ['ok' => false, 'message' => $templateWrite['message'] ?? 'template_write_failed'];
     }
 
-    sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId);
+    $priorItemEntry = (int) ($giftFull['item_entry'] ?? 0);
+    sahtout_token_gift_undeploy_loot($siteDb, $worldDb, $giftId, $priorItemEntry);
 
     $stmt = $siteDb->prepare(
         'SELECT id, item_entry, deploy_world_chests, loot_chance, extra_creature_entries, extra_go_loot_ids, published_at
@@ -1657,13 +1658,16 @@ function sahtout_token_gift_redeploy_loot(mysqli $siteDb, mysqli $worldDb, int $
         $expectLoot
     );
 
+    $contentReload = sahtout_soap_reload_token_gift_content($itemEntry, $name);
+    $reload = $contentReload;
+    if (empty($contentReload['pending_restart'])) {
+        $reload = sahtout_soap_merge_reload_results($contentReload, sahtout_soap_reload_token_gift_loot());
+    }
+
     return [
         'ok' => true,
         'message' => 'loot_deployed',
-        'reload' => sahtout_soap_merge_reload_results(
-            sahtout_soap_reload_token_gift_content(),
-            sahtout_soap_reload_token_gift_loot()
-        ),
+        'reload' => $reload,
         'verify' => $verify,
     ];
 }
@@ -1728,8 +1732,12 @@ function sahtout_token_gift_record_loot_deployment(
     $stmt->close();
 }
 
-function sahtout_token_gift_undeploy_loot(mysqli $siteDb, mysqli $worldDb, int $giftId): void
-{
+function sahtout_token_gift_undeploy_loot(
+    mysqli $siteDb,
+    mysqli $worldDb,
+    int $giftId,
+    int $itemEntry = 0
+): void {
     $comment = sahtout_token_gift_loot_comment($giftId);
 
     foreach (['gameobject_loot_template', 'creature_loot_template'] as $table) {
@@ -1741,7 +1749,50 @@ function sahtout_token_gift_undeploy_loot(mysqli $siteDb, mysqli $worldDb, int $
         }
     }
 
+    if ($itemEntry > 0) {
+        sahtout_token_gift_delete_loot_rows_for_item($worldDb, $itemEntry, $comment);
+    }
+
     $siteDb->query('DELETE FROM token_gift_loot_deployments WHERE token_gift_id = ' . (int) $giftId);
+}
+
+function sahtout_token_gift_delete_loot_rows_for_item(
+    mysqli $worldDb,
+    int $itemEntry,
+    string $giftComment = ''
+): void {
+    if ($itemEntry <= 0 || $worldDb->connect_error) {
+        return;
+    }
+
+    foreach (['gameobject_loot_template', 'creature_loot_template'] as $table) {
+        if ($giftComment !== '') {
+            $del = $worldDb->prepare("DELETE FROM `{$table}` WHERE `Item` = ? AND `Comment` = ?");
+            if ($del) {
+                $del->bind_param('is', $itemEntry, $giftComment);
+                $del->execute();
+                $del->close();
+            }
+        }
+
+        $delTagged = $worldDb->prepare(
+            "DELETE FROM `{$table}` WHERE `Item` = ? AND `Comment` LIKE 'SahtoutCMS:tg:%'"
+        );
+        if ($delTagged) {
+            $delTagged->bind_param('i', $itemEntry);
+            $delTagged->execute();
+            $delTagged->close();
+        }
+
+        foreach (sahtout_token_gift_world_chest_loot_ids() as $lootEntry) {
+            $delChest = $worldDb->prepare("DELETE FROM `{$table}` WHERE `Entry` = ? AND `Item` = ?");
+            if ($delChest) {
+                $delChest->bind_param('ii', $lootEntry, $itemEntry);
+                $delChest->execute();
+                $delChest->close();
+            }
+        }
+    }
 }
 
 /** @return array{ok:bool, message:string} */
@@ -1774,6 +1825,6 @@ function sahtout_token_gift_update_world_content(
     return [
         'ok' => true,
         'message' => 'updated',
-        'reload' => sahtout_soap_reload_token_gift_content(),
+        'reload' => sahtout_soap_reload_token_gift_content($itemEntry, $name),
     ];
 }
