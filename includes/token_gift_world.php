@@ -550,7 +550,7 @@ function sahtout_token_gift_verify_world_publish(
         if ((int) ($itemRow['class'] ?? 0) !== 12) {
             $dbIssues[] = 'item_class';
         }
-        if ((int) ($itemRow['displayid'] ?? 0) <= 0) {
+        if ((int) ($itemRow['displayid'] ?? 0) !== sahtout_token_gift_item_display_id()) {
             $dbIssues[] = 'item_display';
         }
         if ((int) ($itemRow[$startQuestKey] ?? 0) !== $questId) {
@@ -735,22 +735,9 @@ function sahtout_token_gift_item_short_description(): string
 
 function sahtout_token_gift_reference_item_display_id(mysqli $worldDb, int $itemRef): int
 {
-    if ($itemRef <= 0) {
-        return 1102;
-    }
-    $res = $worldDb->query(
-        'SELECT displayid FROM item_template WHERE entry = ' . (int) $itemRef . ' LIMIT 1'
-    );
-    if ($res && ($row = $res->fetch_assoc())) {
-        $displayId = (int) ($row['displayid'] ?? 0);
-        $res->free();
-        if ($displayId > 0) {
-            return $displayId;
-        }
-    }
-    $res?->free();
+    unset($worldDb, $itemRef);
 
-    return 1102;
+    return sahtout_token_gift_item_display_id();
 }
 
 function sahtout_token_gift_item_publish_overrides(
@@ -842,11 +829,11 @@ function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $qu
                 'ExclusiveGroup' => 0,
                 'BreadcrumbForQuestId' => 0,
                 'ProvidedItemCount' => 1,
-                'SpecialFlags' => 0,
+                'SpecialFlags' => 1,
             ]);
         } else {
             $stmt = $worldDb->prepare(
-                'INSERT INTO quest_template_addon (ID, ProvidedItemCount, SpecialFlags) VALUES (?, 1, 0)'
+                'INSERT INTO quest_template_addon (ID, ProvidedItemCount, SpecialFlags) VALUES (?, 1, 1)'
             );
             if ($stmt) {
                 $stmt->bind_param('i', $questId);
@@ -858,7 +845,7 @@ function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $qu
 
     $upd = $worldDb->prepare(
         'UPDATE quest_template_addon SET PrevQuestId = 0, NextQuestId = 0, ExclusiveGroup = 0,
-         BreadcrumbForQuestId = 0, ProvidedItemCount = 1, SpecialFlags = 0 WHERE ID = ?'
+         BreadcrumbForQuestId = 0, ProvidedItemCount = 1, SpecialFlags = 1 WHERE ID = ?'
     );
     if ($upd) {
         $upd->bind_param('i', $questId);
@@ -1045,44 +1032,110 @@ function sahtout_world_clone_row(
     return $ok;
 }
 
-function sahtout_token_gift_next_item_entry(mysqli $siteDb, mysqli $worldDb): int
+function sahtout_token_gift_gift_owns_world_id(mysqli $siteDb, int $giftId, int $worldId): bool
 {
-    $base = sahtout_token_gift_id_base();
-    $siteMax = 0;
-    $res = $siteDb->query('SELECT COALESCE(MAX(item_entry), 0) AS m FROM token_gifts WHERE item_entry >= ' . (int) $base);
-    if ($res && ($row = $res->fetch_assoc())) {
-        $siteMax = (int) ($row['m'] ?? 0);
+    if ($giftId <= 0 || $worldId <= 0) {
+        return false;
     }
-    $res?->free();
-
-    $worldMax = 0;
-    $wres = $worldDb->query('SELECT COALESCE(MAX(entry), 0) AS m FROM item_template WHERE entry >= ' . (int) $base);
-    if ($wres && ($wrow = $wres->fetch_assoc())) {
-        $worldMax = (int) ($wrow['m'] ?? 0);
+    $stmt = $siteDb->prepare(
+        'SELECT id FROM token_gifts WHERE id = ? AND item_entry = ? AND quest_id = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        return false;
     }
-    $wres?->free();
+    $stmt->bind_param('iii', $giftId, $worldId, $worldId);
+    $stmt->execute();
+    $ok = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
 
-    return max($base, $siteMax, $worldMax) + 1;
+    return $ok;
 }
 
-function sahtout_token_gift_next_quest_id(mysqli $siteDb, mysqli $worldDb): int
+function sahtout_token_gift_world_id_claimed_by_other_gift(mysqli $siteDb, int $giftId, int $worldId): bool
 {
-    $base = sahtout_token_gift_id_base();
-    $siteMax = 0;
-    $res = $siteDb->query('SELECT COALESCE(MAX(quest_id), 0) AS m FROM token_gifts WHERE quest_id >= ' . (int) $base);
-    if ($res && ($row = $res->fetch_assoc())) {
-        $siteMax = (int) ($row['m'] ?? 0);
+    if ($worldId <= 0) {
+        return false;
     }
-    $res?->free();
-
-    $worldMax = 0;
-    $wres = $worldDb->query('SELECT COALESCE(MAX(ID), 0) AS m FROM quest_template WHERE ID >= ' . (int) $base);
-    if ($wres && ($wrow = $wres->fetch_assoc())) {
-        $worldMax = (int) ($wrow['m'] ?? 0);
+    $stmt = $siteDb->prepare(
+        'SELECT id FROM token_gifts WHERE id != ? AND (item_entry = ? OR quest_id = ?) LIMIT 1'
+    );
+    if (!$stmt) {
+        return false;
     }
-    $wres?->free();
+    $stmt->bind_param('iii', $giftId, $worldId, $worldId);
+    $stmt->execute();
+    $claimed = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
 
-    return max($base, $siteMax, $worldMax) + 1;
+    return $claimed;
+}
+
+function sahtout_token_gift_can_assign_world_id(
+    mysqli $siteDb,
+    mysqli $worldDb,
+    int $giftId,
+    int $worldId
+): bool {
+    if (!sahtout_token_gift_is_reserved_world_id($worldId)) {
+        return false;
+    }
+    if (sahtout_token_gift_gift_owns_world_id($siteDb, $giftId, $worldId)) {
+        return true;
+    }
+    if (sahtout_token_gift_world_id_claimed_by_other_gift($siteDb, $giftId, $worldId)) {
+        return false;
+    }
+    if (sahtout_world_row_exists($worldDb, 'item_template', $worldId)) {
+        return false;
+    }
+    if (sahtout_world_row_exists($worldDb, 'quest_template', $worldId)) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @return array{ok:bool, message?:string, item_entry?:int, quest_id?:int}
+ */
+function sahtout_token_gift_resolve_world_ids(
+    mysqli $siteDb,
+    mysqli $worldDb,
+    int $giftId,
+    int $currentItemEntry,
+    int $currentQuestId
+): array {
+    if ($giftId <= 0) {
+        return ['ok' => false, 'message' => 'invalid_gift'];
+    }
+
+    if (
+        sahtout_token_gift_is_reserved_world_id($currentItemEntry)
+        && $currentItemEntry === $currentQuestId
+        && sahtout_token_gift_gift_owns_world_id($siteDb, $giftId, $currentItemEntry)
+    ) {
+        return [
+            'ok' => true,
+            'item_entry' => $currentItemEntry,
+            'quest_id' => $currentQuestId,
+        ];
+    }
+
+    $first = sahtout_token_gift_world_id_first();
+    $last = sahtout_token_gift_world_id_last();
+    for ($worldId = $first; $worldId <= $last; $worldId++) {
+        if (!sahtout_token_gift_can_assign_world_id($siteDb, $worldDb, $giftId, $worldId)) {
+            continue;
+        }
+
+        return [
+            'ok' => true,
+            'item_entry' => $worldId,
+            'quest_id' => $worldId,
+        ];
+    }
+
+    return ['ok' => false, 'message' => 'world_id_slots_exhausted'];
 }
 
 /**
@@ -1215,12 +1268,12 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
 
     $itemEntry = (int) ($gift['item_entry'] ?? 0);
     $questId = (int) ($gift['quest_id'] ?? 0);
-    if ($itemEntry <= 0) {
-        $itemEntry = sahtout_token_gift_next_item_entry($siteDb, $worldDb);
+    $resolved = sahtout_token_gift_resolve_world_ids($siteDb, $worldDb, $giftId, $itemEntry, $questId);
+    if (!$resolved['ok']) {
+        return ['ok' => false, 'message' => $resolved['message'] ?? 'world_id_slots_exhausted'];
     }
-    if ($questId <= 0) {
-        $questId = sahtout_token_gift_next_quest_id($siteDb, $worldDb);
-    }
+    $itemEntry = (int) ($resolved['item_entry'] ?? 0);
+    $questId = (int) ($resolved['quest_id'] ?? 0);
 
     $gift['item_entry'] = $itemEntry;
     $gift['quest_id'] = $questId;

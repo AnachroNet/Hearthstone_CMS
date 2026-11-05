@@ -720,6 +720,8 @@ if ($shop_tab === 'rewards') {
 }
 $tokenGiftsReady = isset($site_db) && $site_db instanceof mysqli && sahtout_token_gifts_table_exists($site_db);
 $allTokenGifts = $tokenGiftsReady ? sahtout_admin_fetch_token_gifts($site_db) : [];
+$tokenGiftCount = $tokenGiftsReady ? sahtout_admin_token_gift_count($site_db) : 0;
+$tokenGiftAtMax = $tokenGiftCount >= sahtout_token_gift_max_promos();
 $canPublishTokenGifts = sahtout_admin_can_publish_token_gifts();
 $tokenGiftChestLootIds = sahtout_token_gift_world_chest_loot_ids();
 $rewardsTabQuery = ['tab' => 'rewards', 'subtab' => $rewards_subtab];

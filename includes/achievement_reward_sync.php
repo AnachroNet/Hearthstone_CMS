@@ -6,6 +6,7 @@ if (!defined('ALLOWED_ACCESS')) {
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_achievement_rewards.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'character_stat_reward_sync.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_sync.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'website_activity.php';
 
 function sahtout_achievement_token_grants_table_exists(mysqli $siteDb): bool
 {
@@ -183,12 +184,20 @@ function sahtout_sync_achievement_rewards(mysqli $siteDb, mysqli $charDb, int $a
                 throw new RuntimeException('token_update');
             }
             $siteDb->commit();
+            $title = $titles[$achId] ?? null;
             $granted[] = [
                 'achievement_id' => $achId,
                 'tokens' => $tokenAmount,
-                'title' => $titles[$achId] ?? null,
+                'title' => $title,
             ];
             $tokensAdded += $tokenAmount;
+            $detailTitle = trim((string) $title) !== '' ? (string) $title : ('Achievement #' . $achId);
+            sahtout_log_website_activity(
+                $siteDb,
+                $accountId,
+                'Achievement Token Reward',
+                '+' . number_format($tokenAmount) . ' tokens — ' . $detailTitle
+            );
         } catch (Throwable $e) {
             $siteDb->rollback();
             if ($siteDb->errno !== 1062) {

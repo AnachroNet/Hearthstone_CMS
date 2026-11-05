@@ -4,11 +4,12 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_token_gifts.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'website_activity.php';
 
 /**
  * @return array{
  *   ok: bool,
- *   granted: list<array{token_gift_id:int, quest_id:int, tokens:int, name:string}>,
+ *   granted: list<array{token_gift_id:int, quest_id:int, tokens:int, name:string, character_guid?:int}>,
  *   tokens_added: int,
  *   message: string
  * }
@@ -31,6 +32,8 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
     if ($charDb->connect_error) {
         return $empty('char_db_unavailable');
     }
+
+    $useSyncState = sahtout_token_gift_reward_sync_state_table_exists($siteDb);
 
     $res = $siteDb->query(
         'SELECT id, name, quest_id, tokens FROM token_gifts
@@ -55,20 +58,7 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
         return $empty('no_active_gifts');
     }
 
-    $grantStmt = $siteDb->prepare('SELECT token_gift_id FROM token_gift_grants WHERE account_id = ?');
-    if (!$grantStmt) {
-        return ['ok' => false, 'granted' => [], 'tokens_added' => 0, 'message' => 'grant_query_failed'];
-    }
-    $grantStmt->bind_param('i', $accountId);
-    $grantStmt->execute();
-    $grantRes = $grantStmt->get_result();
-    $already = [];
-    while ($row = $grantRes->fetch_assoc()) {
-        $already[(int) $row['token_gift_id']] = true;
-    }
-    $grantStmt->close();
-
-    $charStmt = $charDb->prepare('SELECT guid FROM characters WHERE account = ?');
+    $charStmt = $charDb->prepare('SELECT guid, name FROM characters WHERE account = ?');
     if (!$charStmt) {
         return ['ok' => false, 'granted' => [], 'tokens_added' => 0, 'message' => 'char_list_failed'];
     }
@@ -76,8 +66,13 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
     $charStmt->execute();
     $guidRes = $charStmt->get_result();
     $guids = [];
+    $charNames = [];
     while ($row = $guidRes->fetch_assoc()) {
-        $guids[] = (int) ($row['guid'] ?? 0);
+        $guid = (int) ($row['guid'] ?? 0);
+        if ($guid > 0) {
+            $guids[] = $guid;
+            $charNames[$guid] = (string) ($row['name'] ?? '');
+        }
     }
     $charStmt->close();
 
@@ -85,25 +80,11 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
         return $empty('no_characters');
     }
 
-    $completedQuests = sahtout_account_completed_quest_ids($charDb, $guids);
-
-    $pending = [];
-    foreach ($gifts as $giftId => $row) {
-        if (isset($already[$giftId])) {
-            continue;
-        }
-        $questId = (int) ($row['quest_id'] ?? 0);
-        if (isset($completedQuests[$questId])) {
-            $pending[] = $row;
-        }
-    }
-
-    if ($pending === []) {
-        return $empty('none_eligible');
-    }
+    $questIds = array_values(array_unique(array_map(static fn (array $g): int => (int) ($g['quest_id'] ?? 0), $gifts)));
+    $rewardedActiveByQuestGuid = sahtout_token_gift_rewarded_active_map($charDb, $guids, $questIds);
 
     $insertGrant = $siteDb->prepare(
-        'INSERT INTO token_gift_grants (account_id, token_gift_id, quest_id, tokens_awarded) VALUES (?, ?, ?, ?)'
+        'INSERT INTO token_gift_grants (account_id, token_gift_id, character_guid, quest_id, tokens_awarded) VALUES (?, ?, ?, ?, ?)'
     );
     $addTokens = $siteDb->prepare(
         'UPDATE user_currencies SET tokens = LEAST(tokens + ?, 9999999) WHERE account_id = ?'
@@ -112,45 +93,286 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
         return ['ok' => false, 'granted' => [], 'tokens_added' => 0, 'message' => 'prepare_failed'];
     }
 
+    $upsertState = null;
+    $selectState = null;
+    if ($useSyncState) {
+        $upsertState = $siteDb->prepare(
+            'INSERT INTO token_gift_reward_sync_state (account_id, token_gift_id, character_guid, last_seen_rewarded_active)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE last_seen_rewarded_active = VALUES(last_seen_rewarded_active)'
+        );
+        $selectState = $siteDb->prepare(
+            'SELECT last_seen_rewarded_active FROM token_gift_reward_sync_state
+             WHERE account_id = ? AND token_gift_id = ? AND character_guid = ?'
+        );
+    }
+
     $granted = [];
     $tokensAdded = 0;
 
-    foreach ($pending as $row) {
-        $giftId = (int) ($row['id'] ?? 0);
-        $questId = (int) ($row['quest_id'] ?? 0);
-        $tokenAmount = (int) ($row['tokens'] ?? 0);
-        $siteDb->begin_transaction();
-        try {
-            $insertGrant->bind_param('iiii', $accountId, $giftId, $questId, $tokenAmount);
-            if (!$insertGrant->execute()) {
-                throw new RuntimeException('grant_insert');
+    if (!$useSyncState) {
+        $legacyAlready = [];
+        $legacyStmt = $siteDb->prepare('SELECT token_gift_id FROM token_gift_grants WHERE account_id = ?');
+        if ($legacyStmt) {
+            $legacyStmt->bind_param('i', $accountId);
+            $legacyStmt->execute();
+            $legacyRes = $legacyStmt->get_result();
+            while ($legacyRow = $legacyRes->fetch_assoc()) {
+                $legacyAlready[(int) $legacyRow['token_gift_id']] = true;
             }
-            $addTokens->bind_param('ii', $tokenAmount, $accountId);
-            if (!$addTokens->execute() || $addTokens->affected_rows <= 0) {
-                throw new RuntimeException('token_update');
+            $legacyStmt->close();
+        }
+        $completedQuests = sahtout_account_completed_quest_ids($charDb, $guids);
+        foreach ($gifts as $giftId => $row) {
+            $giftId = (int) $giftId;
+            if (isset($legacyAlready[$giftId])) {
+                continue;
             }
-            $siteDb->commit();
-            $granted[] = [
-                'token_gift_id' => $giftId,
-                'quest_id' => $questId,
-                'tokens' => $tokenAmount,
-                'name' => (string) ($row['name'] ?? ''),
-            ];
-            $tokensAdded += $tokenAmount;
-        } catch (Throwable) {
-            $siteDb->rollback();
+            $questId = (int) ($row['quest_id'] ?? 0);
+            if (!isset($completedQuests[$questId])) {
+                continue;
+            }
+            $tokenAmount = (int) ($row['tokens'] ?? 0);
+            $giftName = (string) ($row['name'] ?? '');
+            $siteDb->begin_transaction();
+            try {
+                $zeroGuid = 0;
+                $insertGrant->bind_param('iiiii', $accountId, $giftId, $zeroGuid, $questId, $tokenAmount);
+                if (!$insertGrant->execute()) {
+                    throw new RuntimeException('grant_insert');
+                }
+                $addTokens->bind_param('ii', $tokenAmount, $accountId);
+                if (!$addTokens->execute() || $addTokens->affected_rows <= 0) {
+                    throw new RuntimeException('token_update');
+                }
+                $siteDb->commit();
+                $detailName = trim($giftName) !== '' ? $giftName : ('Promo #' . $giftId);
+                sahtout_log_website_activity(
+                    $siteDb,
+                    $accountId,
+                    'Token Gift Reward',
+                    '+' . number_format($tokenAmount) . ' tokens — ' . $detailName
+                );
+                $granted[] = [
+                    'token_gift_id' => $giftId,
+                    'quest_id' => $questId,
+                    'tokens' => $tokenAmount,
+                    'name' => $giftName,
+                ];
+                $tokensAdded += $tokenAmount;
+            } catch (Throwable) {
+                $siteDb->rollback();
+            }
+        }
+    } else {
+        foreach ($gifts as $giftId => $row) {
+            $giftId = (int) $giftId;
+            $questId = (int) ($row['quest_id'] ?? 0);
+            $tokenAmount = (int) ($row['tokens'] ?? 0);
+            $giftName = (string) ($row['name'] ?? '');
+
+            sahtout_token_gift_bootstrap_reward_sync_state(
+                $siteDb,
+                $accountId,
+                $giftId,
+                $guids,
+                $rewardedActiveByQuestGuid[$questId] ?? []
+            );
+
+            foreach ($guids as $guid) {
+                $active = (int) (($rewardedActiveByQuestGuid[$questId] ?? [])[$guid] ?? 0);
+                $active = $active > 0 ? 1 : 0;
+
+                $lastSeen = 0;
+                $selectState->bind_param('iii', $accountId, $giftId, $guid);
+                $selectState->execute();
+                $stateRes = $selectState->get_result();
+                if ($stateRow = $stateRes->fetch_assoc()) {
+                    $lastSeen = (int) ($stateRow['last_seen_rewarded_active'] ?? 0) > 0 ? 1 : 0;
+                }
+                $stateRes->free();
+
+                $shouldGrant = $active === 1 && $lastSeen === 0;
+
+                if (!$shouldGrant && $lastSeen !== $active) {
+                    $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $active);
+                    $upsertState->execute();
+                }
+
+                if (!$shouldGrant) {
+                    continue;
+                }
+
+                $siteDb->begin_transaction();
+                try {
+                    $insertGrant->bind_param('iiiii', $accountId, $giftId, $guid, $questId, $tokenAmount);
+                    if (!$insertGrant->execute()) {
+                        throw new RuntimeException('grant_insert');
+                    }
+                    $addTokens->bind_param('ii', $tokenAmount, $accountId);
+                    if (!$addTokens->execute() || $addTokens->affected_rows <= 0) {
+                        throw new RuntimeException('token_update');
+                    }
+                    $seenAfterGrant = 1;
+                    $upsertState->bind_param('iiii', $accountId, $giftId, $guid, $seenAfterGrant);
+                    if (!$upsertState->execute()) {
+                        throw new RuntimeException('sync_state');
+                    }
+                    $siteDb->commit();
+
+                    $charName = $charNames[$guid] ?? '';
+                    $detailName = trim($giftName) !== '' ? $giftName : ('Promo #' . $giftId);
+                    sahtout_log_website_activity(
+                        $siteDb,
+                        $accountId,
+                        'Token Gift Reward',
+                        '+' . number_format($tokenAmount) . ' tokens — ' . $detailName,
+                        $charName !== '' ? $charName : null
+                    );
+
+                    $granted[] = [
+                        'token_gift_id' => $giftId,
+                        'quest_id' => $questId,
+                        'tokens' => $tokenAmount,
+                        'name' => $giftName,
+                        'character_guid' => $guid,
+                    ];
+                    $tokensAdded += $tokenAmount;
+                } catch (Throwable) {
+                    $siteDb->rollback();
+                }
+            }
         }
     }
 
     $insertGrant->close();
     $addTokens->close();
+    $selectState?->close();
+    $upsertState?->close();
 
     return [
         'ok' => true,
         'granted' => $granted,
         'tokens_added' => $tokensAdded,
-        'message' => $tokensAdded > 0 ? 'granted' : 'none_granted',
+        'message' => $tokensAdded > 0 ? 'granted' : 'none_eligible',
     ];
+}
+
+/**
+ * After upgrading from one-time grants, seed sync state so existing payouts are not duplicated.
+ *
+ * @param list<int> $guids
+ * @param array<int, int> $activeByGuid guid => 0|1
+ */
+function sahtout_token_gift_bootstrap_reward_sync_state(
+    mysqli $siteDb,
+    int $accountId,
+    int $giftId,
+    array $guids,
+    array $activeByGuid
+): void {
+    static $bootstrapped = [];
+    $key = $accountId . ':' . $giftId;
+    if (isset($bootstrapped[$key])) {
+        return;
+    }
+    $bootstrapped[$key] = true;
+
+    $check = $siteDb->prepare(
+        'SELECT 1 FROM token_gift_reward_sync_state WHERE account_id = ? AND token_gift_id = ? LIMIT 1'
+    );
+    if (!$check) {
+        return;
+    }
+    $check->bind_param('ii', $accountId, $giftId);
+    $check->execute();
+    $hasState = $check->get_result()->num_rows > 0;
+    $check->close();
+    if ($hasState) {
+        return;
+    }
+
+    $grantCountStmt = $siteDb->prepare(
+        'SELECT COUNT(*) AS c FROM token_gift_grants WHERE account_id = ? AND token_gift_id = ?'
+    );
+    if (!$grantCountStmt) {
+        return;
+    }
+    $grantCountStmt->bind_param('ii', $accountId, $giftId);
+    $grantCountStmt->execute();
+    $grantCount = (int) ($grantCountStmt->get_result()->fetch_assoc()['c'] ?? 0);
+    $grantCountStmt->close();
+
+    if ($grantCount <= 0) {
+        return;
+    }
+
+    $ins = $siteDb->prepare(
+        'INSERT INTO token_gift_reward_sync_state (account_id, token_gift_id, character_guid, last_seen_rewarded_active)
+         VALUES (?, ?, ?, ?)'
+    );
+    if (!$ins) {
+        return;
+    }
+
+    foreach ($guids as $guid) {
+        $guid = (int) $guid;
+        if ($guid <= 0) {
+            continue;
+        }
+        $active = (int) ($activeByGuid[$guid] ?? 0) > 0 ? 1 : 0;
+        $ins->bind_param('iiii', $accountId, $giftId, $guid, $active);
+        $ins->execute();
+    }
+    $ins->close();
+}
+
+/**
+ * @param list<int> $guids
+ * @param list<int> $questIds
+ * @return array<int, array<int, int>> questId => guid => active (0|1)
+ */
+function sahtout_token_gift_rewarded_active_map(mysqli $charDb, array $guids, array $questIds): array
+{
+    $guids = array_values(array_filter(array_map('intval', $guids), static fn (int $g): bool => $g > 0));
+    $questIds = array_values(array_filter(array_map('intval', $questIds), static fn (int $q): bool => $q > 0));
+    $map = [];
+    foreach ($questIds as $q) {
+        $map[$q] = [];
+    }
+    if ($guids === [] || $questIds === []) {
+        return $map;
+    }
+
+    $rewardedTable = $charDb->query("SHOW TABLES LIKE 'character_queststatus_rewarded'");
+    $hasRewarded = $rewardedTable && $rewardedTable->num_rows > 0;
+    $rewardedTable?->free();
+    if (!$hasRewarded) {
+        return $map;
+    }
+
+    $guidPh = implode(',', array_fill(0, count($guids), '?'));
+    $questPh = implode(',', array_fill(0, count($questIds), '?'));
+    $sql = "SELECT guid, quest, active FROM character_queststatus_rewarded
+            WHERE guid IN ({$guidPh}) AND quest IN ({$questPh})";
+    $stmt = $charDb->prepare($sql);
+    if (!$stmt) {
+        return $map;
+    }
+    $types = str_repeat('i', count($guids) + count($questIds));
+    $stmt->bind_param($types, ...array_merge($guids, $questIds));
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $q = (int) ($row['quest'] ?? 0);
+        $g = (int) ($row['guid'] ?? 0);
+        if ($q > 0 && $g > 0) {
+            $map[$q][$g] = (int) ($row['active'] ?? 0) > 0 ? 1 : 0;
+        }
+    }
+    $stmt->close();
+
+    return $map;
 }
 
 /** @param list<int> $guids @return array<int, true> quest id => completed */

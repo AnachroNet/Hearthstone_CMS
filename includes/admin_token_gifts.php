@@ -7,6 +7,21 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_settings.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_world.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 
+function sahtout_admin_token_gift_count(mysqli $siteDb): int
+{
+    if (!sahtout_token_gifts_table_exists($siteDb)) {
+        return 0;
+    }
+    $res = $siteDb->query('SELECT COUNT(*) AS c FROM token_gifts');
+    if (!$res) {
+        return 0;
+    }
+    $count = (int) ($res->fetch_assoc()['c'] ?? 0);
+    $res->free();
+
+    return $count;
+}
+
 function sahtout_token_gifts_table_exists(mysqli $siteDb): bool
 {
     static $exists = null;
@@ -27,6 +42,19 @@ function sahtout_token_gift_grants_table_exists(mysqli $siteDb): bool
         return $exists;
     }
     $res = $siteDb->query("SHOW TABLES LIKE 'token_gift_grants'");
+    $exists = $res && $res->num_rows > 0;
+    $res?->free();
+
+    return $exists;
+}
+
+function sahtout_token_gift_reward_sync_state_table_exists(mysqli $siteDb): bool
+{
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    $res = $siteDb->query("SHOW TABLES LIKE 'token_gift_reward_sync_state'");
     $exists = $res && $res->num_rows > 0;
     $res?->free();
 
@@ -79,6 +107,9 @@ function sahtout_admin_add_token_gift(
     }
     if ($tokens < 1 || $tokens > 9999999) {
         return ['ok' => false, 'message' => 'invalid_tokens'];
+    }
+    if (sahtout_admin_token_gift_count($siteDb) >= sahtout_token_gift_max_promos()) {
+        return ['ok' => false, 'message' => 'max_gifts'];
     }
     $lootChance = max(0.01, min(100.0, $lootChance));
     $letterText = trim($letterText);

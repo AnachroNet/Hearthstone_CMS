@@ -528,7 +528,7 @@ if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_erro
     }
 
     // Get activity log
-    $stmt = $site_db->prepare("SELECT action, timestamp, details, character_name FROM website_activity_log WHERE account_id = ? ORDER BY timestamp DESC LIMIT 10");
+    $stmt = $site_db->prepare("SELECT action, timestamp, details, character_name FROM website_activity_log WHERE account_id = ? ORDER BY timestamp DESC LIMIT 25");
     $stmt->bind_param('i', $_SESSION['user_id']);
     $stmt->execute();
     $activityLog = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

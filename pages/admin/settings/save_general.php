@@ -112,8 +112,6 @@ $shop_token_gift_loot_ids_raw = trim((string) ($_POST['shop_token_gift_loot_ids'
 $shop_token_gift_loot_ids_new = preg_replace('/[^0-9,\s;]+/', '', $shop_token_gift_loot_ids_raw) ?? '';
 $shop_token_gift_item_template_ref_new = max(1, min(9999999, (int) ($_POST['shop_token_gift_item_template_ref'] ?? 2223)));
 $shop_token_gift_quest_template_ref_new = max(0, min(9999999, (int) ($_POST['shop_token_gift_quest_template_ref'] ?? 0)));
-$shop_token_gift_id_base_new = max(100000, min(9999999, (int) ($_POST['shop_token_gift_id_base'] ?? 9100000)));
-
 $site_timezone_new = trim((string) ($_POST['site_timezone'] ?? ''));
 if (!in_array($site_timezone_new, sahtout_site_timezone_ids(), true)) {
     $errors[] = translate('error_invalid_timezone', 'Please choose a timezone from the list.');
@@ -139,7 +137,6 @@ if (empty($errors)) {
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_loot_ids', $shop_token_gift_loot_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_item_template_ref', $shop_token_gift_item_template_ref_new, 'int', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_quest_template_ref', $shop_token_gift_quest_template_ref_new, 'int', $editorId);
-        $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_id_base', $shop_token_gift_id_base_new, 'int', $editorId);
 
         if ($ok && $registration_allow_shared_email_new) {
             if (!sahtout_pending_accounts_drop_unique_email($site_db)

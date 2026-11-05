@@ -128,6 +128,13 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
         if (!$result['ok']) {
             $msg = match ($result['message'] ?? '') {
                 'invalid_tokens' => translate('admin_token_gifts_invalid_tokens', 'Enter a token amount between 1 and 9,999,999.'),
+                'max_gifts' => translate(
+                    'admin_token_gifts_max_gifts',
+                    'You can have at most %d token gifts (world item/quest IDs %d–%d).',
+                    sahtout_token_gift_max_promos(),
+                    sahtout_token_gift_world_id_first(),
+                    sahtout_token_gift_world_id_last()
+                ),
                 default => translate('admin_token_gifts_add_failed', 'Could not add token gift.'),
             };
 
@@ -231,6 +238,13 @@ function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $wor
                 'quest_ref_missing' => translate(
                     'admin_token_gifts_quest_ref_missing',
                     'Reference quest is missing. Set shop.token_gift_quest_template_ref in site settings.'
+                ),
+                'world_id_slots_exhausted' => translate(
+                    'admin_token_gifts_world_id_slots_exhausted',
+                    'No free world IDs left in the %1$d–%2$d range (max %3$d promos). Delete an unused gift or free a slot in item_template / quest_template.',
+                    sahtout_token_gift_world_id_first(),
+                    sahtout_token_gift_world_id_last(),
+                    sahtout_token_gift_max_promos()
                 ),
                 'not_published' => translate('admin_token_gifts_not_published', 'Publish the gift to the world before redeploying loot.'),
                 'page_text_table_missing' => translate(

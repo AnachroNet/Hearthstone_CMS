@@ -4,6 +4,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'admin_character_stat_rewards.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'website_activity.php';
 
 /**
  * @return array{
@@ -123,6 +124,15 @@ function sahtout_sync_character_stat_rewards(mysqli $siteDb, mysqli $charDb, int
             $siteDb->commit();
             $granted[] = $item;
             $tokensAdded += $tokenAmount;
+            $type = (string) ($item['stat_type'] ?? '');
+            $label = translate(sahtout_character_stat_type_label_key($type), $type);
+            $threshold = number_format((int) ($item['threshold'] ?? 0));
+            sahtout_log_website_activity(
+                $siteDb,
+                $accountId,
+                'Character Milestone Token Reward',
+                '+' . number_format($tokenAmount) . ' tokens — ' . $label . ' ≥ ' . $threshold
+            );
         } catch (Throwable $e) {
             $siteDb->rollback();
             if ($siteDb->errno !== 1062) {

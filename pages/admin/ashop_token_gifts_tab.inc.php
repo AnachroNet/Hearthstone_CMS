@@ -7,12 +7,22 @@ if (!defined('ALLOWED_ACCESS')) {
 /** @var string $rewardsFormAction */
 /** @var bool $canPublishTokenGifts */
 /** @var list<int> $tokenGiftChestLootIds */
+/** @var int $tokenGiftCount */
+/** @var bool $tokenGiftAtMax */
 ?>
 <div id="token-gifts-panel" class="space-y-4 md:space-y-6 scroll-mt-24">
     <div class="wow-panel p-4 md:p-6 lg:p-8">
         <h2 class="section-title text-lg md:text-xl mb-2"><?php echo translate('admin_token_gifts_heading', 'Token gift letters'); ?></h2>
-        <p class="text-gray-400 text-sm mb-4 max-w-3xl"><?php echo translate('admin_token_gifts_help', 'Create sealed-letter promos: publish an item and auto-complete quest to the world, optionally drop the letter into battered chest loot pools (site setting Token Gift Loot IDs), and grant shop tokens once per account when any character completes the quest.'); ?></p>
-        <p class="text-amber-200/90 text-sm mb-6 max-w-3xl border border-amber-500/25 bg-amber-950/20 rounded-sm px-3 py-2"><?php echo translate('admin_token_gifts_world_restart_notice', 'AzerothCore does not fully reload new item_template entries over SOAP. After the first publish (or when you change item stats), restart the worldserver so the letter item loads in-game. Without that, the quest tracker may show a red question mark until the client knows the item. Quest, page_text, and loot still reload via SOAP when configured.'); ?></p>
+        <p class="text-gray-400 text-sm mb-4 max-w-3xl"><?php echo translate('admin_token_gifts_help', 'Create sealed-letter promos: publish an item and repeatable auto-complete quest to the world, optionally drop the letter into battered chest loot pools (site setting Token Gift Loot IDs), and grant shop tokens each time a character completes the quest again.'); ?></p>
+        <p class="text-xs text-gray-500 mb-4 max-w-3xl"><?php echo translate(
+            'admin_token_gifts_world_id_range',
+            'World item and quest IDs are assigned from the unused %1$d–%2$d range (%3$d promos max). Items use display ID %4$d; letter text is quest dialog only (PageText stays 0).',
+            sahtout_token_gift_world_id_first(),
+            sahtout_token_gift_world_id_last(),
+            sahtout_token_gift_max_promos(),
+            sahtout_token_gift_item_display_id()
+        ); ?></p>
+        <p class="text-amber-200/90 text-sm mb-6 max-w-3xl border border-amber-500/25 bg-amber-950/20 rounded-sm px-3 py-2"><?php echo translate('admin_token_gifts_world_restart_notice', 'After the first publish, restart the worldserver if verify reports SOAP item lookup failed. Quest and loot tables can reload via SOAP when configured.'); ?></p>
 
         <?php if (!$tokenGiftsReady): ?>
             <p class="text-amber-300 text-sm"><?php echo translate('admin_token_gifts_table_missing', 'Run token_gifts.sql on the website database first.'); ?></p>
@@ -25,7 +35,17 @@ if (!defined('ALLOWED_ACCESS')) {
             </p>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="grid md:grid-cols-2 gap-4 items-start mb-8 pb-6 border-b border-[rgba(201,162,39,.12)]">
+        <?php if ($tokenGiftAtMax): ?>
+            <p class="text-amber-300 text-sm mb-4"><?php echo translate(
+                'admin_token_gifts_max_gifts',
+                'You can have at most %d token gifts (world item/quest IDs %d–%d).',
+                sahtout_token_gift_max_promos(),
+                sahtout_token_gift_world_id_first(),
+                sahtout_token_gift_world_id_last()
+            ); ?></p>
+        <?php endif; ?>
+
+        <form method="post" action="<?php echo htmlspecialchars($rewardsFormAction, ENT_QUOTES, 'UTF-8'); ?>" class="grid md:grid-cols-2 gap-4 items-start mb-8 pb-6 border-b border-[rgba(201,162,39,.12)]<?php echo $tokenGiftAtMax ? ' opacity-50 pointer-events-none' : ''; ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
             <input type="hidden" name="action" value="tg_add">
             <div class="md:col-span-2">
@@ -84,9 +104,6 @@ if (!defined('ALLOWED_ACCESS')) {
                                 <?php if ($published): ?>
                                     · <?php echo translate('admin_token_gifts_status_published', 'Published'); ?>
                                     · <?php echo translate('admin_token_gifts_item_quest', 'Item %1$d / Quest %2$d', (int) ($row['item_entry'] ?? 0), (int) ($row['quest_id'] ?? 0)); ?>
-                                    <?php if ((int) ($row['page_text_id'] ?? 0) > 0): ?>
-                                        · <?php echo translate('admin_token_gifts_page_text', 'PageText %d', (int) $row['page_text_id']); ?>
-                                    <?php endif; ?>
                                 <?php else: ?>
                                     · <?php echo translate('admin_token_gifts_status_draft', 'Draft (not in world)'); ?>
                                 <?php endif; ?>
@@ -140,7 +157,6 @@ if (!defined('ALLOWED_ACCESS')) {
                                     <i class="fas fa-globe-americas" aria-hidden="true"></i>
                                     <?php echo translate('admin_token_gifts_republish', 'Republish to world'); ?>
                                 </button>
-                                <p class="w-full text-xs text-gray-500 mt-1"><?php echo translate('admin_token_gifts_republish_help', 'Rewrites the letter item and quest in the world database, redeploys loot rows, reloads via SOAP when configured, and runs verify.'); ?></p>
                                 <?php endif; ?>
                                 <button type="submit" name="action" value="tg_delete" class="btn-game btn-danger text-xs py-2 px-3"
                                     onclick="return confirm(<?php echo json_encode(translate('admin_token_gifts_delete_confirm', 'Delete this token gift and remove its loot rows?')); ?>);">
@@ -149,6 +165,9 @@ if (!defined('ALLOWED_ACCESS')) {
                                 </button>
                             <?php endif; ?>
                         </div>
+                        <?php if ($canPublishTokenGifts && $published): ?>
+                        <p class="md:col-span-2 text-xs text-gray-500 -mt-1"><?php echo translate('admin_token_gifts_republish_help', 'Rewrites the letter item and quest in the world database, redeploys loot rows, reloads via SOAP when configured, and runs verify.'); ?></p>
+                        <?php endif; ?>
                     </form>
                 </div>
                 <?php endforeach; ?>

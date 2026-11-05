@@ -6,6 +6,12 @@ if (!defined('ALLOWED_ACCESS')) {
 const SAHTOUT_TOKEN_GIFT_DEFAULT_LOOT_IDS = '2276,2277,2278,2279,2280,2284';
 const SAHTOUT_TOKEN_GIFT_DEFAULT_ITEM_REF = 2223;
 const SAHTOUT_TOKEN_GIFT_DEFAULT_QUEST_REF = 123;
+/** Unused vanilla item_template / quest_template IDs (10 promos max). */
+const SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST = 18270;
+const SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST = 18279;
+const SAHTOUT_TOKEN_GIFT_MAX_PROMOS = 10;
+/** Sealed letter icon (item 2223 display). */
+const SAHTOUT_TOKEN_GIFT_DISPLAY_ID = 1102;
 
 /** @return list<int> */
 function sahtout_token_gift_world_chest_loot_ids(): array
@@ -65,15 +71,35 @@ function sahtout_token_gift_quest_template_ref(): int
     return $stored > 0 ? $stored : SAHTOUT_TOKEN_GIFT_DEFAULT_QUEST_REF;
 }
 
+function sahtout_token_gift_world_id_first(): int
+{
+    return SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST;
+}
+
+function sahtout_token_gift_world_id_last(): int
+{
+    return SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST;
+}
+
+function sahtout_token_gift_max_promos(): int
+{
+    return SAHTOUT_TOKEN_GIFT_MAX_PROMOS;
+}
+
+function sahtout_token_gift_item_display_id(): int
+{
+    return SAHTOUT_TOKEN_GIFT_DISPLAY_ID;
+}
+
+function sahtout_token_gift_is_reserved_world_id(int $worldId): bool
+{
+    return $worldId >= SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST && $worldId <= SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST;
+}
+
+/** @deprecated Legacy setting; reserved IDs are fixed at 18270–18279. */
 function sahtout_token_gift_id_base(): int
 {
-    global $sahtout_site_settings;
-    $base = 600001;
-    if (isset($sahtout_site_settings) && is_array($sahtout_site_settings)) {
-        $base = (int) ($sahtout_site_settings['shop.token_gift_id_base'] ?? $base);
-    }
-
-    return max(100000, $base);
+    return SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST;
 }
 
 /** @return list<int> */
