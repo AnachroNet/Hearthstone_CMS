@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `shop_items` (
   KEY `idx_entry` (`entry`),
   KEY `idx_itemset_id` (`itemset_id`),
   CONSTRAINT `fk_shop_items_entry` FOREIGN KEY (`entry`) REFERENCES `site_items` (`entry`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `chk_shop_items_category` CHECK ((`category` in ('Mount','Pet','Gold','Service','Stuff','Set'))),
+  CONSTRAINT `chk_shop_items_category` CHECK ((`category` in ('Mount','Pet','Gold','Service','Gear','Set'))),
   CONSTRAINT `chk_at_login_flags` CHECK ((`at_login_flags` in (0,1,2,4,8,16,32,64,128,3,5,6,7,9,12,15,31,127,255))),
   CONSTRAINT `chk_is_item` CHECK ((`is_item` in (0,1))),
   CONSTRAINT `chk_is_set` CHECK ((`is_set` in (0,1))),
@@ -240,16 +240,16 @@ INSERT INTO `shop_items` (`item_id`, `category`, `name`, `description`, `image`,
 	(8, 'Gold', '5000 Gold', 'Add 5000 gold you are almost Rich', 'img/shopimg/gold/5000_gold.jpg', 800, 29, '2025-08-28 21:08:42', NULL, 5000, NULL, 0, 0),
 	(9, 'Gold', '10000 Gold', 'Add 10000 gold you are so rich', 'img/shopimg/gold/10000_gold.jpg', 1050, 18, '2025-10-07 16:12:38', NULL, 10000, NULL, 0, 0),
 	(10, 'Mount', 'Swift Spectral Tiger', 'A Beautiful Spectral mount', 'img/shopimg/items/swift_spect_tiger.jpg', 350, 16, '2025-10-07 16:15:00', 49284, 0, NULL, 0, 1),
-	(11, 'Stuff', 'Heroic sword LK', 'glorenzelg high blade of the silver hand', 'img/shopimg/items/glorenzelg-high-bladesilver.jpg', 250, 19, '2025-08-16 14:40:01', 50730, 0, NULL, 0, 1),
+	(11, 'Gear', 'Heroic sword LK', 'glorenzelg high blade of the silver hand', 'img/shopimg/items/glorenzelg-high-bladesilver.jpg', 250, 19, '2025-08-16 14:40:01', 50730, 0, NULL, 0, 1),
 	(12, 'Service', 'Level Boost 70', 'Instantly boosts your character to level 70.', 'img/shopimg/services/level_boost_70.avif', 300, 46, '2025-10-05 21:50:41', NULL, 0, 70, 0, 0),
 	(21, 'Service', 'Character Rename', 'Rename your character in-game.', 'img/shopimg/services/rename.jpg', 100, NULL, '2025-08-06 23:09:48', NULL, 0, NULL, 1, 0),
 	(22, 'Service', 'Gender Change', 'Customize Characters +name', 'img/shopimg/services/gender.jpg', 150, NULL, '2025-07-30 00:41:50', NULL, 0, NULL, 8, 0),
 	(23, 'Service', 'Race Change', 'Race Change +gender+name', 'img/shopimg/services/race_change.jpg', 250, NULL, '2025-08-02 04:12:33', NULL, 0, NULL, 128, 0),
 	(24, 'Mount', 'Ashes of al\'ar', NULL, 'img/shopimg/items/phnx.jpg', 170, 3, '2025-10-05 21:55:05', 32458, 0, NULL, 0, 1),
-	(102, 'Stuff', 'Bulwark of Azzinoth Shield', 'Bulwark of Azzinoth shield', 'img/shopimg/items/shield.png', 650, NULL, '2025-08-02 04:12:51', 32375, 0, NULL, 0, 1),
-	(103, 'Stuff', 'Warglaive of Azzinoth sword', NULL, 'img/shopimg/items/azzinoth_sword1.jpg', 498, NULL, '2025-10-05 20:43:12', 32837, 0, NULL, 0, 1),
-	(104, 'Stuff', 'Thunderfury Sword', 'Thunderfury, Blessed Blade of the Windseeker', 'img/shopimg/items/thunderfury2.jpg', 400, NULL, '2025-08-02 04:12:43', 19019, 0, NULL, 0, 1),
-	(105, 'Stuff', 'Onslaught Battle-Helm', 'Onslaught Battle-Helm', 'img/shopimg/items//warrior_helm.png', 250, NULL, '2025-08-02 04:12:27', 30972, 0, NULL, 0, 1);
+	(102, 'Gear', 'Bulwark of Azzinoth Shield', 'Bulwark of Azzinoth shield', 'img/shopimg/items/shield.png', 650, NULL, '2025-08-02 04:12:51', 32375, 0, NULL, 0, 1),
+	(103, 'Gear', 'Warglaive of Azzinoth sword', NULL, 'img/shopimg/items/azzinoth_sword1.jpg', 498, NULL, '2025-10-05 20:43:12', 32837, 0, NULL, 0, 1),
+	(104, 'Gear', 'Thunderfury Sword', 'Thunderfury, Blessed Blade of the Windseeker', 'img/shopimg/items/thunderfury2.jpg', 400, NULL, '2025-08-02 04:12:43', 19019, 0, NULL, 0, 1),
+	(105, 'Gear', 'Onslaught Battle-Helm', 'Onslaught Battle-Helm', 'img/shopimg/items//warrior_helm.png', 250, NULL, '2025-08-02 04:12:27', 30972, 0, NULL, 0, 1);
 
 -- Listage de la structure de table sahtout_site. site_items
 CREATE TABLE IF NOT EXISTS `site_items` (

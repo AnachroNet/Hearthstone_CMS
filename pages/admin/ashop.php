@@ -48,8 +48,11 @@ $offset = ($page - 1) * $items_per_page;
 
 // Handle filter and search
 $category_filter = isset($_GET['category']) ? trim($_GET['category']) : '';
+if ($category_filter === 'Stuff') {
+    $category_filter = 'Gear';
+}
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
-$valid_categories = ['Mount', 'Pet', 'Gold', 'Service', 'Stuff', 'Set'];
+$valid_categories = ['Mount', 'Pet', 'Gold', 'Service', 'Gear', 'Set'];
 
 $inventory_subtab = 'items';
 if ($shop_tab === 'inventory') {
@@ -87,7 +90,7 @@ $ashop_build_inventory_url = static function (
     return $base_path . 'admin/ashop?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
 };
 
-// Fetch all available site items for Mount, Pet, Stuff dropdown
+// Fetch all available site items for Mount, Pet, Gear dropdown
 $site_items = [];
 $sql = "SELECT entry, name FROM site_items ORDER BY name";
 $stmt = $site_db->prepare($sql);
@@ -133,7 +136,7 @@ $category_dirs = [
     'Gold' => 'gold',
     'Mount' => 'items',
     'Pet' => 'items',
-    'Stuff' => 'items',
+    'Gear' => 'items',
     'Set' => 'items',
     'Service' => 'services'
 ];
@@ -375,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                 }
             }
 
-            if (in_array($category, ['Mount', 'Pet', 'Stuff', 'Set'], true)) {
+            if (in_array($category, ['Mount', 'Pet', 'Gear', 'Set'], true)) {
                 $is_item = 1;
 
                 if ($is_set === 1) {
@@ -508,7 +511,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !sahtout_admin_shop_is_rewards_post
                 $at_login_flags = 0;
                 $is_item = 0;
                 $is_set = 0;
-            } elseif ($category === 'Mount' || $category === 'Pet' || $category === 'Stuff' || $category === 'Set') {
+            } elseif ($category === 'Mount' || $category === 'Pet' || $category === 'Gear' || $category === 'Set') {
                 $gold_amount = 0;
                 $level_boost = null;
                 $at_login_flags = 0;
@@ -1388,7 +1391,7 @@ ob_start();
                                         <option value="Pet"><?php echo translate('admin_shop_category_pet', 'Pet'); ?></option>
                                         <option value="Gold"><?php echo translate('admin_shop_category_gold', 'Gold'); ?></option>
                                         <option value="Service"><?php echo translate('admin_shop_category_service', 'Service'); ?></option>
-                                        <option value="Stuff"><?php echo translate('admin_shop_category_stuff', 'Stuff'); ?></option>
+                                        <option value="Gear"><?php echo translate('admin_shop_category_gear', 'Gear'); ?></option>
                                         <option value="Set"><?php echo translate('admin_shop_category_set', 'Set'); ?></option>
                                     </select>
                                 </div>
@@ -1604,13 +1607,13 @@ ob_start();
 
             // Field groups configuration
             const fieldGroups = {
-                'entry-group': ['Mount', 'Pet', 'Stuff'],
+                'entry-group': ['Mount', 'Pet', 'Gear'],
                 'itemset-group': ['Set'],
                 'gold-group': ['Gold'],
                 'level-boost-group': ['Service'],
                 'login-flags-group': ['Service'],
-                'is-item-group': ['Mount', 'Pet', 'Stuff'],
-                'description-group': ['Mount', 'Pet', 'Stuff', 'Set', 'Service', 'Gold'],
+                'is-item-group': ['Mount', 'Pet', 'Gear'],
+                'description-group': ['Mount', 'Pet', 'Gear', 'Set', 'Service', 'Gold'],
                 'itemset-preview-group': ['Set']
             };
 
@@ -1763,7 +1766,7 @@ ob_start();
                 const isSet = category === 'Set';
 
                 // Auto-set is_item for item categories
-                if (['Mount', 'Pet', 'Stuff', 'Set'].includes(category)) {
+                if (['Mount', 'Pet', 'Gear', 'Set'].includes(category)) {
                     isItemSelect.value = '1';
                 } else {
                     isItemSelect.value = '0';
@@ -1966,7 +1969,7 @@ ob_start();
                     return;
                 }
 
-                if (['Mount', 'Pet', 'Stuff', 'Set'].includes(category)) {
+                if (['Mount', 'Pet', 'Gear', 'Set'].includes(category)) {
                     if (isSet && (!itemsetValue || parseInt(itemsetValue, 10) <= 0)) {
                         e.preventDefault();
                         alert(<?php echo json_encode(translate('admin_shop_js_invalid_itemset_id', 'Please provide a valid item set ID.')); ?>);

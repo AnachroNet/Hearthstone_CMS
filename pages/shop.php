@@ -12,7 +12,10 @@ global $site_db, $world_db;
 $page_class = 'shop';
 
 $selected_category = isset($_GET['category']) ? $_GET['category'] : 'All';
-$valid_categories = ['All', 'Service', 'Mount', 'Pet', 'Gold', 'Stuff', 'Set'];
+if ($selected_category === 'Stuff') {
+    $selected_category = 'Gear';
+}
+$valid_categories = ['All', 'Service', 'Mount', 'Pet', 'Gold', 'Gear', 'Set'];
 if (!in_array($selected_category, $valid_categories, true)) {
     $selected_category = 'All';
 }
@@ -22,12 +25,12 @@ $category_images = [
     'Mount' => 'img/shopimg/icons/category_mount.jpg',
     'Pet' => 'img/shopimg/icons/category_pet.jpg',
     'Gold' => 'img/shopimg/icons/category_gold.webp',
-    'Stuff' => 'img/shopimg/icons/category_stuff.jpg',
+    'Gear' => 'img/shopimg/icons/category_stuff.jpg',
     'Set' => 'img/shopimg/icons/category_stuff.jpg'
 ];
 
 // Categories that should show tooltips
-$tooltip_categories = ['Mount', 'Pet', 'Stuff', 'Set'];
+$tooltip_categories = ['Mount', 'Pet', 'Gear', 'Set'];
 
 // Exact site_items columns needed by generateTooltip() - avoids "SELECT *"
 // (column list verified against the actual site_items schema).
@@ -60,7 +63,12 @@ if ($stmt) {
     $stmt->execute();
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
-        $items[$row['category']][] = $row;
+        $rowCategory = (string) ($row['category'] ?? '');
+        if ($rowCategory === 'Stuff') {
+            $rowCategory = 'Gear';
+            $row['category'] = 'Gear';
+        }
+        $items[$rowCategory][] = $row;
     }
     $stmt->close();
     $worldDb = (isset($world_db) && $world_db instanceof mysqli) ? $world_db : null;
