@@ -304,7 +304,8 @@ function sahtout_soap_reload_token_gift_publish(): array
 {
     $core = sahtout_soap_try_reload_commands([
         '.reload quest_template',
-        '.reload page_text',
+        '.reload quest_template_locale',
+        '.reload item_template_locale',
         '.reload all item',
     ]);
     $loot = sahtout_soap_reload_loot_tables();
@@ -323,7 +324,8 @@ function sahtout_soap_reload_token_gift_content(): array
 {
     return sahtout_soap_try_reload_commands([
         '.reload quest_template',
-        '.reload page_text',
+        '.reload quest_template_locale',
+        '.reload item_template_locale',
         '.reload all item',
     ]);
 }

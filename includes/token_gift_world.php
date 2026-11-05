@@ -9,11 +9,11 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 /** Auto-reward on complete (no NPC turn-in); required for item-started promos on AzerothCore. */
 const SAHTOUT_QUEST_FLAG_TRACKING = 1024;
 /**
- * AzerothCore maps quest_template.QuestType to Quest::Method. Method 0 allows auto-completion on accept
- * (see Player::CanCompleteQuest). Item quest givers cannot turn in via the client Complete button because
- * Item::hasInvolvedQuest() is always false in core.
+ * AzerothCore maps quest_template.QuestType to Quest::Method. Method 2 shows quest letter text in the
+ * quest dialog (SendQuestGiverQuestDetails). Method 0 skips that and opens the turn-in pane instead.
+ * Auto-complete on accept still works with Method 2 when there are no item/NPC objectives.
  */
-const SAHTOUT_TOKEN_GIFT_QUEST_METHOD = 0;
+const SAHTOUT_TOKEN_GIFT_QUEST_METHOD = 2;
 const SAHTOUT_TOKEN_GIFT_PAGE_TEXT_MAX_CHARS = 1800;
 
 function sahtout_world_item_startquest_column(mysqli $worldDb): string
@@ -85,6 +85,213 @@ function sahtout_token_gift_build_letter_page_body(string $letter, int $tokens):
     }
 
     return $body;
+}
+
+/** Letter body formatted for quest_template / quest dialog (same $B markers as WoW UI). */
+function sahtout_token_gift_build_quest_letter_body(string $letter, int $tokens): string
+{
+    return sahtout_token_gift_build_letter_page_body($letter, $tokens);
+}
+
+function sahtout_token_gift_detach_page_text(mysqli $siteDb, mysqli $worldDb, int $giftId): void
+{
+    if ($giftId <= 0) {
+        return;
+    }
+    $load = $siteDb->prepare('SELECT page_text_id, page_text_page_count FROM token_gifts WHERE id = ? LIMIT 1');
+    if (!$load) {
+        return;
+    }
+    $load->bind_param('i', $giftId);
+    $load->execute();
+    $row = $load->get_result()->fetch_assoc();
+    $load->close();
+    if (!$row) {
+        return;
+    }
+    $first = (int) ($row['page_text_id'] ?? 0);
+    $count = (int) ($row['page_text_page_count'] ?? 0);
+    if ($first > 0 && $count > 0 && !$worldDb->connect_error) {
+        sahtout_token_gift_delete_page_text_chain($worldDb, $first, $count);
+    }
+    $siteDb->query(
+        'UPDATE token_gifts SET page_text_id = 0, page_text_page_count = 0 WHERE id = ' . (int) $giftId
+    );
+}
+
+function sahtout_token_gift_clear_world_locale_rows(mysqli $worldDb, string $table, int $id): void
+{
+    if ($id <= 0 || $worldDb->connect_error) {
+        return;
+    }
+    $allowed = ['item_template_locale' => 'ID', 'quest_template_locale' => 'ID'];
+    if (!isset($allowed[$table])) {
+        return;
+    }
+    $check = $worldDb->query("SHOW TABLES LIKE '" . $worldDb->real_escape_string($table) . "'");
+    if (!$check || $check->num_rows === 0) {
+        $check?->free();
+
+        return;
+    }
+    $check->free();
+    $pk = $allowed[$table];
+    $worldDb->query(
+        'DELETE FROM `' . $table . '` WHERE `' . $pk . '` = ' . (int) $id
+    );
+}
+
+/**
+ * Empty locale rows override quest_template text in the client and show blank dialogs.
+ *
+ * @return list<string> AC locale codes synced (e.g. enUS)
+ */
+function sahtout_token_gift_sync_quest_locale(
+    mysqli $worldDb,
+    int $questId,
+    string $title,
+    string $details,
+    string $objectives,
+    string $completionLog
+): array {
+    if ($questId <= 0 || $worldDb->connect_error) {
+        return [];
+    }
+    sahtout_token_gift_clear_world_locale_rows($worldDb, 'quest_template_locale', $questId);
+
+    $check = $worldDb->query("SHOW TABLES LIKE 'quest_template_locale'");
+    if (!$check || $check->num_rows === 0) {
+        $check?->free();
+
+        return [];
+    }
+    $check->free();
+
+    $locales = ['enUS'];
+    $stmt = $worldDb->prepare(
+        'INSERT INTO quest_template_locale (ID, locale, Title, Details, Objectives, EndText, CompletedText, VerifiedBuild)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 12340)
+         ON DUPLICATE KEY UPDATE
+           Title = VALUES(Title), Details = VALUES(Details), Objectives = VALUES(Objectives),
+           EndText = VALUES(EndText), CompletedText = VALUES(CompletedText), VerifiedBuild = VALUES(VerifiedBuild)'
+    );
+    if (!$stmt) {
+        return [];
+    }
+    $endText = '';
+    foreach ($locales as $locale) {
+        $stmt->bind_param('issssss', $questId, $locale, $title, $details, $objectives, $endText, $completionLog);
+        $stmt->execute();
+    }
+    $stmt->close();
+
+    return $locales;
+}
+
+function sahtout_token_gift_sync_item_locale(mysqli $worldDb, int $itemEntry, string $name): void
+{
+    if ($itemEntry <= 0 || $worldDb->connect_error) {
+        return;
+    }
+    sahtout_token_gift_clear_world_locale_rows($worldDb, 'item_template_locale', $itemEntry);
+
+    $check = $worldDb->query("SHOW TABLES LIKE 'item_template_locale'");
+    if (!$check || $check->num_rows === 0) {
+        $check?->free();
+
+        return;
+    }
+    $check->free();
+
+    $locale = 'enUS';
+    $description = sahtout_token_gift_item_short_description();
+    $stmt = $worldDb->prepare(
+        'INSERT INTO item_template_locale (ID, locale, Name, Description, VerifiedBuild)
+         VALUES (?, ?, ?, ?, 12340)
+         ON DUPLICATE KEY UPDATE Name = VALUES(Name), Description = VALUES(Description), VerifiedBuild = VALUES(VerifiedBuild)'
+    );
+    if (!$stmt) {
+        return;
+    }
+    $stmt->bind_param('isss', $itemEntry, $locale, $name, $description);
+    $stmt->execute();
+    $stmt->close();
+}
+
+/** @return array<string, int> */
+function sahtout_token_gift_reference_item_shell(mysqli $worldDb, int $itemRef): array
+{
+    $defaults = [
+        'InventoryType' => 0,
+        'Material' => 0,
+        'sheath' => 0,
+        'PageMaterial' => 0,
+        'LanguageID' => 0,
+    ];
+    if ($itemRef <= 0) {
+        return $defaults;
+    }
+    $res = $worldDb->query(
+        'SELECT InventoryType, Material, sheath, PageMaterial, LanguageID FROM item_template WHERE entry = '
+        . (int) $itemRef . ' LIMIT 1'
+    );
+    if (!$res || !($row = $res->fetch_assoc())) {
+        $res?->free();
+
+        return $defaults;
+    }
+    $res->free();
+
+    return [
+        'InventoryType' => (int) ($row['InventoryType'] ?? 0),
+        'Material' => (int) ($row['Material'] ?? 0),
+        'sheath' => (int) ($row['sheath'] ?? 0),
+        'PageMaterial' => (int) ($row['PageMaterial'] ?? 0),
+        'LanguageID' => (int) ($row['LanguageID'] ?? 0),
+    ];
+}
+
+function sahtout_token_gift_finalize_item_template(
+    mysqli $worldDb,
+    int $itemEntry,
+    int $itemRef,
+    int $questId,
+    string $name
+): bool {
+    if ($itemEntry <= 0 || $worldDb->connect_error) {
+        return false;
+    }
+    $startQuestKey = sahtout_world_item_startquest_column($worldDb);
+    $pageTextKey = sahtout_world_item_pagetext_column($worldDb);
+    $shell = sahtout_token_gift_reference_item_shell($worldDb, $itemRef);
+    $displayId = sahtout_token_gift_reference_item_display_id($worldDb, $itemRef);
+    $description = sahtout_token_gift_item_short_description();
+
+    $sql = 'UPDATE item_template SET name = ?, description = ?, displayid = ?, class = 12, subclass = 0,
+            Quality = 1, Flags = 0, bonding = 4, maxcount = 1, stackable = 1,
+            InventoryType = ?, Material = ?, sheath = ?, PageMaterial = ?, LanguageID = ?,
+            `' . $startQuestKey . '` = ?, `' . $pageTextKey . '` = 0 WHERE entry = ?';
+    $stmt = $worldDb->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param(
+        'ssiiiiiiii',
+        $name,
+        $description,
+        $displayId,
+        $shell['InventoryType'],
+        $shell['Material'],
+        $shell['sheath'],
+        $shell['PageMaterial'],
+        $shell['LanguageID'],
+        $questId,
+        $itemEntry
+    );
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return $ok;
 }
 
 /** @return list<string> */
@@ -349,7 +556,7 @@ function sahtout_token_gift_verify_world_publish(
         if ((int) ($itemRow[$startQuestKey] ?? 0) !== $questId) {
             $dbIssues[] = 'item_startquest';
         }
-        if ($pageTextId > 0 && (int) ($itemRow[$pageTextKey] ?? 0) !== $pageTextId) {
+        if ((int) ($itemRow[$pageTextKey] ?? 0) !== 0) {
             $dbIssues[] = 'item_pagetext';
         }
         $dbName = trim((string) ($itemRow['name'] ?? ''));
@@ -360,7 +567,8 @@ function sahtout_token_gift_verify_world_publish(
     $itemRes?->free();
 
     $questRes = $worldDb->query(
-        'SELECT StartItem, Flags, QuestType, RequiredItemId1, RequiredItemCount1, RewardXPDifficulty
+        'SELECT StartItem, Flags, QuestType, RequiredItemId1, RequiredItemCount1, RewardXPDifficulty,
+                CHAR_LENGTH(QuestDescription) AS details_len
          FROM quest_template WHERE ID = ' . (int) $questId . ' LIMIT 1'
     );
     if (!$questRes || !($questRow = $questRes->fetch_assoc())) {
@@ -381,20 +589,11 @@ function sahtout_token_gift_verify_world_publish(
         if ((int) ($questRow['RewardXPDifficulty'] ?? 0) !== 0) {
             $dbIssues[] = 'quest_reward_xp';
         }
+        if ((int) ($questRow['details_len'] ?? 0) <= 0) {
+            $dbIssues[] = 'quest_description';
+        }
     }
     $questRes?->free();
-
-    if ($pageTextId > 0) {
-        $pageRes = $worldDb->query(
-            'SELECT CHAR_LENGTH(Text) AS text_len FROM page_text WHERE ID = ' . (int) $pageTextId . ' LIMIT 1'
-        );
-        if (!$pageRes || !($pageRow = $pageRes->fetch_assoc()) || (int) ($pageRow['text_len'] ?? 0) <= 0) {
-            $dbIssues[] = 'page_text_row';
-        }
-        $pageRes?->free();
-    } else {
-        $dbIssues[] = 'page_text_row';
-    }
 
     if (sahtout_world_row_exists($worldDb, 'quest_request_items', $questId)) {
         $req = $worldDb->query(
@@ -558,11 +757,11 @@ function sahtout_token_gift_item_publish_overrides(
     mysqli $worldDb,
     int $itemRef,
     int $questId,
-    int $pageTextId,
     string $name
 ): array {
     $startQuestKey = sahtout_world_item_startquest_column($worldDb);
     $pageTextKey = sahtout_world_item_pagetext_column($worldDb);
+    $shell = sahtout_token_gift_reference_item_shell($worldDb, $itemRef);
 
     return [
         'name' => $name,
@@ -575,8 +774,13 @@ function sahtout_token_gift_item_publish_overrides(
         'stackable' => 1,
         'Flags' => 0,
         'Quality' => 1,
+        'InventoryType' => $shell['InventoryType'],
+        'Material' => $shell['Material'],
+        'sheath' => $shell['sheath'],
+        'PageMaterial' => $shell['PageMaterial'],
+        'LanguageID' => $shell['LanguageID'],
         $startQuestKey => $questId,
-        $pageTextKey => $pageTextId,
+        $pageTextKey => 0,
     ];
 }
 
@@ -861,23 +1065,20 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
     }
 
     $tokens = (int) ($gift['tokens'] ?? 0);
-    $formattedLetterBody = sahtout_token_gift_build_letter_page_body($letter, $tokens);
-    $pageTextResult = sahtout_token_gift_sync_letter_page_text($siteDb, $worldDb, $giftId, $letter, $tokens);
-    if (!$pageTextResult['ok']) {
-        return ['ok' => false, 'message' => $pageTextResult['message'] ?? 'page_text_sync_failed'];
-    }
-    $pageTextId = (int) ($pageTextResult['first_page_id'] ?? 0);
+    $formattedLetterBody = sahtout_token_gift_build_quest_letter_body($letter, $tokens);
+    sahtout_token_gift_detach_page_text($siteDb, $worldDb, $giftId);
 
     $itemOk = sahtout_world_clone_row(
         $worldDb,
         'item_template',
         $itemRef,
         $itemEntry,
-        sahtout_token_gift_item_publish_overrides($worldDb, $itemRef, $questId, $pageTextId, $name)
+        sahtout_token_gift_item_publish_overrides($worldDb, $itemRef, $questId, $name)
     );
-    if (!$itemOk) {
+    if (!$itemOk || !sahtout_token_gift_finalize_item_template($worldDb, $itemEntry, $itemRef, $questId, $name)) {
         return ['ok' => false, 'message' => 'item_publish_failed'];
     }
+    sahtout_token_gift_sync_item_locale($worldDb, $itemEntry, $name);
 
     $questOk = sahtout_world_clone_row(
         $worldDb,
@@ -897,6 +1098,18 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         $questRef,
         $formattedLetterBody,
         sahtout_token_gift_quest_reward_text()
+    );
+    $logDescription = translate(
+        'token_gift_quest_log_description',
+        'Read the letter to complete this promo and claim shop tokens on the website.'
+    );
+    sahtout_token_gift_sync_quest_locale(
+        $worldDb,
+        $questId,
+        $name,
+        $formattedLetterBody,
+        $logDescription,
+        $name
     );
 
     $upd = $siteDb->prepare(
@@ -928,7 +1141,7 @@ function sahtout_token_gift_publish_to_world(mysqli $siteDb, mysqli $worldDb, in
         $giftId,
         $itemEntry,
         $questId,
-        $pageTextId,
+        0,
         $name,
         $expectLoot
     );
@@ -1094,24 +1307,12 @@ function sahtout_token_gift_update_world_content(
         return ['ok' => false, 'message' => 'invalid'];
     }
 
-    $formattedLetterBody = sahtout_token_gift_build_letter_page_body($letter, $tokens);
-    $pageTextResult = sahtout_token_gift_sync_letter_page_text($siteDb, $worldDb, $giftId, $letter, $tokens);
-    if (!$pageTextResult['ok']) {
-        return ['ok' => false, 'message' => $pageTextResult['message'] ?? 'page_text_sync_failed'];
-    }
-    $pageTextId = (int) ($pageTextResult['first_page_id'] ?? 0);
+    $formattedLetterBody = sahtout_token_gift_build_quest_letter_body($letter, $tokens);
+    sahtout_token_gift_detach_page_text($siteDb, $worldDb, $giftId);
 
-    $startQuestKey = sahtout_world_item_startquest_column($worldDb);
-    $pageTextKey = sahtout_world_item_pagetext_column($worldDb);
-    $itemDescription = sahtout_token_gift_item_short_description();
-    $itemSql = "UPDATE item_template SET name = ?, description = ?, `{$startQuestKey}` = ?, `{$pageTextKey}` = ? WHERE entry = ?";
-    $itemStmt = $worldDb->prepare($itemSql);
-    if (!$itemStmt) {
-        return ['ok' => false, 'message' => 'item_update_failed'];
-    }
-    $itemStmt->bind_param('ssiii', $name, $itemDescription, $questId, $pageTextId, $itemEntry);
-    $itemOk = $itemStmt->execute();
-    $itemStmt->close();
+    $itemRef = sahtout_token_gift_item_template_ref();
+    $itemOk = sahtout_token_gift_finalize_item_template($worldDb, $itemEntry, $itemRef, $questId, $name);
+    sahtout_token_gift_sync_item_locale($worldDb, $itemEntry, $name);
 
     $logDescription = translate(
         'token_gift_quest_log_description',
@@ -1152,6 +1353,14 @@ function sahtout_token_gift_update_world_content(
         sahtout_token_gift_quest_reward_text()
     );
     sahtout_token_gift_ensure_quest_template_addon($worldDb, $questId, $questRef);
+    sahtout_token_gift_sync_quest_locale(
+        $worldDb,
+        $questId,
+        $name,
+        $formattedLetterBody,
+        $logDescription,
+        $name
+    );
 
     return [
         'ok' => true,

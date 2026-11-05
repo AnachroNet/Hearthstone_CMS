@@ -33,8 +33,8 @@ if (!defined('ALLOWED_ACCESS')) {
                 <input type="text" name="tg_name" id="tg_name_new" class="wow-input" maxlength="120" required>
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="tg_letter_new"><?php echo translate('admin_token_gifts_letter', 'Letter body (page_text + quest text)'); ?></label>
-                <p class="text-xs text-gray-500 mb-1"><?php echo translate('admin_token_gifts_letter_help', 'Shown when the player reads the item in-game (page_text). Token amount is appended automatically.'); ?></p>
+                <label class="block text-sm font-semibold text-[#f2cf5b] mb-2 font-['Cinzel'] tracking-wide" for="tg_letter_new"><?php echo translate('admin_token_gifts_letter', 'Letter body (quest dialog)'); ?></label>
+                <p class="text-xs text-gray-500 mb-1"><?php echo translate('admin_token_gifts_letter_help', 'Shown in the quest window when the player right-clicks the letter item. Token amount is appended automatically.'); ?></p>
                 <textarea name="tg_letter" id="tg_letter_new" class="wow-input min-h-[100px]" maxlength="1000"></textarea>
             </div>
             <div>
