@@ -38,4 +38,5 @@ return [
     'admin_events_validation_dates' => 'Start and end dates are required.',
     'admin_events_validation_format' => 'Use valid YYYY-MM-DD dates.',
     'admin_events_validation_order' => 'End date must be on or after the start date.',
+    'admin_events_pagination_aria' => 'Event list pagination',
 ];

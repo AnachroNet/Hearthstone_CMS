@@ -39,4 +39,5 @@ return [
     'admin_downloads_deleted' => 'Download link removed.',
     'admin_downloads_save_failed' => 'Could not save changes.',
     'admin_downloads_validation' => 'Title and a valid https URL are required.',
+    'admin_downloads_pagination_aria' => 'Download list pagination',
 ];

@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/site_downloads.php';
 require_once $project_root . 'includes/admin_page_styles.php';
 require_once $project_root . 'includes/admin_subtabs.php';
+require_once $project_root . 'includes/admin_pagination.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -102,6 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $flash !== '' && str_starts_with($f
 }
 
 $allDownloads = $tableReady ? sahtout_fetch_downloads($site_db, false) : [];
+$downloads_list_per_page = 10;
+$downloadsPagination = sahtout_admin_pagination_state(count($allDownloads), $downloads_list_per_page, 'page');
+$downloadsListPage = $downloadsPagination['current_page'];
+$downloadsTotalPages = $downloadsPagination['total_pages'];
+$pagedDownloads = array_slice(
+    $allDownloads,
+    $downloadsPagination['offset'],
+    $downloadsPagination['items_per_page']
+);
 
 $page_title = translate('admin_downloads_page_title', 'Download Management');
 $page_meta_description = translate('admin_downloads_meta', 'Manage external download links');
@@ -224,7 +234,7 @@ if ($flash !== '') {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($allDownloads as $row): ?>
+                        <?php foreach ($pagedDownloads as $row): ?>
                         <tr>
                             <td>
                                 <div class="font-semibold text-white"><?php echo htmlspecialchars($row['title']); ?></div>
@@ -257,6 +267,16 @@ if ($flash !== '') {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php
+                sahtout_admin_render_pagination_nav([
+                    'current_page' => $downloadsListPage,
+                    'total_pages' => $downloadsTotalPages,
+                    'base_path' => $base_path,
+                    'route' => 'admin/downloads',
+                    'query' => ['subtab' => 'list'],
+                    'aria_label' => translate('admin_downloads_pagination_aria', 'Download list pagination'),
+                ]);
+                ?>
                 <?php endif; ?>
             </div>
 

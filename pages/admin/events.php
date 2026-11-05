@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/site_calendar_events.php';
 require_once $project_root . 'includes/admin_page_styles.php';
 require_once $project_root . 'includes/admin_subtabs.php';
+require_once $project_root . 'includes/admin_pagination.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -103,6 +104,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $flash !== '' && str_starts_with($f
 }
 
 $allEvents = $tableReady ? sahtout_site_calendar_events_fetch_all($site_db, false) : [];
+$events_list_per_page = 10;
+$eventsPagination = sahtout_admin_pagination_state(count($allEvents), $events_list_per_page, 'page');
+$eventsListPage = $eventsPagination['current_page'];
+$eventsTotalPages = $eventsPagination['total_pages'];
+$pagedEvents = array_slice(
+    $allEvents,
+    $eventsPagination['offset'],
+    $eventsPagination['items_per_page']
+);
 
 $page_title = translate('admin_events_page_title', 'Event Management');
 $page_meta_description = translate('admin_events_meta', 'Manage custom calendar events on the home page');
@@ -224,7 +234,7 @@ function sahtout_admin_format_event_dates(array $row): string
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($allEvents as $row): ?>
+                        <?php foreach ($pagedEvents as $row): ?>
                         <tr>
                             <td>
                                 <div class="font-semibold text-white"><?php echo htmlspecialchars($row['title']); ?></div>
@@ -262,6 +272,16 @@ function sahtout_admin_format_event_dates(array $row): string
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php
+                sahtout_admin_render_pagination_nav([
+                    'current_page' => $eventsListPage,
+                    'total_pages' => $eventsTotalPages,
+                    'base_path' => $base_path,
+                    'route' => 'admin/events',
+                    'query' => ['subtab' => 'list'],
+                    'aria_label' => translate('admin_events_pagination_aria', 'Event list pagination'),
+                ]);
+                ?>
                 <?php endif; ?>
             </div>
 

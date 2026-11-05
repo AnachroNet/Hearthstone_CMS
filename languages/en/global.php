@@ -286,7 +286,9 @@ return [
     'warn_playerbots_missing' => 'Playerbots database/table not detected. The <code>humans_only</code> filter cannot exclude Playerbots until <code>acore_playerbots.playerbots_account_type</code> is available.',
 
     'admin_pagination_aria' => 'Page navigation',
+    'admin_pagination_first' => 'First',
     'admin_pagination_previous' => 'Previous',
     'admin_pagination_next' => 'Next',
+    'admin_pagination_last' => 'Last',
 ];
 ?>

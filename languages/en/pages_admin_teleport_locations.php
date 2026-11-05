@@ -41,4 +41,5 @@ return [
     'admin_teleport_locations_deleted' => 'Teleport location removed.',
     'admin_teleport_locations_save_failed' => 'Could not save changes.',
     'admin_teleport_locations_validation' => 'Name and non-zero X/Y coordinates are required.',
+    'admin_teleport_locations_pagination_aria' => 'Teleport list pagination',
 ];

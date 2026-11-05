@@ -8,6 +8,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
 require_once $project_root . 'includes/admin_page_styles.php';
 require_once $project_root . 'includes/admin_subtabs.php';
+require_once $project_root . 'includes/admin_pagination.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     header("Location: {$base_path}login");
@@ -102,6 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $flash !== '' && str_starts_with($f
 }
 
 $allLocations = $tableReady ? sahtout_fetch_admin_teleport_locations($site_db, false) : [];
+$teleport_list_per_page = 10;
+$teleportPagination = sahtout_admin_pagination_state(count($allLocations), $teleport_list_per_page, 'page');
+$teleportListPage = $teleportPagination['current_page'];
+$teleportTotalPages = $teleportPagination['total_pages'];
+$pagedLocations = array_slice(
+    $allLocations,
+    $teleportPagination['offset'],
+    $teleportPagination['items_per_page']
+);
 
 $page_title = translate('admin_teleport_locations_page_title', 'Teleport Locations');
 $page_meta_description = translate('admin_teleport_locations_meta', 'Manage fixed teleport destinations for character management');
@@ -182,7 +192,7 @@ if ($flash !== '') {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($allLocations as $row): ?>
+                        <?php foreach ($pagedLocations as $row): ?>
                         <tr>
                             <td class="font-semibold text-white"><?php echo htmlspecialchars($row['name']); ?></td>
                             <td class="col-num"><?php echo (int) $row['map']; ?></td>
@@ -220,6 +230,16 @@ if ($flash !== '') {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php
+                sahtout_admin_render_pagination_nav([
+                    'current_page' => $teleportListPage,
+                    'total_pages' => $teleportTotalPages,
+                    'base_path' => $base_path,
+                    'route' => 'admin/teleport_locations',
+                    'query' => ['subtab' => 'list'],
+                    'aria_label' => translate('admin_teleport_locations_pagination_aria', 'Teleport list pagination'),
+                ]);
+                ?>
                 <?php endif; ?>
             </div>
 
