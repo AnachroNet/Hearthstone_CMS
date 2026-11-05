@@ -824,8 +824,8 @@ function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $qu
     if (!sahtout_world_row_exists($worldDb, 'quest_template_addon', $questId)) {
         if ($questRef > 0 && sahtout_world_row_exists($worldDb, 'quest_template_addon', $questRef)) {
             sahtout_world_clone_row($worldDb, 'quest_template_addon', $questRef, $questId, [
-                'PrevQuestId' => 0,
-                'NextQuestId' => 0,
+                'PrevQuestID' => 0,
+                'NextQuestID' => 0,
                 'ExclusiveGroup' => 0,
                 'BreadcrumbForQuestId' => 0,
                 'ProvidedItemCount' => 1,
@@ -844,7 +844,7 @@ function sahtout_token_gift_ensure_quest_template_addon(mysqli $worldDb, int $qu
     }
 
     $upd = $worldDb->prepare(
-        'UPDATE quest_template_addon SET PrevQuestId = 0, NextQuestId = 0, ExclusiveGroup = 0,
+        'UPDATE quest_template_addon SET PrevQuestID = 0, NextQuestID = 0, ExclusiveGroup = 0,
          BreadcrumbForQuestId = 0, ProvidedItemCount = 1, SpecialFlags = 1 WHERE ID = ?'
     );
     if ($upd) {
@@ -985,6 +985,33 @@ function sahtout_world_apply_row_overrides(
 }
 
 /**
+ * Apply overrides using case-insensitive column names (avoids PrevQuestId + PrevQuestID duplicates).
+ *
+ * @param array<string, scalar|null> $row
+ * @param array<string, scalar|null> $overrides
+ */
+function sahtout_world_row_merge_overrides(array $row, array $overrides): array
+{
+    if ($overrides === []) {
+        return $row;
+    }
+    $columnIndex = [];
+    foreach (array_keys($row) as $column) {
+        $columnIndex[strtolower((string) $column)] = $column;
+    }
+    foreach ($overrides as $key => $value) {
+        $lookup = strtolower((string) $key);
+        if (isset($columnIndex[$lookup])) {
+            $row[$columnIndex[$lookup]] = $value;
+        } else {
+            $row[(string) $key] = $value;
+        }
+    }
+
+    return $row;
+}
+
+/**
  * @param array<string, scalar|null> $overrides
  */
 function sahtout_world_clone_row(
@@ -1009,9 +1036,7 @@ function sahtout_world_clone_row(
     $res->free();
 
     $row[$pk] = $toId;
-    foreach ($overrides as $key => $value) {
-        $row[$key] = $value;
-    }
+    $row = sahtout_world_row_merge_overrides($row, $overrides);
 
     $worldDb->query("DELETE FROM {$tableEsc} WHERE `{$pk}` = " . (int) $toId);
 
