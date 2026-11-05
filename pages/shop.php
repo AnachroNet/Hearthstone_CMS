@@ -15,8 +15,12 @@ $selected_category = isset($_GET['category']) ? $_GET['category'] : 'All';
 if ($selected_category === 'Stuff') {
     $selected_category = 'Gear';
 }
-$valid_categories = ['All', 'Service', 'Mount', 'Pet', 'Gold', 'Gear', 'Set'];
-if (!in_array($selected_category, $valid_categories, true)) {
+/** Nav filter order (All is selection-only; not a stored shop_items.category). */
+$shop_nav_categories = ['All', 'Service', 'Gold', 'Gear', 'Set', 'Mount', 'Pet'];
+/** Order of item sections on the page (matches nav after All). */
+$shop_item_category_order = ['Service', 'Gold', 'Gear', 'Set', 'Mount', 'Pet'];
+
+if (!in_array($selected_category, $shop_nav_categories, true)) {
     $selected_category = 'All';
 }
 
@@ -435,7 +439,7 @@ include_once $project_root . 'includes/header.php';
 
             <!-- Category Navigation -->
             <nav class="flex flex-wrap justify-center gap-2 mb-6 p-3 bg-[rgba(0,0,0,0.3)] border border-[rgba(201,162,39,0.1)]">
-                <?php foreach ($valid_categories as $category): ?>
+                <?php foreach ($shop_nav_categories as $category): ?>
                     <a href="#" 
                        class="category-button flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-2 rounded-none transition-all duration-300 <?php echo $selected_category === $category ? 'bg-[rgba(242,207,82,0.2)] border-[#f2cf5b] text-[#f2cf5b]' : 'bg-[rgba(10,14,22,0.6)] border-[rgba(201,162,39,0.15)] text-gray-400 hover:border-[#f2cf5b] hover:text-white hover:bg-[rgba(242,207,82,0.05)]'; ?>" 
                        data-category="<?php echo htmlspecialchars($category); ?>">
@@ -454,7 +458,12 @@ include_once $project_root . 'includes/header.php';
                     <?php echo translate('shop_no_items', 'No items available.'); ?>
                 </div>
             <?php else: ?>
-                <?php foreach ($items as $category => $category_items): ?>
+                <?php foreach ($shop_item_category_order as $category):
+                    if (empty($items[$category])) {
+                        continue;
+                    }
+                    $category_items = $items[$category];
+                    ?>
                     <section class="tab-content <?php echo ($selected_category === 'All' || $selected_category === $category) ? 'active' : ''; ?>" data-category="<?php echo htmlspecialchars($category); ?>">
                         <h2 class="text-2xl font-bold text-[#f2cf5b] mb-4 pb-2 border-b border-[rgba(201,162,39,0.15)] force-wrap">
                             <i class="fas fa-tag mr-2"></i>
