@@ -38,7 +38,7 @@ ob_start();
 
     /* ============ BACKGROUND IMAGE ONLY ============ */
     body.how_to_play {
-        background: url('<?php echo $base_path; ?>img/backgrounds/bg-howto.jpg') no-repeat center center fixed !important;
+        background: url('<?php echo sahtout_page_background_url('howto'); ?>') no-repeat center center fixed !important;
         background-size: cover !important;
         position: relative;
         min-height: 100vh;

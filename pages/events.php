@@ -31,7 +31,7 @@ ob_start();
 <link rel="stylesheet" href="<?php echo htmlspecialchars($base_path . 'assets/css/home-calendar.css', ENT_QUOTES, 'UTF-8'); ?>">
 <style>
         body {
-            background: url('<?php echo $base_path; ?>img/backgrounds/bg-events.jpg') no-repeat center center fixed;
+            background: url('<?php echo sahtout_page_background_url('events'); ?>') no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
             padding-top: 112px;

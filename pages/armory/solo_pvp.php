@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/armory_playerbots.php';
+require_once $project_root . 'includes/page_backgrounds.php';
 
 // Armory display settings come from config.local.php via includes/config.php (session).
 if (!isset($armoryConfig) || !is_array($armoryConfig)) {
@@ -159,7 +160,7 @@ ob_start();
 ?>
 <style>
         body {
-            background: url('<?php echo htmlspecialchars($base_path, ENT_QUOTES, 'UTF-8'); ?>img/backgrounds/bg-armory.jpg') no-repeat center center fixed;
+            background: url('<?php echo htmlspecialchars(sahtout_page_background_url('armory'), ENT_QUOTES, 'UTF-8'); ?>') no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
             padding-top: 112px;

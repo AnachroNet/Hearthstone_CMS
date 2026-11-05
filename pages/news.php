@@ -179,7 +179,7 @@ ob_start();
         * { scrollbar-width: thin; scrollbar-color: #c9a227 rgba(10,14,22,0.9); }
 
         body {
-            background: url('<?php echo $base_path; ?>img/backgrounds/bg-news.jpg') no-repeat center center fixed;
+            background: url('<?php echo sahtout_page_background_url('news'); ?>') no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
         }

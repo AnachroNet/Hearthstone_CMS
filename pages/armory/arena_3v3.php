@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/armory_playerbots.php';
+require_once $project_root . 'includes/page_backgrounds.php';
 
 if (!isset($armoryConfig) || !is_array($armoryConfig)) {
     require_once $project_root . 'includes/armory_config.php';
@@ -132,7 +133,7 @@ ob_start();
 <style>
         /* Page background - Show full background image without overlay */
         body {
-            background: url('<?php echo $base_path; ?>img/backgrounds/bg-armory.jpg') no-repeat center center fixed;
+            background: url('<?php echo sahtout_page_background_url('armory'); ?>') no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
             padding-top: 112px;

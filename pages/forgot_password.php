@@ -306,7 +306,7 @@ ob_start();
     <style>
         /* Page background - Only essential custom CSS */
         body {
-            background: url('<?php echo $base_path; ?>img/backgrounds/bg-password.jpg') no-repeat center center fixed;
+            background: url('<?php echo sahtout_page_background_url('password'); ?>') no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
             padding-top: 112px;

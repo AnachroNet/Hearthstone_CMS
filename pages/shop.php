@@ -164,7 +164,7 @@ ob_start();
 <style>
         /* Page background - Show full background image */
         body {
-            background: url('<?php echo $base_path; ?>img/backgrounds/bg-shop.jpg') no-repeat center center fixed;
+            background: url('<?php echo sahtout_page_background_url('shop'); ?>') no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
             padding-top: 112px;

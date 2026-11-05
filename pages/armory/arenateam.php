@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../includes/paths.php';
 // Use $project_root for filesystem includes
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/page_backgrounds.php';
 
 // Functions to get faction and icon paths
 function getFaction($race) {
@@ -142,7 +143,7 @@ ob_start();
 <style>
     /* Page background - Show full background image without overlay */
     body {
-        background: url('<?php echo $base_path; ?>img/backgrounds/bg-armory.jpg') no-repeat center center fixed;
+        background: url('<?php echo sahtout_page_background_url('armory'); ?>') no-repeat center center fixed;
         background-size: cover;
         min-height: 100vh;
         padding-top: 112px;
