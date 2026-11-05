@@ -6,9 +6,11 @@ if (!defined('ALLOWED_ACCESS')) {
 const SAHTOUT_TOKEN_GIFT_DEFAULT_LOOT_IDS = '2276,2277,2278,2279,2280,2284';
 const SAHTOUT_TOKEN_GIFT_DEFAULT_ITEM_REF = 2223;
 const SAHTOUT_TOKEN_GIFT_DEFAULT_QUEST_REF = 123;
-/** Unused vanilla item_template / quest_template IDs (10 promos max). */
-const SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST = 18270;
-const SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST = 18279;
+/** High, unused item_template / quest_template IDs (10 promos max). */
+const SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST = 300000;
+const SAHTOUT_TOKEN_GIFT_WORLD_ID_LAST = 300009;
+const SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY = 'admin_only';
+const SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_AND_MODERATOR = 'admin_and_moderator';
 const SAHTOUT_TOKEN_GIFT_MAX_PROMOS = 10;
 /** Sealed letter icon (item 2223 display). */
 const SAHTOUT_TOKEN_GIFT_DISPLAY_ID = 1102;
@@ -143,7 +145,30 @@ function sahtout_token_gift_is_configured_world_id(int $worldId): bool
     return in_array($worldId, sahtout_token_gift_configured_world_ids(), true);
 }
 
-/** @deprecated Legacy setting; reserved IDs are fixed at 18270–18279. */
+function sahtout_token_gift_admin_access_modes(): array
+{
+    return [
+        SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY,
+        SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_AND_MODERATOR,
+    ];
+}
+
+/** Who may use the Token Gifts builder in A-Shop (admins always). */
+function sahtout_token_gift_admin_access(): string
+{
+    global $sahtout_site_settings;
+    $default = SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY;
+    if (!isset($sahtout_site_settings) || !is_array($sahtout_site_settings)) {
+        return $default;
+    }
+    $mode = trim((string) ($sahtout_site_settings['shop.token_gift_admin_access'] ?? $default));
+
+    return in_array($mode, sahtout_token_gift_admin_access_modes(), true)
+        ? $mode
+        : $default;
+}
+
+/** @deprecated Legacy setting; use configured world IDs from site settings. */
 function sahtout_token_gift_id_base(): int
 {
     return SAHTOUT_TOKEN_GIFT_WORLD_ID_FIRST;

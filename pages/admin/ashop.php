@@ -710,8 +710,13 @@ $statTypeLabels = [
 ];
 $rewards_subtab = 'configured';
 $tokenGiftsPanel = 'active';
+$canAccessTokenGifts = sahtout_admin_can_access_token_gifts();
+$rewardsSubtabIds = ['configured', 'add', 'character'];
+if ($canAccessTokenGifts) {
+    $rewardsSubtabIds[] = 'token_gifts';
+}
 if ($shop_tab === 'rewards') {
-    $rewards_subtab = sahtout_admin_resolve_subtab(['configured', 'add', 'character', 'token_gifts'], 'configured');
+    $rewards_subtab = sahtout_admin_resolve_subtab($rewardsSubtabIds, 'configured');
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if (sahtout_admin_shop_is_token_gifts_post()) {
             $rewards_subtab = 'token_gifts';

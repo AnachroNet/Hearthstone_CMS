@@ -63,6 +63,10 @@ return [
     'error_shared_email_index' => 'Could not update pending signups table for shared emails. Run SQL/SINGLE UPDATE/registration_allow_shared_email.sql on sahtout_site.',
 
     'label_shop_token_gifts' => 'Token gift letters (shop)',
+    'label_token_gift_admin_access' => 'Token gift builder access (A-Shop)',
+    'help_token_gift_admin_access' => 'Controls who sees the Token Gifts sub-tab under Shop → Rewards. Publish and full world remove stay administrator-only either way.',
+    'token_gift_admin_access_admin_only' => 'Administrators only',
+    'token_gift_admin_access_admin_and_moderator' => 'Administrators and moderators',
     'label_token_gift_loot_ids' => 'Token Gift Loot IDs',
     'help_token_gift_loot_ids' => 'Gameobject loot template Entry values (chest data1 / LootId) where published letter items may drop. Comma-separated.',
     'label_token_gift_item_ref' => 'Item clone reference (world entry, default 2223 The Collector\'s Schedule)',

@@ -100,6 +100,21 @@ function sahtout_token_gift_grants_ensure_repeatable_schema(mysqli $siteDb): boo
         && sahtout_token_gift_reward_sync_state_table_exists($siteDb, true);
 }
 
+function sahtout_admin_can_access_token_gifts(): bool
+{
+    $role = (string) ($_SESSION['role'] ?? '');
+    if ($role === 'admin') {
+        return true;
+    }
+    if ($role !== 'moderator') {
+        return false;
+    }
+
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'token_gift_settings.php';
+
+    return sahtout_token_gift_admin_access() === SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_AND_MODERATOR;
+}
+
 function sahtout_admin_can_publish_token_gifts(): bool
 {
     return ($_SESSION['role'] ?? '') === 'admin';

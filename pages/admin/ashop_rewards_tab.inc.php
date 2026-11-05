@@ -18,18 +18,22 @@ if (!defined('ALLOWED_ACCESS')) {
 /** @var int $rewards_per_page */
 /** @var string $rewards_subtab */
 /** @var bool $tokenGiftsReady */
+/** @var bool $canAccessTokenGifts */
 
 $rewardsSubtabPersist = ['tab' => 'rewards'];
 if ($reward_page > 1) {
     $rewardsSubtabPersist['reward_page'] = $reward_page;
 }
+$rewardsSubtabNav = [
+    ['id' => 'configured', 'label' => translate('admin_rewards_subtab_configured', 'Configured Rewards'), 'icon' => 'fas fa-list'],
+    ['id' => 'add', 'label' => translate('admin_rewards_subtab_add', 'Add Reward'), 'icon' => 'fas fa-plus'],
+    ['id' => 'character', 'label' => translate('admin_rewards_subtab_character', 'Character Rewards'), 'icon' => 'fas fa-chart-line'],
+];
+if (!empty($canAccessTokenGifts)) {
+    $rewardsSubtabNav[] = ['id' => 'token_gifts', 'label' => translate('admin_rewards_subtab_token_gifts', 'Token Gifts'), 'icon' => 'fas fa-envelope'];
+}
 sahtout_admin_render_subtab_nav(
-    [
-        ['id' => 'configured', 'label' => translate('admin_rewards_subtab_configured', 'Configured Rewards'), 'icon' => 'fas fa-list'],
-        ['id' => 'add', 'label' => translate('admin_rewards_subtab_add', 'Add Reward'), 'icon' => 'fas fa-plus'],
-        ['id' => 'character', 'label' => translate('admin_rewards_subtab_character', 'Character Rewards'), 'icon' => 'fas fa-chart-line'],
-        ['id' => 'token_gifts', 'label' => translate('admin_rewards_subtab_token_gifts', 'Token Gifts'), 'icon' => 'fas fa-envelope'],
-    ],
+    $rewardsSubtabNav,
     $rewards_subtab,
     $base_path,
     'admin/ashop',
@@ -222,6 +226,8 @@ if (!$rewardsReady): ?>
 
 <?php endif; ?>
 
+<?php if (!empty($canAccessTokenGifts)): ?>
 <div class="<?php echo sahtout_admin_subtab_panel_class('token_gifts', $rewards_subtab, 'space-y-4 md:space-y-6'); ?>">
     <?php include __DIR__ . '/ashop_token_gifts_tab.inc.php'; ?>
 </div>
+<?php endif; ?>

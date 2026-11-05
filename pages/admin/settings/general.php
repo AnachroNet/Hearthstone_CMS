@@ -339,6 +339,32 @@ include $project_root . 'includes/header.php';
                                 <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
                                     <?php echo translate('label_shop_token_gifts', 'Token gift letters (shop)'); ?>
                                 </label>
+                                <?php
+                                $tokenGiftAccessCurrent = sahtout_token_gift_admin_access();
+                                if (($_SESSION['role'] ?? '') === 'admin'):
+                                    ?>
+                                    <label for="shop_token_gift_admin_access" class="text-sm text-gray-300 block mb-1">
+                                        <?php echo translate('label_token_gift_admin_access', 'Token gift builder access (A-Shop)'); ?>
+                                    </label>
+                                    <select name="shop_token_gift_admin_access"
+                                            id="shop_token_gift_admin_access"
+                                            class="w-full max-w-md px-4 py-3 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none mb-3">
+                                        <option value="<?php echo htmlspecialchars(SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY, ENT_QUOTES, 'UTF-8'); ?>"
+                                            <?php echo $tokenGiftAccessCurrent === SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY ? ' selected' : ''; ?>>
+                                            <?php echo translate('token_gift_admin_access_admin_only', 'Administrators only'); ?>
+                                        </option>
+                                        <option value="<?php echo htmlspecialchars(SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_AND_MODERATOR, ENT_QUOTES, 'UTF-8'); ?>"
+                                            <?php echo $tokenGiftAccessCurrent === SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_AND_MODERATOR ? ' selected' : ''; ?>>
+                                            <?php echo translate('token_gift_admin_access_admin_and_moderator', 'Administrators and moderators'); ?>
+                                        </option>
+                                    </select>
+                                    <div class="text-[#6a7a8a] text-xs mt-1 mb-3 max-w-3xl">
+                                        <?php echo translate(
+                                            'help_token_gift_admin_access',
+                                            'Controls who sees the Token Gifts sub-tab under Shop → Rewards. Publish and full world remove stay administrator-only either way.'
+                                        ); ?>
+                                    </div>
+                                <?php endif; ?>
                                 <label for="shop_token_gift_loot_ids" class="text-sm text-gray-300 block mb-1">
                                     <?php echo translate('label_token_gift_loot_ids', 'Token Gift Loot IDs'); ?>
                                 </label>

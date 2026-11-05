@@ -18,6 +18,7 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST
 }
 
 require_once $project_root . 'includes/site_settings.php';
+require_once $project_root . 'includes/token_gift_settings.php';
 
 // ==================== NEW: Handle Website Title ====================
 $site_title_name_new = trim($_POST['site_title_name'] ?? '');
@@ -140,6 +141,19 @@ if (empty($errors)) {
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_world_ids', $shop_token_gift_world_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_item_template_ref', $shop_token_gift_item_template_ref_new, 'int', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_quest_template_ref', $shop_token_gift_quest_template_ref_new, 'int', $editorId);
+        if (($_SESSION['role'] ?? '') === 'admin') {
+            $shop_token_gift_admin_access_new = trim((string) ($_POST['shop_token_gift_admin_access'] ?? SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY));
+            if (!in_array($shop_token_gift_admin_access_new, sahtout_token_gift_admin_access_modes(), true)) {
+                $shop_token_gift_admin_access_new = SAHTOUT_TOKEN_GIFT_ACCESS_ADMIN_ONLY;
+            }
+            $ok = $ok && sahtout_site_setting_set(
+                $site_db,
+                'shop.token_gift_admin_access',
+                $shop_token_gift_admin_access_new,
+                'string',
+                $editorId
+            );
+        }
 
         if ($ok && $registration_allow_shared_email_new) {
             if (!sahtout_pending_accounts_drop_unique_email($site_db)
