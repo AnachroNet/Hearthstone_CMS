@@ -34,13 +34,14 @@ Achievement catalog import (site DB reference table)
   - Map.dbc (recommended — dungeon presets use 5-player instances vs raids)
   - LFGDungeons.dbc (recommended — dungeon level on reward presets and admin UI)
 
-From the CMS web root (`Web/SahtoutCMS`; uses `includes/config.local.php` and the world DB when
-present to map boss kills to instances):
+From the CMS project root (uses `includes/config.local.php` and the world DB when present to map
+boss kills to instances):
 
   php tools/import_achievement_catalog.php
 
-Then apply `SQL/Hearthstone_DATABASE/migrations_archive/achievement_catalog.sql` once if the
-table is missing (new installs use `SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql`).
+The `achievement_catalog` reference table should already be present from
+`SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql`. If it is missing,
+re-import that full site seed.
 For a full refresh from DBC, run `tools/import_achievement_catalog.php` again — output goes to
 `SQL/Hearthstone_DATABASE/generated/achievement_catalog_import.sql`; apply that file after each DBC refresh.
 

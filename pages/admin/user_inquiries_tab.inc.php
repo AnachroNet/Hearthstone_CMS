@@ -15,7 +15,7 @@ if (!defined('ALLOWED_ACCESS')) {
 
     <?php if (!$inquiryData['available']): ?>
         <div class="panel p-6 text-center text-gray-400">
-            <?php echo translate('admin_inquiries_unavailable', 'The user_inquiries table is not available. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql (or run migrations_archive/user_inquiries.sql on older installs).'); ?>
+            <?php echo translate('admin_inquiries_unavailable', 'The user_inquiries table is missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.'); ?>
         </div>
     <?php else: ?>
         <div class="panel p-4 md:p-6 lg:p-8">

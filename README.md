@@ -77,23 +77,21 @@ SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql
 
 That file targets the **`hearthstone_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
-**Older deployments** that cannot re-import may still use one-off scripts preserved under **`SQL/Hearthstone_DATABASE/migrations_archive/`** (for example `site_drop_cross_db_foreign_keys.sql` when upgrading from dumps that used cross-database foreign keys).
+This repository ships **only that full seed** for the site database—no separate migration SQL for upgrades.
 
-### 3. World database (optional CMS scripts)
+### 3. AzerothCore optional SQL (only for specific features)
 
-Some features ship SQL for **`acore_world`**, for example:
+Core **auth / characters / world** still come from your **AzerothCore revision** (or repack). Hearthstone CMS may point you at an extra **world** script when a feature needs it:
 
-```text
-SQL/acore_world_DATABASE/token_gift_quest_addon_fix.sql
-```
+| File | Database | Feature / note |
+|------|----------|----------------|
+| **`SQL/acore_world_DATABASE/token_gift_quest_addon_fix.sql`** | `acore_world` | Token gift letters use in-game mail; this aligns quest / locale bits for that flow. Apply **before** publishing token gifts if your world DB does not already match. |
 
-Optional AzerothCore patches live under **`SQL/acore_database/migrations_archive/`** (for example armory or breaking-news SQL) and apply only when you enable those features. See **`SQL/acore_database/README.md`**.
+**In-game breaking news** (Admin → News → In-game breaking news) requires a **`mod_breaking_news`** table on **`acore_world`**. That table is provided by the **AzerothCore Breaking News module** (or equivalent)—it is **not** part of `hearthstone_site_install_demo.sql`. Install/enable the module on your core so the table exists.
 
-### 4. Privileges and cleanup
+### 4. Privileges
 
-- **Privileges:** see **`SQL/DATABASE_PRIVILEGES.md`** for recommended MySQL grants per database.  
-- **Legacy auth triggers:** if an old install added them, remove with `SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql`.  
-- **Cross-database foreign keys:** if you upgrade from an old dump that used them on the site DB, run **`SQL/Hearthstone_DATABASE/migrations_archive/site_drop_cross_db_foreign_keys.sql`**.
+- **Privileges:** see **`SQL/DATABASE_PRIVILEGES.md`** for recommended MySQL grants per database.
 
 ---
 
@@ -140,13 +138,12 @@ Optional AzerothCore patches live under **`SQL/acore_database/migrations_archive
 ## SQL layout in this repo
 
 ```text
-SQL/Hearthstone_DATABASE/FULL_UPDATE/        — current full site DB (use for new installs)
-SQL/Hearthstone_DATABASE/migrations_archive/ — legacy one-off upgrades from older dumps
+SQL/Hearthstone_DATABASE/FULL_UPDATE/        — full site DB for new installs (hearthstone_site_install_demo.sql)
 SQL/Hearthstone_DATABASE/generated/          — tooling output (e.g. achievement catalog import)
 SQL/acore_world_DATABASE/                    — optional world SQL bundled with the CMS
 ```
 
-Other `SQL/*.sql` files at the repo root apply to **auth**, **characters**, or **world** as indicated in comments or in **`README_sahtoutcms_legacy.md`**.
+**Legacy SahtoutCMS upgrade SQL** that used to live under `migrations_archive/` is **not** shipped in this branch—see **`README_sahtoutcms_legacy.md`** if you need historical upgrade paths.
 
 ---
 

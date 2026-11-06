@@ -60,7 +60,7 @@ return [
     'label_registration_signup_tokens_enabled' => 'Grant shop tokens to new accounts at registration',
     'label_registration_signup_tokens_amount' => 'Token amount',
     'help_registration_signup_tokens' => 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.',
-    'error_shared_email_index' => 'Could not update pending signups table for shared emails. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql or apply migrations_archive/registration_allow_shared_email.sql on hearthstone_site.',
+    'error_shared_email_index' => 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.',
 
     'label_shop_token_gifts' => 'Token gift letters (shop)',
     'label_token_gift_admin_access' => 'Token gift builder access (A-Shop)',

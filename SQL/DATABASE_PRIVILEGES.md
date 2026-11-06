@@ -1,6 +1,6 @@
-# Database privileges (SahtoutCMS)
+# Database privileges (Hearthstone CMS)
 
-SahtoutCMS keeps **all CMS-owned tables in `hearthstone_site`**. It does **not** require triggers, views, or schema changes on AzerothCore databases.
+Hearthstone CMS keeps **all CMS-owned tables in `hearthstone_site`**. It does **not** require triggers, views, or schema changes on AzerothCore databases for a normal install.
 
 Use one MySQL user for everything on a small server, or split users as below for least privilege.
 
@@ -21,7 +21,7 @@ No **TRIGGER** privilege is needed.
 | `account_banned` | SELECT, INSERT, UPDATE | Login ban check, admin bans |
 | `uptime` | SELECT | Realm status (optional) |
 
-Legacy **`after_account_insert` / `after_account_update` triggers** are deprecated. Remove with `SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql` if present.
+Some very old forks used **`after_account_insert` / `after_account_update` triggers** on auth. That approach is **deprecated**; the CMS syncs accounts in PHP (`includes/site_account.php`). If those triggers still exist on your server from a legacy install, drop them manually in MySQL—this repo no longer ships a helper SQL file for that.
 
 ## `acore_characters` (game data & shop delivery)
 
@@ -47,12 +47,10 @@ RNDBOT username filtering in admin does **not** require this database.
 | Privilege | Purpose |
 |-----------|---------|
 | **SELECT** on world tables | Item/quest lookups, token gift publish, DBC-backed admin tools |
-| **INSERT/UPDATE/DELETE** | Only if you use CMS features that write world data (e.g. token gift publish) |
+| **INSERT/UPDATE/DELETE** | Only if you use CMS features that write world data (e.g. token gift publish, breaking news module) |
 
 ## Cross-database links
 
 `user_currencies.account_id` matches `acore_auth.account.id`. Rows are created in PHP (`includes/site_account.php`) on register, activate, and login—not via auth triggers or foreign keys.
 
-After upgrading from older dumps that used cross-database foreign keys, run:
-
-`SQL/Hearthstone_DATABASE/migrations_archive/site_drop_cross_db_foreign_keys.sql`
+Avoid defining **foreign keys from `hearthstone_site` to `acore_*`**; they complicate backups and are not required.

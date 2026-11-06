@@ -1,5 +1,0 @@
-🚨 Important:
-- If your site was installed before then use only the latest single update SQL file.
-- This update will modify/add only the new tables/features without affecting your existing data.
-
-Tip: Always backup your database before importing updates.

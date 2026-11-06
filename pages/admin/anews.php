@@ -289,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } elseif (!isset($world_db) || !($world_db instanceof mysqli) || $world_db->connect_error) {
             $update_message = $alert_danger(translate('admin_breaking_news_world_db', 'World database connection is not available.'));
         } elseif (!sahtout_breaking_news_table_exists($world_db)) {
-            $update_message = $alert_danger(translate('admin_breaking_news_table_missing', 'Run SQL/acore_database/migrations_archive/acore_world_mod_breaking_news.sql on acore_world.'));
+            $update_message = $alert_danger(translate('admin_breaking_news_table_missing', 'The mod_breaking_news table was not found on the world database (acore_world). Install or enable the AzerothCore breaking-news module so this table exists—the site full seed (SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql) only covers the site database.'));
         } else {
             $bnTitle = trim((string) ($_POST['breaking_news_title'] ?? ''));
             $bnBody = (string) ($_POST['breaking_news_body'] ?? '');
@@ -847,7 +847,7 @@ ob_start();
                         <?php if (!isset($world_db) || !($world_db instanceof mysqli) || $world_db->connect_error): ?>
                             <p class="text-amber-300 text-sm"><?php echo translate('admin_breaking_news_world_db', 'World database connection is not available.'); ?></p>
                         <?php elseif (!sahtout_breaking_news_table_exists($world_db)): ?>
-                            <p class="text-amber-300 text-sm"><?php echo translate('admin_breaking_news_table_missing', 'Run SQL/acore_database/migrations_archive/acore_world_mod_breaking_news.sql on acore_world.'); ?></p>
+                            <p class="text-amber-300 text-sm"><?php echo translate('admin_breaking_news_table_missing', 'The mod_breaking_news table was not found on the world database (acore_world). Install or enable the AzerothCore breaking-news module so this table exists—the site full seed (SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql) only covers the site database.'); ?></p>
                         <?php else: ?>
                         <form method="POST" class="space-y-4">
                             <input type="hidden" name="action" value="breaking_news_save">
