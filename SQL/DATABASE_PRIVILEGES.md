@@ -55,4 +55,4 @@ RNDBOT username filtering in admin does **not** require this database.
 
 After upgrading from older dumps that used cross-database foreign keys, run:
 
-`SQL/Hearthstone_DATABASE/SINGLE_UPDATE/site_drop_cross_db_foreign_keys.sql`
+`SQL/Hearthstone_DATABASE/migrations_archive/site_drop_cross_db_foreign_keys.sql`

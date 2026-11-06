@@ -4,3 +4,6 @@ logs/
 cache/
 cache/realm_1.php
 includes/config.local.php
+
+# Regenerated from tools/import_achievement_catalog.php (keep generated/.gitkeep)
+SQL/Hearthstone_DATABASE/generated/*.sql

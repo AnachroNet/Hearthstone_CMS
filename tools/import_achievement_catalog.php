@@ -424,7 +424,7 @@ foreach ($presets as $i => $preset) {
 }
 
 $outDir = $projectRoot . DIRECTORY_SEPARATOR . 'SQL' . DIRECTORY_SEPARATOR . 'Hearthstone_DATABASE'
-    . DIRECTORY_SEPARATOR . 'SINGLE_UPDATE';
+    . DIRECTORY_SEPARATOR . 'generated';
 $outFile = $outDir . DIRECTORY_SEPARATOR . 'achievement_catalog_import.sql';
 
 if (!is_dir($outDir) && !mkdir($outDir, 0775, true) && !is_dir($outDir)) {

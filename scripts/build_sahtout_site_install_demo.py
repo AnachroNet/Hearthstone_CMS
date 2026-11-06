@@ -266,6 +266,25 @@ REPLACE_SQL = {
 }
 
 
+def ensure_pending_accounts_schema(body: str) -> str:
+    """Match registration.shared_email schema: unique email on pending signups."""
+    if "`unique_email`" in body and "CREATE TABLE `pending_accounts`" in body:
+        return body
+    if "CREATE TABLE `pending_accounts`" not in body:
+        return body
+    pattern = re.compile(
+        r"(CREATE TABLE `pending_accounts`\s*\([\s\S]*?"
+        r"UNIQUE KEY `unique_username` \(`username`\))\s*(\n\) ENGINE=InnoDB)",
+        re.DOTALL,
+    )
+    new_body, n = pattern.subn(
+        r"\1,\n  UNIQUE KEY `unique_email` (`email`)\2",
+        body,
+        count=1,
+    )
+    return new_body if n else body
+
+
 def should_skip_line(line: str) -> bool:
     if "rocksdb" in line.lower():
         return True
@@ -283,12 +302,12 @@ def build(src: Path, out: Path) -> None:
     text = src.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
     out_lines: list[str] = []
 
-    header = """-- SahtoutCMS distributable site database (demo seed)
+    header = """-- Hearthstone CMS distributable site database (demo seed)
 -- Generated from a production dump: scrubbed accounts, logs, token gifts, and site-specific settings.
 -- Import after creating empty database `sahtout_site`, or uncomment CREATE DATABASE below.
 -- No SQL required on acore_auth for shop accounts (PHP sync via includes/site_account.php).
--- Upgrading from older releases: run SINGLE_UPDATE/site_drop_cross_db_foreign_keys.sql and
--- optional SQL/acore_auth_drop_sahtout_triggers.sql on auth.
+-- Upgrading from older releases (cross-DB FKs): run migrations_archive/site_drop_cross_db_foreign_keys.sql
+-- and optional SQL/acore_auth_drop_sahtout_triggers.sql on auth.
 --
 -- Includes: shop catalog (shop_items + site_items), achievement/stat reward criteria,
 -- sample news & calendar events, reference DBC tables, default site_settings.
@@ -347,6 +366,7 @@ def build(src: Path, out: Path) -> None:
 
     out.parent.mkdir(parents=True, exist_ok=True)
     body = strip_cross_db_foreign_keys("".join(out_lines))
+    body = ensure_pending_accounts_schema(body)
     out.write_text(body, encoding="utf-8", newline="\n")
     print(f"Wrote {out} ({out.stat().st_size} bytes)")
 

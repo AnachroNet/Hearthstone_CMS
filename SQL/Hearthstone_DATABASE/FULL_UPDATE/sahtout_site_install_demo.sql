@@ -1,9 +1,9 @@
--- SahtoutCMS distributable site database (demo seed)
+-- Hearthstone CMS distributable site database (demo seed)
 -- Generated from a production dump: scrubbed accounts, logs, token gifts, and site-specific settings.
 -- Import after creating empty database `sahtout_site`, or uncomment CREATE DATABASE below.
 -- No SQL required on acore_auth for shop accounts (PHP sync via includes/site_account.php).
--- Upgrading from older releases: run SINGLE_UPDATE/site_drop_cross_db_foreign_keys.sql and
--- optional SQL/acore_auth_drop_sahtout_triggers.sql on auth.
+-- Upgrading from older releases (cross-DB FKs): run migrations_archive/site_drop_cross_db_foreign_keys.sql
+-- and optional SQL/acore_auth_drop_sahtout_triggers.sql on auth.
 --
 -- Includes: shop catalog (shop_items + site_items), achievement/stat reward criteria,
 -- sample news & calendar events, reference DBC tables, default site_settings.
@@ -600,7 +600,8 @@ CREATE TABLE `pending_accounts` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `activated` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_username` (`username`)
+  UNIQUE KEY `unique_username` (`username`),
+  UNIQUE KEY `unique_email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf16;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

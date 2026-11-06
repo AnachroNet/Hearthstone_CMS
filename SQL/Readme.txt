@@ -1,14 +1,16 @@
-SahtoutCMS SQL layout
-=====================
+Hearthstone CMS SQL layout
+==========================
 
 Hearthstone_DATABASE/
-  FULL_UPDATE/     — full or demo sahtout_site imports
-  SINGLE_UPDATE/   — incremental migrations on sahtout_site
+  FULL_UPDATE/           — import sahtout_site_install_demo.sql for a new site (complete schema + demo data)
+  migrations_archive/    — one-off upgrades for very old dumps (see README inside)
+  generated/             — output from tools (e.g. achievement catalog import); gitignored except .gitkeep
 
 acore_world_DATABASE/
-  SINGLE_UPDATE/   — incremental migrations on acore_world
+  token_gift_quest_addon_fix.sql  — optional world patch for token gift letters
+  migrations_archive/               — reserved for archived world patches
 
-Root SQL files:
+Root SQL files (repository root):
   acore_world_*.sql              — import into acore_world as documented per file
   acore_characters_shopitem_trigger.sql — optional shop delivery (characters DB)
   acore_auth_drop_sahtout_triggers.sql  — remove legacy auth triggers (optional)

@@ -69,11 +69,7 @@ Import and run the standard AzerothCore **auth**, **characters**, and **world** 
 
 ### 2. Site database schema
 
-Create an empty database for the site, then **either**:
-
-**Option A — Demo / full seed (typical new site)**
-
-Import one full dump from the repo, for example:
+Create an empty database for the site, then import the maintained full seed:
 
 ```text
 SQL/Hearthstone_DATABASE/FULL_UPDATE/sahtout_site_install_demo.sql
@@ -81,22 +77,14 @@ SQL/Hearthstone_DATABASE/FULL_UPDATE/sahtout_site_install_demo.sql
 
 That file targets the **`sahtout_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
-**Option B — Minimal / upgrades**
-
-Start from an older dump and apply incremental scripts under:
-
-```text
-SQL/Hearthstone_DATABASE/SINGLE_UPDATE/
-```
-
-Follow filenames relevant to your features (calendar events, shop, token gifts, etc.). The admin UI may show “run migration …” messages pointing at these paths.
+**Older deployments** that cannot re-import may still use one-off scripts preserved under **`SQL/Hearthstone_DATABASE/migrations_archive/`** (for example `site_drop_cross_db_foreign_keys.sql` when upgrading from dumps that used cross-database foreign keys).
 
 ### 3. World database (optional CMS scripts)
 
 Some features ship SQL for **`acore_world`**, for example:
 
 ```text
-SQL/acore_world_DATABASE/SINGLE_UPDATE/token_gift_quest_addon_fix.sql
+SQL/acore_world_DATABASE/token_gift_quest_addon_fix.sql
 ```
 
 Root-level files such as `SQL/acore_world_armory_spell.sql` are documented in the legacy README and apply to `acore_world` when you enable those features.
@@ -105,7 +93,7 @@ Root-level files such as `SQL/acore_world_armory_spell.sql` are documented in th
 
 - **Privileges:** see **`SQL/DATABASE_PRIVILEGES.md`** for recommended MySQL grants per database.  
 - **Legacy auth triggers:** if an old install added them, remove with `SQL/acore_auth_drop_sahtout_triggers.sql`.  
-- **Cross-database foreign keys:** if you upgrade from an old dump that used them on the site DB, run **`SQL/Hearthstone_DATABASE/SINGLE_UPDATE/site_drop_cross_db_foreign_keys.sql`**.
+- **Cross-database foreign keys:** if you upgrade from an old dump that used them on the site DB, run **`SQL/Hearthstone_DATABASE/migrations_archive/site_drop_cross_db_foreign_keys.sql`**.
 
 ---
 
@@ -152,9 +140,10 @@ Root-level files such as `SQL/acore_world_armory_spell.sql` are documented in th
 ## SQL layout in this repo
 
 ```text
-SQL/Hearthstone_DATABASE/FULL_UPDATE/   — full / demo site DB imports
-SQL/Hearthstone_DATABASE/SINGLE_UPDATE/ — incremental site DB migrations
-SQL/acore_world_DATABASE/SINGLE_UPDATE/ — optional world DB patches for CMS features
+SQL/Hearthstone_DATABASE/FULL_UPDATE/        — current full site DB (use for new installs)
+SQL/Hearthstone_DATABASE/migrations_archive/ — legacy one-off upgrades from older dumps
+SQL/Hearthstone_DATABASE/generated/          — tooling output (e.g. achievement catalog import)
+SQL/acore_world_DATABASE/                    — optional world SQL bundled with the CMS
 ```
 
 Other `SQL/*.sql` files at the repo root apply to **auth**, **characters**, or **world** as indicated in comments or in **`README_sahtoutcms_legacy.md`**.
