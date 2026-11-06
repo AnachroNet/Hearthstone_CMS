@@ -231,7 +231,14 @@ function sahtout_sync_all_website_rewards(mysqli $siteDb, mysqli $charDb, int $a
 {
     $result = sahtout_sync_achievement_rewards($siteDb, $charDb, $accountId);
     $statResult = sahtout_sync_character_stat_rewards($siteDb, $charDb, $accountId);
-    $giftResult = sahtout_sync_token_gifts($siteDb, $charDb, $accountId);
+    $giftResult = sahtout_site_token_gifts_enabled()
+        ? sahtout_sync_token_gifts($siteDb, $charDb, $accountId)
+        : [
+            'ok' => true,
+            'granted' => [],
+            'tokens_added' => 0,
+            'message' => 'feature_disabled',
+        ];
 
     $totalTokens = (int) ($result['tokens_added'] ?? 0)
         + (int) ($statResult['tokens_added'] ?? 0)

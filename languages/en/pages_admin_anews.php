@@ -153,6 +153,7 @@ return [
     'admin_maintenance_invalid_dates' => 'Enter valid visible from and until date/times.',
     'admin_maintenance_until_after_from' => 'Visible until must be after visible from.',
 
+    'admin_breaking_news_feature_disabled' => 'In-game breaking news is disabled in General Settings. Enable it there to edit or save.',
     'admin_breaking_news_header' => 'In-game breaking news',
     'admin_breaking_news_help' => 'Shown on the character select screen when BreakingNews.Enable and BreakingNews.Source (db or auto) are set on worldserver. Use blank lines for new paragraphs. Color buttons wrap selected text with WoW |c…|r codes.',
     'admin_breaking_news_world_db' => 'World database connection is not available.',

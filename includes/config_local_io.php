@@ -50,6 +50,9 @@ function sahtout_default_local_config(): array
             'arena_3v3_display' => 'all',
             'arena_5v5_display' => 'all',
         ],
+        'features' => [
+            'shop_token_gifts_enabled' => null,
+        ],
     ];
 }
 

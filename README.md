@@ -87,7 +87,9 @@ Core **auth / characters / world** still come from your **AzerothCore revision**
 |------|----------|----------------|
 | **`SQL/acore_world_DATABASE/token_gift_quest_addon_fix.sql`** | `acore_world` | Token gift letters use in-game mail; this aligns quest / locale bits for that flow. Apply **before** publishing token gifts if your world DB does not already match. |
 
-**In-game breaking news** (Admin → News → In-game breaking news) requires a **`mod_breaking_news`** table on **`acore_world`**. That table is provided by the **AzerothCore Breaking News module** (or equivalent)—it is **not** part of `hearthstone_site_install_demo.sql`. Install/enable the module on your core so the table exists.
+**In-game breaking news** (Admin → News → In-game, when enabled under Admin → General) requires a **`mod_breaking_news`** table on **`acore_world`**. That table is provided by the **AzerothCore Breaking News module** (or equivalent)—it is **not** part of `hearthstone_site_install_demo.sql`. Install/enable the module on your core so the table exists. You can turn the whole feature off under **Admin → General** (`site.breaking_news_enabled`) so the site does not read the world DB for it.
+
+**Token gift letters** (sealed-letter shop promos, Admin → A-Shop → Rewards → Token Gifts) can be turned off entirely under **Admin → General** (`shop.token_gifts_enabled`). When disabled, that sub-tab is hidden for everyone (including administrators), login sync skips granting tokens for those promos, and the optional world SQL above is irrelevant. For recovery without the UI, you can set **`features.shop_token_gifts_enabled`** to `true` or `false` in **`includes/config.local.php`** (see `config.local.example.php`); the value overrides the database until removed or set back to `null`.
 
 ### 4. Privileges
 

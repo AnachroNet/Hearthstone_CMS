@@ -9,7 +9,12 @@ require_once $project_root . 'includes/token_gift_world.php';
 
 global $world_db, $site_db;
 $tokenGiftWorldIdSlots = [];
-if (isset($world_db, $site_db) && $world_db instanceof mysqli && $site_db instanceof mysqli && !$world_db->connect_error) {
+$tokenGiftsFeatureEnabled = sahtout_site_token_gifts_enabled();
+if ($tokenGiftsFeatureEnabled
+    && isset($world_db, $site_db)
+    && $world_db instanceof mysqli
+    && $site_db instanceof mysqli
+    && !$world_db->connect_error) {
     $tokenGiftWorldIdSlots = sahtout_token_gift_world_id_availability($site_db, $world_db);
 }
 
@@ -339,6 +344,25 @@ include $project_root . 'includes/header.php';
                                 <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
                                     <?php echo translate('label_shop_token_gifts', 'Token gift letters (shop)'); ?>
                                 </label>
+                                <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mb-3">
+                                    <input type="checkbox" name="shop_token_gifts_enabled" value="1" class="rounded border-[#c9a227]/40"
+                                        <?php echo !empty($sahtout_site_settings['shop.token_gifts_enabled']) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_shop_token_gifts_enabled', 'Enable token gift letter promos (A-Shop Rewards)'); ?>
+                                </label>
+                                <div class="text-[#6a7a8a] text-xs mb-3 max-w-3xl">
+                                    <?php echo translate(
+                                        'help_shop_token_gifts_enabled',
+                                        'When disabled, the Token Gifts sub-tab is hidden for everyone (including administrators), login-time granting for sealed-letter promos is skipped, and these fields are not used. If you need to recover without the UI, set features.shop_token_gifts_enabled to true or false in config.local.php (overrides the database until removed).'
+                                    ); ?>
+                                </div>
+                                <?php endif; ?>
+                                <?php if (!$tokenGiftsFeatureEnabled): ?>
+                                <p class="text-amber-300/90 text-sm mb-0"><?php echo translate(
+                                    'msg_shop_token_gifts_disabled',
+                                    'Token gift letters are disabled. Enable the checkbox above (administrators only) to configure loot IDs, world ID slots, and the A-Shop builder.'
+                                ); ?></p>
+                                <?php else: ?>
                                 <?php
                                 $tokenGiftAccessCurrent = sahtout_token_gift_admin_access();
                                 if (($_SESSION['role'] ?? '') === 'admin'):
@@ -465,6 +489,7 @@ include $project_root . 'includes/header.php';
                                         ); ?>
                                     </p>
                                 <?php endif; ?>
+                                <?php endif; ?>
                             </div>
 
                             <!-- Discord widget (home page) -->
@@ -491,6 +516,21 @@ include $project_root . 'includes/header.php';
                                 </label>
                                 <div class="text-[#6a7a8a] text-xs mt-1">
                                     <?php echo translate('help_discord_guild_id', 'Enable the Server Widget in Discord → Server Settings → Widget, then paste your server ID here.'); ?>
+                                </div>
+                            </div>
+
+                            <!-- In-game breaking news (site feature) -->
+                            <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
+                                <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
+                                    <?php echo translate('label_site_breaking_news', 'In-game breaking news'); ?>
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mb-1">
+                                    <input type="checkbox" name="site_breaking_news_enabled" value="1" class="rounded border-[#c9a227]/40"
+                                        <?php echo !empty($sahtout_site_settings['site.breaking_news_enabled']) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_site_breaking_news_enabled', 'Show breaking news on the home page and enable the in-game editor (Admin → News)'); ?>
+                                </label>
+                                <div class="text-[#6a7a8a] text-xs mt-1">
+                                    <?php echo translate('help_site_breaking_news', 'When enabled, the site reads and writes the mod_breaking_news table on acore_world. That table comes from the AzerothCore Breaking News module—install it on your core if you use this feature. Turn this off if you do not use breaking news so the site skips world DB lookups for it.'); ?>
                                 </div>
                             </div>
 

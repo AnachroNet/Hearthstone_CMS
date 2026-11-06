@@ -6,6 +6,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/maintenance_announcements.php';
 require_once $project_root . 'includes/breaking_news.php';
+require_once $project_root . 'includes/site_settings.php';
 require_once $project_root . 'includes/news_helpers.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
 require_once $project_root . 'includes/admin_pagination.php';
@@ -286,6 +287,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     } elseif ($_POST['action'] === 'breaking_news_save') {
         if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $update_message = $alert_danger(translate('admin_news_csrf_error', 'CSRF token validation failed.'));
+        } elseif (!sahtout_site_breaking_news_enabled()) {
+            $update_message = $alert_danger(translate('admin_breaking_news_feature_disabled', 'In-game breaking news is disabled in General Settings. Enable it there to edit or save.'));
         } elseif (!isset($world_db) || !($world_db instanceof mysqli) || $world_db->connect_error) {
             $update_message = $alert_danger(translate('admin_breaking_news_world_db', 'World database connection is not available.'));
         } elseif (!sahtout_breaking_news_table_exists($world_db)) {
@@ -305,10 +308,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
+$anewsSubtabIds = ['articles', 'add', 'announcements', 'communications'];
+if (sahtout_site_breaking_news_enabled()) {
+    array_splice($anewsSubtabIds, 3, 0, ['ingame']);
+}
 $news_subtab = sahtout_admin_resolve_subtab(
-    ['articles', 'add', 'announcements', 'ingame', 'communications'],
+    $anewsSubtabIds,
     'articles'
 );
+if (!sahtout_site_breaking_news_enabled() && $news_subtab === 'ingame') {
+    $news_subtab = 'articles';
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['gm_action'])) {
         $news_subtab = 'communications';
@@ -331,12 +341,15 @@ if ($news_subtab === 'communications') {
 }
 
 $maintenance_announcements = sahtout_maintenance_fetch_all($site_db, 30);
-$breaking_news_row = sahtout_breaking_news_get(isset($world_db) && $world_db instanceof mysqli ? $world_db : null);
-$breaking_news_title = (string) ($breaking_news_row['title'] ?? 'Breaking News');
-$breaking_news_body = (string) ($breaking_news_row['body_source'] ?? '');
-$breaking_news_enabled = !empty($breaking_news_row['enabled']);
-$breaking_news_updated = (string) ($breaking_news_row['updated_at'] ?? '');
-$breaking_news_updated_by = (string) ($breaking_news_row['updated_by'] ?? '');
+$breaking_news_row = null;
+if (sahtout_site_breaking_news_enabled()) {
+    $breaking_news_row = sahtout_breaking_news_get(isset($world_db) && $world_db instanceof mysqli ? $world_db : null);
+}
+$breaking_news_title = (string) ((is_array($breaking_news_row) ? ($breaking_news_row['title'] ?? null) : null) ?? 'Breaking News');
+$breaking_news_body = (string) ((is_array($breaking_news_row) ? ($breaking_news_row['body_source'] ?? null) : null) ?? '');
+$breaking_news_enabled = is_array($breaking_news_row) && !empty($breaking_news_row['enabled']);
+$breaking_news_updated = (string) ((is_array($breaking_news_row) ? ($breaking_news_row['updated_at'] ?? null) : null) ?? '');
+$breaking_news_updated_by = (string) ((is_array($breaking_news_row) ? ($breaking_news_row['updated_by'] ?? null) : null) ?? '');
 
 $items_per_page = 10;
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
@@ -741,14 +754,17 @@ ob_start();
                     if ($page > 1 && $news_subtab === 'articles') {
                         $newsSubtabPersist['page'] = $page;
                     }
+                    $anewsNavTabs = [
+                        ['id' => 'articles', 'label' => translate('admin_news_subtab_articles', 'News Articles'), 'icon' => 'fas fa-newspaper'],
+                        ['id' => 'add', 'label' => translate('admin_news_subtab_add', 'Add Article'), 'icon' => 'fas fa-plus'],
+                        ['id' => 'announcements', 'label' => translate('admin_news_subtab_announcements', 'Announcements'), 'icon' => 'fas fa-tools'],
+                    ];
+                    if (sahtout_site_breaking_news_enabled()) {
+                        $anewsNavTabs[] = ['id' => 'ingame', 'label' => translate('admin_news_subtab_ingame', 'In-Game News'), 'icon' => 'fas fa-gamepad'];
+                    }
+                    $anewsNavTabs[] = ['id' => 'communications', 'label' => translate('admin_news_subtab_communications', 'Server Communications'), 'icon' => 'fas fa-bullhorn'];
                     sahtout_admin_render_subtab_nav(
-                        [
-                            ['id' => 'articles', 'label' => translate('admin_news_subtab_articles', 'News Articles'), 'icon' => 'fas fa-newspaper'],
-                            ['id' => 'add', 'label' => translate('admin_news_subtab_add', 'Add Article'), 'icon' => 'fas fa-plus'],
-                            ['id' => 'announcements', 'label' => translate('admin_news_subtab_announcements', 'Announcements'), 'icon' => 'fas fa-tools'],
-                            ['id' => 'ingame', 'label' => translate('admin_news_subtab_ingame', 'In-Game News'), 'icon' => 'fas fa-gamepad'],
-                            ['id' => 'communications', 'label' => translate('admin_news_subtab_communications', 'Server Communications'), 'icon' => 'fas fa-bullhorn'],
-                        ],
+                        $anewsNavTabs,
                         $news_subtab,
                         $base_path,
                         'admin/anews',
@@ -838,6 +854,7 @@ ob_start();
                     </div>
                     </div><!-- /announcements subtab -->
 
+                    <?php if (sahtout_site_breaking_news_enabled()): ?>
                     <div class="<?php echo sahtout_admin_subtab_panel_class('ingame', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
                     <!-- In-game breaking news (character select) -->
                     <div class="wow-panel p-4 md:p-6 lg:p-8 mb-6 md:mb-8 breaking-news-editor" data-breaking-news-editor>
@@ -906,6 +923,7 @@ ob_start();
                         <?php endif; ?>
                     </div>
                     </div><!-- /ingame subtab -->
+                    <?php endif; ?>
 
                     <div class="<?php echo sahtout_admin_subtab_panel_class('add', $news_subtab, 'space-y-4 md:space-y-6'); ?>">
                     <!-- Add News Form -->

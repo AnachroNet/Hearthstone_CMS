@@ -70,6 +70,7 @@ return [
     'admin_token_gifts_delete_failed' => 'Could not delete token gift.',
     'admin_token_gifts_admin_only' => 'Only administrators can publish or remove world content.',
     'admin_token_gifts_access_denied' => 'You do not have permission to use the token gift builder.',
+    'admin_token_gifts_feature_disabled' => 'Token gift letters are disabled for this site (General Settings).',
     'admin_token_gifts_world_db' => 'World database connection is not available.',
     'admin_token_gifts_item_ref_missing' => 'Reference item is missing in the world database. Set shop.token_gift_item_template_ref in site settings.',
     'admin_token_gifts_quest_ref_missing' => 'Reference quest is missing. Set shop.token_gift_quest_template_ref in site settings.',

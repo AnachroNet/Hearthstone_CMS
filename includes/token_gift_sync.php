@@ -23,6 +23,10 @@ function sahtout_sync_token_gifts(mysqli $siteDb, mysqli $charDb, int $accountId
         'message' => $message,
     ];
 
+    if (!sahtout_site_token_gifts_enabled()) {
+        return $empty('feature_disabled');
+    }
+
     if ($accountId <= 0) {
         return $empty('invalid_account');
     }

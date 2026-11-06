@@ -62,7 +62,14 @@ return [
     'help_registration_signup_tokens' => 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.',
     'error_shared_email_index' => 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.',
 
+    'label_site_breaking_news' => 'In-game breaking news',
+    'label_site_breaking_news_enabled' => 'Show breaking news on the home page and enable the in-game editor (Admin → News)',
+    'help_site_breaking_news' => 'When enabled, the site reads and writes the mod_breaking_news table on acore_world. That table comes from the AzerothCore Breaking News module—install it on your core if you use this feature. Turn this off if you do not use breaking news so the site skips world DB lookups for it.',
+
     'label_shop_token_gifts' => 'Token gift letters (shop)',
+    'label_shop_token_gifts_enabled' => 'Enable token gift letter promos (A-Shop Rewards)',
+    'help_shop_token_gifts_enabled' => 'When disabled, the Token Gifts sub-tab is hidden for everyone (including administrators), login-time granting for sealed-letter promos is skipped, and these fields are not used. If you need to recover without the UI, set features.shop_token_gifts_enabled to true or false in config.local.php (overrides the database until removed).',
+    'msg_shop_token_gifts_disabled' => 'Token gift letters are disabled. Enable the checkbox above (administrators only) to configure loot IDs, world ID slots, and the A-Shop builder.',
     'label_token_gift_admin_access' => 'Token gift builder access (A-Shop)',
     'help_token_gift_admin_access' => 'Controls who sees the Token Gifts sub-tab under Shop → Rewards. Publish and full world remove stay administrator-only either way.',
     'token_gift_admin_access_admin_only' => 'Administrators only',

@@ -87,9 +87,11 @@ def site_settings_insert() -> str:
         ("social.links", social_json, "json"),
         ("discord.guild_id", "", "string"),
         ("discord.widget_enabled", "1", "bool"),
+        ("site.breaking_news_enabled", "1", "bool"),
         ("registration.allow_shared_email", "0", "bool"),
         ("registration.signup_tokens_enabled", "0", "bool"),
         ("registration.signup_tokens_amount", "0", "int"),
+        ("shop.token_gifts_enabled", "1", "bool"),
         (
             "shop.token_gift_loot_ids",
             "2276,2277,2278,2279,2280,2284",

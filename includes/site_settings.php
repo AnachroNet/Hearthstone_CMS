@@ -52,9 +52,11 @@ function sahtout_site_setting_defaults(): array
         ],
         'discord.guild_id' => '',
         'discord.widget_enabled' => '1',
+        'site.breaking_news_enabled' => '1',
         'registration.allow_shared_email' => '0',
         'registration.signup_tokens_enabled' => '0',
         'registration.signup_tokens_amount' => '0',
+        'shop.token_gifts_enabled' => '1',
         'shop.token_gift_loot_ids' => '2276,2277,2278,2279,2280,2284',
         'shop.token_gift_world_ids' => '300000,300001,300002,300003,300004,300005,300006,300007,300008,300009',
         'shop.token_gift_item_template_ref' => '2223',
@@ -288,6 +290,18 @@ function sahtout_apply_site_settings_globals(array $settings): void
     $discord_guild_id = preg_replace('/\D/', '', (string) ($settings['discord.guild_id'] ?? ''));
     $discord_widget_enabled = !empty($settings['discord.widget_enabled']) && $discord_guild_id !== '';
     $discord_join_url = sahtout_discord_join_url();
+}
+
+/** When false, the site does not query or show in-game breaking news (home sidebar / admin editor). */
+function sahtout_site_breaking_news_enabled(): bool
+{
+    global $sahtout_site_settings;
+
+    if (!isset($sahtout_site_settings) || !is_array($sahtout_site_settings)) {
+        return true;
+    }
+
+    return !empty($sahtout_site_settings['site.breaking_news_enabled']);
 }
 
 function sahtout_site_settings_from_legacy_file(): ?array

@@ -115,6 +115,15 @@ function sahtout_admin_shop_is_token_gifts_post(): bool
  */
 function sahtout_admin_shop_token_gifts_handle_post(mysqli $siteDb, ?mysqli $worldDb, string $basePath): array
 {
+    if (!sahtout_site_token_gifts_enabled()) {
+        return [
+            'redirect' => null,
+            'flash' => 'error:' . translate(
+                'admin_token_gifts_feature_disabled',
+                'Token gift letters are disabled for this site (General Settings).'
+            ),
+        ];
+    }
     if (!sahtout_admin_can_access_token_gifts()) {
         return [
             'redirect' => null,

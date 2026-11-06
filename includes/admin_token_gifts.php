@@ -102,6 +102,9 @@ function sahtout_token_gift_grants_ensure_repeatable_schema(mysqli $siteDb): boo
 
 function sahtout_admin_can_access_token_gifts(): bool
 {
+    if (!sahtout_site_token_gifts_enabled()) {
+        return false;
+    }
     $role = (string) ($_SESSION['role'] ?? '');
     if ($role === 'admin') {
         return true;
@@ -117,7 +120,7 @@ function sahtout_admin_can_access_token_gifts(): bool
 
 function sahtout_admin_can_publish_token_gifts(): bool
 {
-    return ($_SESSION['role'] ?? '') === 'admin';
+    return sahtout_site_token_gifts_enabled() && ($_SESSION['role'] ?? '') === 'admin';
 }
 
 /** @return list<array<string, mixed>> */

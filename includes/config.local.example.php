@@ -79,4 +79,12 @@ return [
     ],
     /** IANA timezone for ticket timestamps (e.g. America/New_York). Empty = PHP default timezone. */
     'timezone' => '',
+    /**
+     * Optional feature toggles. Usually use Admin → General (site_settings) instead.
+     * shop_token_gifts_enabled false forces token gift letters off even if the DB still has them enabled
+     * (emergency recovery if staff disabled the feature in the UI).
+     */
+    'features' => [
+        'shop_token_gifts_enabled' => null,
+    ],
 ];

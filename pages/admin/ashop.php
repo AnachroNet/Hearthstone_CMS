@@ -277,6 +277,8 @@ $alert_success = function($msg) {
     </div>';
 };
 
+$tokenGiftsFeatureEnabled = sahtout_site_token_gifts_enabled();
+
 // Status messages
 $update_message = '';
 if (isset($_GET['status'])) {
@@ -285,6 +287,13 @@ if (isset($_GET['status'])) {
     } else {
         $update_message = $alert_danger(htmlspecialchars($_GET['message'] ?? translate('admin_shop_operation_error', 'An error occurred.')));
     }
+}
+
+// Handle token gift form submissions (Rewards tab)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && sahtout_admin_shop_is_token_gifts_post() && !$tokenGiftsFeatureEnabled) {
+    $q = ['tab' => 'rewards', 'subtab' => 'configured', 'tg_blocked' => '1'];
+    header('Location: ' . $base_path . 'admin/ashop?' . http_build_query($q, '', '&', PHP_QUERY_RFC3986));
+    exit;
 }
 
 // Handle token gift form submissions (Rewards tab)
@@ -717,6 +726,9 @@ if ($canAccessTokenGifts) {
 }
 if ($shop_tab === 'rewards') {
     $rewards_subtab = sahtout_admin_resolve_subtab($rewardsSubtabIds, 'configured');
+    if ($rewards_subtab === 'token_gifts' && !$tokenGiftsFeatureEnabled) {
+        $rewards_subtab = 'configured';
+    }
     if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if (sahtout_admin_shop_is_token_gifts_post()) {
             $rewards_subtab = 'token_gifts';
@@ -755,7 +767,14 @@ $itemsetLookupUrl = htmlspecialchars($base_path . 'admin/itemset_lookup', ENT_QU
 $rewardsStatusFlash = sahtout_admin_shop_rewards_status_flash_from_get();
 $statStatusFlash = sahtout_admin_shop_stat_rewards_status_flash_from_get();
 $tokenGiftStatusFlash = sahtout_admin_shop_token_gifts_status_flash_from_get();
-$primaryRewardsFlash = $rewards_flash !== '' ? $rewards_flash : ($rewardsStatusFlash !== '' ? $rewardsStatusFlash : ($statStatusFlash !== '' ? $statStatusFlash : $tokenGiftStatusFlash));
+$tGBlockedFlash = '';
+if (isset($_GET['tg_blocked']) && (string) $_GET['tg_blocked'] === '1' && !$tokenGiftsFeatureEnabled) {
+    $tGBlockedFlash = 'error:' . translate(
+        'admin_token_gifts_feature_disabled',
+        'Token gift letters are disabled for this site (General Settings).'
+    );
+}
+$primaryRewardsFlash = $rewards_flash !== '' ? $rewards_flash : ($rewardsStatusFlash !== '' ? $rewardsStatusFlash : ($statStatusFlash !== '' ? $statStatusFlash : ($tGBlockedFlash !== '' ? $tGBlockedFlash : $tokenGiftStatusFlash)));
 $rewards_alert_html = sahtout_admin_shop_rewards_flash_html($primaryRewardsFlash);
 if ($statStatusFlash !== '' && $primaryRewardsFlash !== $statStatusFlash) {
     $rewards_alert_html .= sahtout_admin_shop_rewards_flash_html($statStatusFlash);

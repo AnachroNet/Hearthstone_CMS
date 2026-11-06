@@ -105,9 +105,12 @@ foreach ($socialPlatforms as $platform) {
 
 $discord_guild_id_new = preg_replace('/\D/', '', trim($_POST['discord_guild_id'] ?? ''));
 $discord_widget_enabled_new = isset($_POST['discord_widget_enabled']);
+$site_breaking_news_enabled_new = isset($_POST['site_breaking_news_enabled']);
 $registration_allow_shared_email_new = isset($_POST['registration_allow_shared_email']);
 $registration_signup_tokens_enabled_new = isset($_POST['registration_signup_tokens_enabled']);
 $registration_signup_tokens_amount_new = max(0, min(9999999, (int) ($_POST['registration_signup_tokens_amount'] ?? 0)));
+
+$shop_token_gifts_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_POST['shop_token_gifts_enabled']) : null;
 
 $shop_token_gift_loot_ids_raw = trim((string) ($_POST['shop_token_gift_loot_ids'] ?? ''));
 $shop_token_gift_loot_ids_new = preg_replace('/[^0-9,\s;]+/', '', $shop_token_gift_loot_ids_raw) ?? '';
@@ -133,10 +136,14 @@ if (empty($errors)) {
         $ok = $ok && sahtout_site_setting_set($site_db, 'social.links', $social_links_new, 'json', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.guild_id', $discord_guild_id_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'discord.widget_enabled', $discord_widget_enabled_new, 'bool', $editorId);
+        $ok = $ok && sahtout_site_setting_set($site_db, 'site.breaking_news_enabled', $site_breaking_news_enabled_new, 'bool', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'site.timezone', $site_timezone_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'registration.allow_shared_email', $registration_allow_shared_email_new, 'bool', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'registration.signup_tokens_enabled', $registration_signup_tokens_enabled_new, 'bool', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'registration.signup_tokens_amount', $registration_signup_tokens_amount_new, 'int', $editorId);
+        if ($shop_token_gifts_enabled_new !== null) {
+            $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gifts_enabled', $shop_token_gifts_enabled_new, 'bool', $editorId);
+        }
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_loot_ids', $shop_token_gift_loot_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_world_ids', $shop_token_gift_world_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_item_template_ref', $shop_token_gift_item_template_ref_new, 'int', $editorId);

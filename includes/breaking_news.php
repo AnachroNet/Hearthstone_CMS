@@ -4,6 +4,8 @@ if (!defined('ALLOWED_ACCESS')) {
     exit('Direct access not allowed.');
 }
 
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'site_settings.php';
+
 /** @return array<string, string> label => |cAARRGGBB prefix (without |r) */
 function sahtout_breaking_news_color_presets(): array
 {
@@ -260,6 +262,9 @@ function sahtout_breaking_news_render_body_web(string $bodySource): string
  */
 function sahtout_breaking_news_fetch_for_display(?mysqli $worldDb): ?array
 {
+    if (!sahtout_site_breaking_news_enabled()) {
+        return null;
+    }
     $row = sahtout_breaking_news_get($worldDb);
     if ($row === null || empty($row['enabled'])) {
         return null;

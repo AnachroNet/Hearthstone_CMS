@@ -217,3 +217,54 @@ function sahtout_token_gift_grants_table_exists(mysqli $siteDb): bool
 
     return $exists;
 }
+
+/**
+ * Optional override in config.local.php features.shop_token_gifts_enabled:
+ * - true: force enabled (recovery if the DB row is wrong)
+ * - false: force disabled (emergency off even if site_settings still say on)
+ * - null or omit: use site_settings shop.token_gifts_enabled
+ *
+ * @return bool|null null = use database
+ */
+function sahtout_site_token_gifts_config_override(): ?bool
+{
+    global $sahtout_local;
+
+    if (!isset($sahtout_local) || !is_array($sahtout_local)) {
+        return null;
+    }
+    $features = $sahtout_local['features'] ?? null;
+    if (!is_array($features) || !array_key_exists('shop_token_gifts_enabled', $features)) {
+        return null;
+    }
+    $v = $features['shop_token_gifts_enabled'];
+    if ($v === null) {
+        return null;
+    }
+    if ($v === false || $v === 0 || $v === '0'
+        || (is_string($v) && in_array(strtolower(trim($v)), ['false', 'off', 'no'], true))) {
+        return false;
+    }
+    if ($v === true || $v === 1 || $v === '1'
+        || (is_string($v) && in_array(strtolower(trim($v)), ['true', 'on', 'yes'], true))) {
+        return true;
+    }
+
+    return null;
+}
+
+/** Sealed-letter token gift promos (A-Shop builder, login sync). False hides all of it from staff and players. */
+function sahtout_site_token_gifts_enabled(): bool
+{
+    $override = sahtout_site_token_gifts_config_override();
+    if ($override !== null) {
+        return $override;
+    }
+    global $sahtout_site_settings;
+
+    if (!isset($sahtout_site_settings) || !is_array($sahtout_site_settings)) {
+        return true;
+    }
+
+    return !empty($sahtout_site_settings['shop.token_gifts_enabled']);
+}
