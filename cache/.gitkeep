@@ -1,0 +1,2 @@
+# Runtime-generated JSON/PHP caches (realm status, talent DBC map) are written here.
+# Directory is kept empty in git; PHP creates it if missing.

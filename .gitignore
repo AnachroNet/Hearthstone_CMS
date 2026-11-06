@@ -1,8 +1,8 @@
 node_modules/
 vendor/
 logs/
-cache/
-cache/realm_1.php
+cache/*
+!cache/.gitkeep
 includes/config.local.php
 
 # Regenerated from tools/import_achievement_catalog.php (keep generated/.gitkeep)
