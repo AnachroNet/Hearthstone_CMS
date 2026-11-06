@@ -4,7 +4,7 @@
 -- The CMS creates rows in hearthstone_site.user_currencies from PHP when users register or log in.
 --
 -- If you installed triggers from an older release, remove them with:
---   SQL/acore_auth_drop_sahtout_triggers.sql
+--   SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql
 --
 -- Do not re-create triggers on acore_auth.account; they require TRIGGER privilege and are
 -- redundant with includes/site_account.php.

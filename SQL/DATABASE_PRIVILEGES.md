@@ -21,7 +21,7 @@ No **TRIGGER** privilege is needed.
 | `account_banned` | SELECT, INSERT, UPDATE | Login ban check, admin bans |
 | `uptime` | SELECT | Realm status (optional) |
 
-Legacy **`after_account_insert` / `after_account_update` triggers** are deprecated. Remove with `SQL/acore_auth_drop_sahtout_triggers.sql` if present.
+Legacy **`after_account_insert` / `after_account_update` triggers** are deprecated. Remove with `SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql` if present.
 
 ## `acore_characters` (game data & shop delivery)
 

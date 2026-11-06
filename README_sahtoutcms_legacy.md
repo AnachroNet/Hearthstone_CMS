@@ -462,13 +462,13 @@ SahtoutCMS does **not** require triggers or schema changes on **`acore_auth`** f
 Import world (and optional character) SQL shipped with this release as needed—for example:
 
 ```text
-acore_world_armory_spell.sql  → acore_world
+SQL/acore_database/migrations_archive/acore_world_armory_spell.sql  → acore_world (optional)
 ```
 
 If you upgraded from an older release that installed auth triggers or cross-database foreign keys, run:
 
 ```text
-SQL/acore_auth_drop_sahtout_triggers.sql     → acore_auth (optional cleanup)
+SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql  → acore_auth (optional cleanup)
 SQL/.../site_drop_cross_db_foreign_keys.sql  → hearthstone_site
 ```
 

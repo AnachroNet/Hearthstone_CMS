@@ -87,12 +87,12 @@ Some features ship SQL for **`acore_world`**, for example:
 SQL/acore_world_DATABASE/token_gift_quest_addon_fix.sql
 ```
 
-Root-level files such as `SQL/acore_world_armory_spell.sql` are documented in the legacy README and apply to `acore_world` when you enable those features.
+Optional AzerothCore patches live under **`SQL/acore_database/migrations_archive/`** (for example armory or breaking-news SQL) and apply only when you enable those features. See **`SQL/acore_database/README.md`**.
 
 ### 4. Privileges and cleanup
 
 - **Privileges:** see **`SQL/DATABASE_PRIVILEGES.md`** for recommended MySQL grants per database.  
-- **Legacy auth triggers:** if an old install added them, remove with `SQL/acore_auth_drop_sahtout_triggers.sql`.  
+- **Legacy auth triggers:** if an old install added them, remove with `SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql`.  
 - **Cross-database foreign keys:** if you upgrade from an old dump that used them on the site DB, run **`SQL/Hearthstone_DATABASE/migrations_archive/site_drop_cross_db_foreign_keys.sql`**.
 
 ---

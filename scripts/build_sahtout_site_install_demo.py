@@ -307,7 +307,7 @@ def build(src: Path, out: Path) -> None:
 -- Import after creating empty database `hearthstone_site`, or uncomment CREATE DATABASE below.
 -- No SQL required on acore_auth for shop accounts (PHP sync via includes/site_account.php).
 -- Upgrading from older releases (cross-DB FKs): run migrations_archive/site_drop_cross_db_foreign_keys.sql
--- and optional SQL/acore_auth_drop_sahtout_triggers.sql on auth.
+-- and optional SQL/acore_database/migrations_archive/acore_auth_drop_sahtout_triggers.sql on auth.
 --
 -- Includes: shop catalog (shop_items + site_items), achievement/stat reward criteria,
 -- sample news & calendar events, reference DBC tables, default site_settings.
