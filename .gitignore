@@ -7,3 +7,7 @@ includes/config.local.php
 
 # Regenerated from tools/import_achievement_catalog.php (keep generated/.gitkeep)
 SQL/Hearthstone_DATABASE/generated/*.sql
+
+# Uploaded realm emblems (installer step 4 + Admin → Settings → Realm)
+img/logos/realm_logo.*
+img/logos/realm_logo_*.*
