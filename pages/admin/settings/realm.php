@@ -22,7 +22,7 @@ $success = false;
 $playerbotsMissing = false;
 $realmsFile = $project_root . 'includes/realm_config.php';
 
-$defaultLogo = 'img/logo.png';
+$defaultLogo = 'img/logos/realm_logo.png';
 
 require_once $project_root . 'includes/realm_config.php';
 

@@ -212,6 +212,7 @@ return [
     'error_realm_logo_too_large'  => 'Realm emblem size exceeds 2MB.',
     'error_invalid_realm_logo_type' => 'Invalid emblem format. Only PNG, SVG, JPG, or WebP permitted.',
     'error_realm_logo_upload_failed' => 'Failed to upload realm emblem. Verify server permissions.',
+    'error_realm_default_logo_missing' => 'Default logo missing (img/logo.png). Restore it from the repository.',
     'error_direct_access_realm'   => 'Direct access to this file is prohibited.',
     'error_access_denied'         => 'Access denied.',
 'step4_description' => 'Configure your server realm settings.',

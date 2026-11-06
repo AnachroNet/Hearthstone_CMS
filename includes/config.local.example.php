@@ -66,7 +66,7 @@ return [
             'address' => '127.0.0.1',
             'check_address' => '127.0.0.1',
             'port' => 8085,
-            'logo' => 'img/logo.png',
+            'logo' => 'img/logos/realm_logo.png',
             'player_display' => 'separate',
         ],
     ],

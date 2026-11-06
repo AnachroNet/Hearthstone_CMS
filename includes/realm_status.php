@@ -542,7 +542,7 @@ function formatServerUptime($seconds) {
             <div class="flex items-center gap-2.5 mb-2.5">
                 <div class="w-[52px] h-[52px] flex items-center justify-center shrink-0">
                     <?php if (!empty($realm['logo'])): ?>
-                        <img src="<?php echo htmlspecialchars($realm['logo']); ?>"
+                        <img src="<?php echo htmlspecialchars(sahtout_public_asset_url((string) $realm['logo'])); ?>"
                              alt="<?php echo translate('realm_logo_alt', 'Realm Logo'); ?>"
                              class="w-full h-full object-contain">
                     <?php else: ?>

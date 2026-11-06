@@ -9,13 +9,16 @@ $current_step = 4;
 
 $errors = [];
 $success = false;
-$defaultLogo = 'img/logo.png'; 
+// When no custom emblem is uploaded we copy img/logo.png to img/logos/realm_logo.png and reference that path.
+$defaultLogoRel = 'img/logos/realm_logo.png';
+$defaultLogoSourceAbs = $project_root . 'img/logo.png';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $realmName = trim($_POST['realm_name'] ?? '');
     $realmIP = trim($_POST['realm_ip'] ?? '');
     $realmPort = (int) ($_POST['realm_port'] ?? 0);
-    $logo_path = $defaultLogo;
+    $logo_path = $defaultLogoRel;
+    $logo_from_upload = false;
 
     // Validate inputs
     if (empty($realmName)) {
@@ -28,12 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "❌ " . translate('err_realm_port_invalid', 'realm port must be a valid number (1-65535).');
     }
 
-    // Handle logo upload
+    // Handle logo upload (optional). Validates file contents, not only the browser-reported MIME.
     if (isset($_FILES['realm_logo']) && $_FILES['realm_logo']['error'] === UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['realm_logo']['tmp_name'];
         $file_name = $_FILES['realm_logo']['name'];
         $file_size = $_FILES['realm_logo']['size'];
-        $file_type = $_FILES['realm_logo']['type'];
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
         $allowed_exts = ['png', 'svg', 'jpg', 'jpeg', 'webp'];
         $max_size = 2 * 1024 * 1024; // 2MB
@@ -43,30 +45,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!in_array($file_ext, $allowed_exts)) {
             $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem format. Only PNG, SVG, JPG, or WebP permitted.');
         } else {
-            // Validate MIME
             $mimeValid = false;
-            switch ($file_ext) {
-                case 'png': $mimeValid = $file_type === 'image/png'; break;
-                case 'jpg':
-                case 'jpeg': $mimeValid = in_array($file_type, ['image/jpeg','image/jpg']); break;
-                case 'svg': $mimeValid = $file_type === 'image/svg+xml'; break;
-                case 'webp': $mimeValid = $file_type === 'image/webp'; break;
+            if (in_array($file_ext, ['png', 'jpg', 'jpeg', 'webp'], true)) {
+                $imageInfo = @getimagesize($file_tmp);
+                $detectedMime = $imageInfo['mime'] ?? '';
+                $mimeValid = in_array($detectedMime, ['image/png', 'image/jpeg', 'image/webp'], true);
+            } elseif ($file_ext === 'svg') {
+                $head = @file_get_contents($file_tmp, false, null, 0, 256) ?: '';
+                $mimeValid = str_contains($head, '<svg');
             }
+
             if (!$mimeValid) {
-                $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem MIME type for ' . strtoupper($file_ext));
+                $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem file contents for ' . strtoupper($file_ext));
             } else {
                 $upload_dir = $project_root . 'img/logos/';
-                if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
+                if (!is_dir($upload_dir) && !@mkdir($upload_dir, 0755, true)) {
+                    $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Emblem upload directory is inaccessible or not writable.');
+                } elseif (is_dir($upload_dir) && !is_writable($upload_dir)) {
                     $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Emblem upload directory is inaccessible or not writable.');
                 } else {
                     $new_file_name = 'realm_logo.' . $file_ext;
                     $destination = $upload_dir . $new_file_name;
                     if (move_uploaded_file($file_tmp, $destination)) {
-                        $logo_path = "img/logos/$new_file_name"; 
+                        $logo_path = "img/logos/$new_file_name";
+                        $logo_from_upload = true;
                     } else {
                         $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Failed to upload realm emblem. Verify server permissions.');
                     }
                 }
+            }
+        }
+    }
+
+    if (empty($errors) && !$logo_from_upload) {
+        $upload_dir = $project_root . 'img/logos/';
+        if (!is_dir($upload_dir) && !@mkdir($upload_dir, 0755, true)) {
+            $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Emblem upload directory is inaccessible or not writable.');
+        } elseif (!is_readable($defaultLogoSourceAbs)) {
+            $errors[] = "❌ " . translate('error_realm_default_logo_missing', 'Default logo missing (img/logo.png). Restore it from the repository.');
+        } else {
+            $dest = $upload_dir . 'realm_logo.png';
+            if (!@copy($defaultLogoSourceAbs, $dest)) {
+                $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Could not copy default emblem to img/logos/. Check directory permissions.');
+            } else {
+                $logo_path = $defaultLogoRel;
             }
         }
     }

@@ -1,2 +1,2 @@
-# Uploaded realm emblems from the installer or admin (gitignored): realm_logo.*, realm_logo_*.*
-# Default realm logo in config is img/logo.png until a custom emblem is uploaded.
+# Uploads: realm_logo.* and realm_logo_*.* (gitignored).
+# Installer copies img/logo.png to img/logos/realm_logo.png when no custom emblem is uploaded.
