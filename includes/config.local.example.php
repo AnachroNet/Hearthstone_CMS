@@ -44,7 +44,7 @@ return [
         'user' => '',
         'pass' => '',
         'from' => 'noreply@yourdomain.com',
-        'name' => 'Sahtout Account',
+        'name' => 'Hearthstone CMS',
         'port' => 587,
         'secure' => 'tls',
         'allow_self_signed' => false,

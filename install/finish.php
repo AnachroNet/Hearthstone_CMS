@@ -105,14 +105,14 @@ foreach ($configFiles as $name => $path) {
                 <div class="mb-4">
                     <img
                         src="logo.png"
-                        alt="SahtoutCMS"
+                        alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>"
                         class="w-22 h-22 md:w-36 md:h-36 object-contain mx-auto drop-shadow-2xl celebration-icon"
                     >
                 </div>
                 <h1 class="font-cinzel text-3xl md:text-5xl font-bold bg-gradient-to-b from-amber-100 to-gold-500 bg-clip-text text-transparent">
                     <?= translate('finish_title', 'Installer Complete') ?> ⚔️
                 </h1>
-                <p class="text-slate-400 mt-2 text-sm"><?= translate('finish_description', 'SahtoutCMS is ready for action!') ?></p>
+                <p class="text-slate-400 mt-2 text-sm"><?= translate('finish_description', 'Hearthstone CMS is ready for action!') ?></p>
             </div>
 
             <!-- Errors -->
@@ -138,66 +138,8 @@ foreach ($configFiles as $name => $path) {
                 <!-- Congratulations Message -->
                 <div class="text-center mb-6">
                     <p class="text-slate-300 text-base leading-relaxed">
-                        <?= translate('finish_congrats', 'Congratulations, SahtoutCMS is fully installed and ready to use.') ?>
+                        <?= translate('finish_congrats', 'Congratulations, Hearthstone CMS is fully installed and ready to use.') ?>
                     </p>
-                </div>
-
-                <!-- Support SahtoutCMS -->
-                <div class="relative overflow-hidden bg-gradient-to-br from-amber-950/40 via-slate-900/70 to-red-950/30 border border-amber-500/30 rounded-xl p-6 mb-6 text-center shadow-lg">
-                    
-                    <!-- Decorative glow -->
-                    <div class="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-red-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <div class="relative z-10">
-                        
-                        <div class="flex justify-center mb-3">
-                            <i class="fas fa-heart text-red-400 text-3xl"></i>
-                        </div>
-                        
-                        <h2 class="font-cinzel text-xl md:text-2xl font-bold text-amber-300 mb-2">
-                            Support SahtoutCMS
-                        </h2>
-                        
-                        <p class="text-slate-300 text-sm leading-relaxed max-w-xl mx-auto mb-5">
-                            Enjoying SahtoutCMS? ❤️ Choose your favorite platform below
-                            to support the continued development of this project.
-                        </p>
-                        
-                        <div class="flex flex-col items-center justify-center gap-5">
-                            <a 
-                                href="https://ko-fi.com/sahtoutdev"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="transition-transform duration-300 transform hover:scale-105"
-                                aria-label="Support on Ko-fi"
-                            >
-                                <img 
-                                    src="kofi.gif" 
-                                    alt="Support on Ko-fi" 
-                                    class="h-10 md:h-12 w-auto object-contain"
-                                >
-                            </a>
-                           <a 
-    href="https://buymeacoffee.com/sahtoutdev"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="transition-transform duration-300 transform hover:scale-105"
-    aria-label="Buy Me a Coffee"
->
-    <img 
-        src="bmc.gif" 
-        alt="Buy Me a Coffee" 
-        class="w-48 md:w-56 h-auto object-contain"
-    >
-</a>
-                        </div>
-                        
-                        <p class="text-xs text-slate-500 mt-3">
-                            Donations are completely optional and help keep SahtoutCMS alive and growing.
-                        </p>
-                        
-                    </div>
                 </div>
 
                 <!-- Security Note -->
@@ -216,7 +158,7 @@ foreach ($configFiles as $name => $path) {
             <div class="text-center mt-6">
                 <a href="<?php echo $base_path; ?>" class="inline-flex items-center px-8 py-3.5 bg-gold-500 hover:bg-gold-400 text-slate-900 font-bold rounded-lg shadow-lg shadow-gold-600/20 transition-all duration-300 transform hover:scale-105">
                     <i class="fas fa-home mr-2"></i>
-                    <?= translate('btn_go_to_homepage', 'Go to SahtoutCMS Homepage') ?>
+                    <?= translate('btn_go_to_homepage', 'Go to homepage') ?>
                     <i class="fas fa-arrow-right ml-2"></i>
                 </a>
             </div>

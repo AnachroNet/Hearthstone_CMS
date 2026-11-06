@@ -101,8 +101,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
     $playerbotsDbNameField = $dbGroups['playerbots']['name'];
 
+    // Playerbots uses the same MySQL server credentials as the characters DB (schema name only).
+    $pbName = trim((string) ($dbGroups['playerbots']['name'] ?? ''));
+    if ($pbName !== '') {
+        $c = $dbGroups['char'];
+        $dbGroups['playerbots'] = [
+            'label' => translate('db_playerbots', 'Playerbots DB (optional)'),
+            'host'  => $c['host'],
+            'port'  => $c['port'],
+            'user'  => $c['user'],
+            'pass'  => $c['pass'],
+            'name'  => $pbName,
+        ];
+    } else {
+        $dbGroups['playerbots'] = [
+            'label' => translate('db_playerbots', 'Playerbots DB (optional)'),
+            'name'  => '',
+        ];
+    }
+
     foreach ($dbGroups as $key => $g) {
-        if ($key === 'playerbots') {
+        if ($key === 'playerbots' && trim((string) ($g['name'] ?? '')) === '') {
             continue;
         }
         if (empty($g['host'])) $errors[] = translate('err_host_required', '[%s] Host is required', $g['label']);
@@ -115,7 +134,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         foreach ($dbGroups as $key => $g) {
-            if ($key === 'playerbots') {
+            if ($key === 'playerbots' && trim((string) ($g['name'] ?? '')) === '') {
+                $dbStatus[$key] = [
+                    'success' => true,
+                    'message' => translate('msg_playerbots_skipped', 'Not configured (optional — uses the same server as Char DB when set)'),
+                ];
                 continue;
             }
             [$conn, $connError] = makeConnection($g);
@@ -128,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'auth'  => ['account', 'realmcharacters'],
                     'world' => ['creature_template', 'item_template'],
                     'char'  => ['characters', 'character_inventory'],
+                    'playerbots' => ['playerbots_account_type'],
                     default => [],
                 };
 
@@ -147,7 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $dbStatus[$key] = $status;
-            $dbGroups[$key]['_conn'] = $conn;
+            if ($conn instanceof mysqli) {
+                $dbGroups[$key]['_conn'] = $conn;
+            }
 
             if (!$status['success']) {
                 $errors[] = "[{$g['label']}] " . $status['message'];
@@ -185,7 +211,8 @@ $db_icons = [
     'auth' => 'fa-shield-halved',
     'world' => 'fa-globe',
     'char' => 'fa-users',
-    'site' => 'fa-database'
+    'site' => 'fa-database',
+    'playerbots' => 'fa-robot',
 ];
 ?>
 <!DOCTYPE html>
@@ -193,7 +220,7 @@ $db_icons = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= translate('installer_title', 'SahtoutCMS Installer') ?> - <?= translate('step3_title', 'Step 3: Database & reCAPTCHA Setup') ?></title>
+    <title><?= translate('installer_title', 'Hearthstone CMS Installer') ?> - <?= translate('step3_title', 'Step 3: Database & reCAPTCHA Setup') ?></title>
     
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
@@ -276,7 +303,7 @@ $db_icons = [
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-gold-500/10 border border-gold-500/30 rounded-full mb-4">
                     <img 
                         src="logo.png" 
-                        alt="Logo"
+                        alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>"
                         class="w-12 h-12 object-contain"
                     >
                 </div>
@@ -492,7 +519,10 @@ $db_icons = [
                             <?= translate('db_playerbots', 'Playerbots DB (optional)') ?>
                         </h3>
                         <p class="text-slate-400 text-sm mb-4">
-                            <?= translate('help_playerbots_db', 'Database name for the Playerbots mod (same MySQL server as Char DB). Used for realm online counts and armory human/bot filters. Leave blank if you do not use Playerbots.') ?>
+                            <?= translate('help_playerbots_db', 'Schema name for the Playerbots mod database (same MySQL server and credentials as Char DB). Used for realm online counts and armory human/bot filters. Leave blank if you do not use Playerbots.') ?>
+                        </p>
+                        <p class="text-slate-500 text-xs mb-4">
+                            <?= translate('help_playerbots_same_creds', 'Connection test uses the Char DB host, port, username, and password above.') ?>
                         </p>
                         <label for="db_playerbots_name" class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider"><?= translate('label_db_name', 'Database') ?></label>
                         <input id="db_playerbots_name" type="text" name="db_playerbots_name"

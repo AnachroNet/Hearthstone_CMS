@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo translate('forge_title', 'Sahtout RealmForge'); ?> - <?php echo translate('step4_title', 'Phase 4: realm Setup'); ?></title>
+    <title><?php echo translate('forge_title', 'Hearthstone RealmForge'); ?> - <?php echo translate('step4_title', 'Phase 4: realm Setup'); ?></title>
     
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
@@ -193,7 +193,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="inline-flex items-center justify-center w-16 h-16 bg-gold-500/10 border border-gold-500/30 rounded-full mb-4">
         <img 
             src="logo.png" 
-            alt="Logo"
+            alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>"
             class="w-12 h-12 object-contain"
         >
     </div>
@@ -255,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <i class="fas fa-tag text-sm"></i>
                             </span>
                             <input id="realm_name" type="text" name="realm_name" 
-                                   value="<?php echo htmlspecialchars($_POST['realm_name'] ?? 'Sahtout Realm'); ?>"
+                                   value="<?php echo htmlspecialchars($_POST['realm_name'] ?? 'Hearthstone Realm'); ?>"
                                    class="w-full bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all placeholder-slate-500 text-sm"
                                    required placeholder="Enter realm name">
                         </div>

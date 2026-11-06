@@ -122,9 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mail->addAddress($test_email);
                 
                 // Email content
-                $mail->Subject = translate('mail_test_subject', 'Test Email - Sahtout CMS Installer');
+                $mail->Subject = translate('mail_test_subject', 'Test Email - Hearthstone CMS Installer');
                 $mail->Body = translate('mail_test_body', 
-                    'This is a test email from your Sahtout CMS installer.<br><br>
+                    'This is a test email from your Hearthstone CMS installer.<br><br>
                     <strong>Configuration Details:</strong><br>
                     Host: ' . $smtp_host . '<br>
                     Port: ' . $smtp_port . '<br>
@@ -186,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= translate('installer_title', 'SahtoutCMS Installer') ?> - <?= translate('step5_title', 'Step 5: Email Setup') ?></title>
+    <title><?= translate('installer_title', 'Hearthstone CMS Installer') ?> - <?= translate('step5_title', 'Step 5: Email Setup') ?></title>
     
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
@@ -372,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="inline-flex items-center justify-center w-16 h-16 bg-gold-500/10 border border-gold-500/30 rounded-full mb-4">
         <img 
             src="logo.png" 
-            alt="Logo"
+            alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>"
             class="w-12 h-12 object-contain"
         >
     </div>
@@ -573,7 +573,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <?= translate('label_from_name', 'From Name') ?>
                                 </label>
                                 <input id="smtp_name" type="text" name="smtp_name" 
-                                       value="<?= htmlspecialchars($_POST['smtp_name'] ?? 'Sahtout Account') ?>"
+                                       value="<?= htmlspecialchars($_POST['smtp_name'] ?? 'Hearthstone CMS') ?>"
                                        class="w-full bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all text-sm">
                             </div>
                         </div>

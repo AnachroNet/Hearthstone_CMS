@@ -11,7 +11,7 @@ $current_step = 1;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= translate('installer_title', 'SahtoutCMS Installer') ?></title>
+    <title><?= translate('installer_title', 'Hearthstone CMS Installer') ?></title>
     
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
@@ -80,7 +80,7 @@ $current_step = 1;
     <div class="w-20 h-20 mx-auto bg-gold-500/10 border border-gold-500/30 flex items-center justify-center rounded-full">
         <img 
             src="logo.png" 
-            alt="Logo"
+            alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>"
             class="w-16 h-16 object-contain"
         >
     </div>
@@ -88,7 +88,7 @@ $current_step = 1;
             
             <!-- Title -->
             <h1 class="font-cinzel text-3xl md:text-5xl font-bold text-center bg-gradient-to-b from-amber-100 to-gold-500 bg-clip-text text-transparent mb-2">
-                <?= translate('installer_name', 'SahtoutCMS Installer') ?>
+                <?= translate('installer_name', 'Hearthstone CMS Installer') ?>
             </h1>
             
             <div class="text-4xl text-center mb-4 text-gold-400">⚔️</div>
@@ -96,7 +96,7 @@ $current_step = 1;
             <!-- Description -->
             <p class="text-slate-300 text-base leading-relaxed text-center mb-4">
                 <?= translate('welcome_message_line1', 'Welcome, adventurer.') ?><br>
-                <?= translate('welcome_message_line2', 'This installer will guide you through the setup of <strong class="text-gold-400">SahtoutCMS</strong>, for World of Warcraft private servers.') ?><br><br>
+                <?= translate('welcome_message_line2', 'This installer will guide you through the setup of <strong class="text-gold-400">Hearthstone CMS</strong>, for World of Warcraft private servers.') ?><br><br>
                 <?= translate('welcome_message_line3', 'Prepare your database credentials and your server, for the journey begins now.') ?>
             </p>
             

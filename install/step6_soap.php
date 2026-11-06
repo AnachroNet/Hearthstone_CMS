@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= translate('installer_title') ?> - <?= translate('step6_title', 'SOAP Setup') ?></title>
+    <title><?= translate('installer_title', 'Hearthstone CMS Installer') ?> - <?= translate('step6_title', 'Step 6: SOAP Setup') ?></title>
     
     <!-- Tailwind CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="inline-flex items-center justify-center w-16 h-16 bg-gold-500/10 border border-gold-500/30 rounded-full mb-4">
         <img 
             src="logo.png" 
-            alt="Logo"
+            alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>"
             class="w-12 h-12 object-contain"
         >
     </div>

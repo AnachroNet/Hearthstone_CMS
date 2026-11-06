@@ -17,7 +17,7 @@ $langCode = 'en';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= translate('installer_title', 'Sahtout CMS Installer') ?></title>
+    <title><?= translate('installer_title', 'Hearthstone CMS Installer') ?></title>
     <link rel="icon" type="image/png" href="<?= htmlspecialchars($base_path ?? '/') ?>img/logo.png">
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/css/tailwind.css">
     <link rel="stylesheet" href="<?= htmlspecialchars($base_path ?? '/') ?>assets/fontawesome-free/css/all.min.css">
@@ -37,9 +37,9 @@ $langCode = 'en';
 <body>
     <nav class="glass-nav flex flex-wrap items-center justify-between px-4 md:px-8 py-3 gap-2">
         <div class="flex items-center">
-            <img src="<?php echo $base_path; ?>install/logo.png" alt="<?= translate('logo_alt', 'Sahtout Logo') ?>" class="h-16 md:h-20 mr-3 md:mr-4 rounded transition-transform duration-300 hover:scale-105">
+            <img src="<?php echo $base_path; ?>install/logo.png" alt="<?= translate('logo_alt', 'Hearthstone CMS') ?>" class="h-16 md:h-20 mr-3 md:mr-4 rounded transition-transform duration-300 hover:scale-105">
             <span class="font-['Cinzel'] text-xl md:text-2xl font-bold text-[#f2cf5b] tracking-wide drop-shadow-[0_0_20px_rgba(242,207,82,0.2)]">
-                <?= translate('installer_title', 'Sahtout CMS Installer') ?>
+                <?= translate('installer_title', 'Hearthstone CMS Installer') ?>
             </span>
         </div>
     </nav>

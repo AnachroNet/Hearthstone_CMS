@@ -14,8 +14,8 @@ return [
     // ========================================
     // === GENERAL & NAVIGATION ===
     // ========================================
-    'installer_title'             => 'SahtoutCMS Installer',
-    'installer_name'              => 'SahtoutCMS Installer',
+    'installer_title'             => 'Hearthstone CMS Installer',
+    'installer_name'              => 'Hearthstone CMS Installer',
     'step'                        => 'Step',
     'requirement'                 => 'Requirement',
     'status'                      => 'Status',
@@ -33,11 +33,11 @@ return [
     // === INDEX.PHP (Welcome) ===
     // ========================================
     'welcome_message_line1'       => 'Welcome, adventurer.',
-    'welcome_message_line2'       => 'This installer will guide you through the setup of <strong>SahtoutCMS</strong>, for World of Warcraft private servers.',
+    'welcome_message_line2'       => 'This installer will guide you through the setup of <strong>Hearthstone CMS</strong>, for World of Warcraft private servers.',
     'welcome_message_line3'       => 'Prepare your database credentials and your server, for the journey begins now.',
     'note_dev_info'               => 'Note: I created this project alone for fun, learning, and testing. While I\'ve tried to make it look and feel professional, it\'s not a team project, and some bugs may still exist. Enjoy exploring and give feedback if you find issues!',
     'btn_begin_install'           => 'Begin Installation',
-    'logo_alt'                    => 'Sahtout Logo',
+    'logo_alt'                    => 'Hearthstone CMS',
 
     // ========================================
 // === STEP2_CHECK.PHP ===
@@ -132,7 +132,9 @@ return [
 'db_auth'                     => 'Auth DB',
 'db_world'                    => 'World DB',
     'db_playerbots'               => 'Playerbots DB (optional)',
-    'help_playerbots_db'          => 'Database name for the Playerbots mod (same MySQL server as Char DB). Used for realm online counts and armory human/bot filters. Leave blank if you do not use Playerbots.',
+    'help_playerbots_db'          => 'Schema name for the Playerbots mod database (same MySQL server and credentials as Char DB). Used for realm online counts and armory human/bot filters. Leave blank if you do not use Playerbots.',
+    'help_playerbots_same_creds'  => 'Connection test uses the Char DB host, port, username, and password above.',
+    'msg_playerbots_skipped'      => 'Skipped (optional). Enter the schema name to verify the connection and playerbots_account_type table.',
 'db_char'                     => 'Char DB',
 'db_site'                     => 'Site DB',
 'label_db_host'               => 'Host',
@@ -184,7 +186,7 @@ return [
     // ========================================
     // === STEP4_REALM.PHP ===
     // ========================================
-    'forge_title'                 => 'Sahtout RealmForge',
+    'forge_title'                 => 'Hearthstone RealmForge',
     'forge_name'                  => '⚔️ RealmForge Setup',
     'step4_title'                 => 'Phase 4: Realm Setup',
     'section_realm_config'        => 'Realm Configuration',
@@ -231,8 +233,8 @@ return [
 'err_write_mail_config'           => 'Cannot write to %s.',
 'err_composer_missing'            => 'PHPMailer is not installed. Please run "composer install" in the root directory to enable SMTP functionality. You can disable SMTP and continue if you don\'t need email features.',
 'error_direct_access'             => 'Direct access to this file is not allowed.',
-'mail_test_subject'               => 'Test Email - Sahtout CMS',
-'mail_test_body'                  => 'This is a test email from your Sahtout CMS installation.',
+'mail_test_subject'               => 'Test Email - Hearthstone CMS',
+'mail_test_body'                  => 'This is a test email from your Hearthstone CMS installation.',
 'msg_mail_saved'                  => 'Email configuration saved! Test email sent successfully.',
 'msg_mail_saved_disabled'         => 'Email configuration saved with SMTP disabled.',
 'msg_test_email_sent_to'          => 'Test email sent to %s',
@@ -306,7 +308,6 @@ return [
     // ========================================
     // === FOOTER ===
     // ========================================
-    'footer_connect'              => 'Connect with Me:',
     'footer_all_rights'           => 'All rights reserved.',
 
     // ========================================
@@ -316,9 +317,9 @@ return [
     'err_config_missing'          => 'Configuration file missing:',
     'finish_errors_msg'           => 'Some required configuration files are missing. Please make sure all steps are completed.',
     'finish_all_present'          => 'All configuration files are present!',
-    'finish_congrats'             => 'Congratulations, SahtoutCMS is fully installed and ready to use.',
+    'finish_congrats'             => 'Congratulations, Hearthstone CMS is fully installed and ready to use.',
     'finish_security_note'        => 'For security, it is strongly recommended to <strong>delete the "install" folder</strong> from your server.',
-    'btn_go_to_homepage'          => 'Go to SahtoutCMS Homepage',
-'finish_description' => 'SahtoutCMS is ready for action!',
+    'btn_go_to_homepage'          => 'Go to homepage',
+'finish_description' => 'Hearthstone CMS is ready for action!',
 'finish_security_note_title' => 'Security Recommendation',
     ];
