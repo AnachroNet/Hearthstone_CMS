@@ -11,7 +11,7 @@
  *   LFGDungeons.dbc (recommended — dungeon level bands on reward presets)
  * World DB (optional): acore_world.creature for boss-kill achievements without map_id (e.g. Deadmines)
  *
- * Usage (from Web/SahtoutCMS):
+ * Usage (from project root):
  *   php tools/import_achievement_catalog.php
  */
 
