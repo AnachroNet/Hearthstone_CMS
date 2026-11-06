@@ -430,7 +430,7 @@ if ($home_calendar_enabled) {
                                     <?php echo translate('home_my_account', 'My Account'); ?>
                                 </a>
                             <?php endif; ?>
-                            <a href="<?php echo htmlspecialchars($base_path . 'download/', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron">
+                            <a href="<?php echo htmlspecialchars($base_path . 'download', ENT_QUOTES, 'UTF-8'); ?>" class="btn-game btn-iron">
                                 <svg class="w-3 h-3 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                 <?php echo translate('home_download', 'Download'); ?>
                             </a>
