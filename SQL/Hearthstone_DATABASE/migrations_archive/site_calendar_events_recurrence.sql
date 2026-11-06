@@ -1,4 +1,4 @@
--- Weekly recurrence for site_calendar_events (sahtout_site). Run once after site_calendar_events.sql.
+-- Weekly recurrence for site_calendar_events (hearthstone_site). Run once after site_calendar_events.sql.
 
 ALTER TABLE `site_calendar_events`
   ADD COLUMN `is_recurring` tinyint(1) NOT NULL DEFAULT '0' AFTER `end_date`,

@@ -125,7 +125,7 @@ return [
     'admin_inquiries_created' => 'Inquiry was created.',
     'admin_inquiries_created_tokens' => 'Inquiry was created and tokens were added to the account.',
     'admin_inquiries_create_failed' => 'Could not create the inquiry.',
-    'admin_inquiries_unavailable' => 'The user_inquiries table is not available. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/sahtout_site_install_demo.sql (or run migrations_archive/user_inquiries.sql on older installs).',
+    'admin_inquiries_unavailable' => 'The user_inquiries table is not available. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql (or run migrations_archive/user_inquiries.sql on older installs).',
     'admin_inquiries_none' => 'No inquiries match your filters.',
     'admin_inquiries_status_pending' => 'Pending only',
     'admin_inquiries_status_answered' => 'Answered',

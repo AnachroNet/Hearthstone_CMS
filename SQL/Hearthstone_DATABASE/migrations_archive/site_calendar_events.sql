@@ -1,4 +1,4 @@
--- Custom home / in-game style calendar events (sahtout_site).
+-- Custom home / in-game style calendar events (hearthstone_site).
 -- Run once on the site database.
 
 CREATE TABLE IF NOT EXISTS `site_calendar_events` (

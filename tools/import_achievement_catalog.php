@@ -604,6 +604,6 @@ if (isset($achievementMeta[$deadminesId])) {
     ));
 }
 fwrite(STDOUT, "Suggested tokens use a level-based scale (1 token ≈ 1 gold); rows stay disabled until is_enabled=1.\n");
-fwrite(STDOUT, "Run achievement_catalog.sql on sahtout_site once, then import achievement_catalog_import.sql.\n");
+fwrite(STDOUT, "Run achievement_catalog.sql on hearthstone_site once, then import achievement_catalog_import.sql.\n");
 
 exit(0);

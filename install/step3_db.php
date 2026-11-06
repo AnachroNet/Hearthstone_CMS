@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ],
         'site' => [
             'label' => translate('db_site', 'Site DB'),
-            'name'  => trim($_POST['db_site_name'] ?? 'sahtout_site'),
+            'name'  => trim($_POST['db_site_name'] ?? 'hearthstone_site'),
             'host'  => trim($_POST['db_site_host'] ?? ''),
             'port'  => trim($_POST['db_site_port'] ?? '3306'),
             'user'  => trim($_POST['db_site_user'] ?? ''),
@@ -411,7 +411,7 @@ $db_icons = [
                                 'auth' => 'acore_auth',
                                 'world' => 'acore_world',
                                 'char' => 'acore_characters',
-                                'site' => 'sahtout_site',
+                                'site' => 'hearthstone_site',
                                 default => ''
                             };
                         ?>

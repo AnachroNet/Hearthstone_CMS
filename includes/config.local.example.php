@@ -31,7 +31,7 @@ return [
             'port' => 3306,
             'user' => 'sahtout_user',
             'pass' => 'change-me',
-            'name' => 'sahtout_site',
+            'name' => 'hearthstone_site',
         ],
         /** Optional: Playerbots mod DB on the same MySQL server (SELECT only). Empty name disables bot/human splits. */
         'playerbots' => [

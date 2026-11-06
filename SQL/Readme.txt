@@ -2,7 +2,7 @@ Hearthstone CMS SQL layout
 ==========================
 
 Hearthstone_DATABASE/
-  FULL_UPDATE/           — import sahtout_site_install_demo.sql for a new site (complete schema + demo data)
+  FULL_UPDATE/           — import hearthstone_site_install_demo.sql for a new site (complete schema + demo data)
   migrations_archive/    — one-off upgrades for very old dumps (see README inside)
   generated/             — output from tools (e.g. achievement catalog import); gitignored except .gitkeep
 

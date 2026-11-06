@@ -1,9 +1,9 @@
 -- Sahtout_site: remove foreign keys to acore_auth / acore_characters.
 -- Site rows are linked by account_id in application code (see includes/site_account.php).
--- Run on sahtout_site after upgrading from releases that used cross-database FKs.
+-- Run on hearthstone_site after upgrading from releases that used cross-database FKs.
 -- Compatible with MySQL 5.7+ and MariaDB (no DROP FOREIGN KEY IF EXISTS).
 
-USE `sahtout_site`;
+USE `hearthstone_site`;
 
 SET @drop_fk = (
   SELECT IF(

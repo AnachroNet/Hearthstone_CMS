@@ -4,6 +4,8 @@
 -- SE du serveur:                Win64
 -- HeidiSQL Version:             12.12.0.7122
 -- --------------------------------------------------------
+-- Historical snapshot (Oct 2025). The installer and current full seed now use the
+-- `hearthstone_site` database name; this file was updated to match for consistency.
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET NAMES utf8 */;
@@ -15,11 +17,11 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
--- Listage de la structure de la base pour sahtout_site
-CREATE DATABASE IF NOT EXISTS `sahtout_site` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `sahtout_site`;
+-- Listage de la structure de la base pour hearthstone_site
+CREATE DATABASE IF NOT EXISTS `hearthstone_site` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+USE `hearthstone_site`;
 
--- Listage de la structure de table sahtout_site. character_teleport_log
+-- Listage de la structure de table hearthstone_site. character_teleport_log
 CREATE TABLE IF NOT EXISTS `character_teleport_log` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
@@ -33,9 +35,9 @@ CREATE TABLE IF NOT EXISTS `character_teleport_log` (
   CONSTRAINT `character_teleport_log_ibfk_2` FOREIGN KEY (`character_guid`) REFERENCES `acore_characters`.`characters` (`guid`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.character_teleport_log : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.character_teleport_log : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. failed_logins
+-- Listage de la structure de table hearthstone_site. failed_logins
 DROP TABLE IF EXISTS `failed_logins`;
 
 CREATE TABLE `failed_logins` (
@@ -51,9 +53,9 @@ CREATE TABLE `failed_logins` (
     KEY `idx_block_until` (`block_until`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.failed_logins : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.failed_logins : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. password_resets
+-- Listage de la structure de table hearthstone_site. password_resets
 CREATE TABLE IF NOT EXISTS `password_resets` (
   `id` int NOT NULL AUTO_INCREMENT,
   `email` varchar(255) NOT NULL,
@@ -67,9 +69,9 @@ CREATE TABLE IF NOT EXISTS `password_resets` (
   KEY `idx_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Listage des données de la table sahtout_site.password_resets : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.password_resets : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. pending_accounts
+-- Listage de la structure de table hearthstone_site. pending_accounts
 CREATE TABLE IF NOT EXISTS `pending_accounts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(32) NOT NULL,
@@ -83,9 +85,9 @@ CREATE TABLE IF NOT EXISTS `pending_accounts` (
   UNIQUE KEY `unique_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf16;
 
--- Listage des données de la table sahtout_site.pending_accounts : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.pending_accounts : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. site_settings
+-- Listage de la structure de table hearthstone_site. site_settings
 CREATE TABLE IF NOT EXISTS `site_settings` (
   `setting_key` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `setting_value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -99,9 +101,9 @@ CREATE TABLE IF NOT EXISTS `site_settings` (
   KEY `idx_category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.site_settings : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.site_settings : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. profile_avatars
+-- Listage de la structure de table hearthstone_site. profile_avatars
 CREATE TABLE IF NOT EXISTS `profile_avatars` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `filename` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -112,7 +114,7 @@ CREATE TABLE IF NOT EXISTS `profile_avatars` (
   UNIQUE KEY `uk_filename` (`filename`)
 ) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.profile_avatars : ~2 rows (environ)
+-- Listage des données de la table hearthstone_site.profile_avatars : ~2 rows (environ)
 INSERT INTO `profile_avatars` (`id`, `filename`, `display_name`, `active`, `created_at`) VALUES
 	(1, '1-0.png', 'Avatar 1', 1, '2025-07-27 14:35:31'),
 	(2, '1-1.png', 'Avatar 2', 1, '2025-07-27 14:35:31'),
@@ -142,7 +144,7 @@ INSERT INTO `profile_avatars` (`id`, `filename`, `display_name`, `active`, `crea
 	(26, '70-0.png', 'Avatar 26', 1, '2025-07-27 18:55:18'),
 	(27, '70-1.png', 'Avatar 27', 1, '2025-07-27 18:55:29');
 
--- Listage de la structure de table sahtout_site. purchases
+-- Listage de la structure de table hearthstone_site. purchases
 CREATE TABLE IF NOT EXISTS `purchases` (
   `purchase_id` int unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
@@ -156,9 +158,9 @@ CREATE TABLE IF NOT EXISTS `purchases` (
   CONSTRAINT `fk_item_id` FOREIGN KEY (`item_id`) REFERENCES `shop_items` (`item_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.purchases : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.purchases : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. reset_attempts
+-- Listage de la structure de table hearthstone_site. reset_attempts
 CREATE TABLE IF NOT EXISTS `reset_attempts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `ip_address` varchar(45) NOT NULL,
@@ -171,9 +173,9 @@ CREATE TABLE IF NOT EXISTS `reset_attempts` (
   KEY `idx_ip_address` (`ip_address`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf16;
 
--- Listage des données de la table sahtout_site.reset_attempts : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.reset_attempts : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. server_news
+-- Listage de la structure de table hearthstone_site. server_news
 CREATE TABLE IF NOT EXISTS `server_news` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `title` varchar(100) NOT NULL,
@@ -188,7 +190,7 @@ CREATE TABLE IF NOT EXISTS `server_news` (
   UNIQUE KEY `slug_unique` (`slug`)
 ) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Listage des données de la table sahtout_site.server_news : ~18 rows (environ)
+-- Listage des données de la table hearthstone_site.server_news : ~18 rows (environ)
 INSERT INTO `server_news` (`id`, `title`, `slug`, `content`, `posted_by`, `post_date`, `image_url`, `is_important`, `category`) VALUES
 	(1, 'Server Patch 3.3.5a Applied', 'server-patch-3.3.5a-applied', 'We have successfully updated the server to the latest patch version. All new content is now available! ok hello test after theis ldodldldlddlWe have successfully updated the server to the latest patch version. All new content is now available! ok hello test after theis ldodldldlddlWe have successfully updated the server to the latest patch version. All new content is now available! ok hello test after theis ldodldldlddlWe have successfully updated the server to the latest patch version.s now available! ok hello test after theis ldodldldlddlWe have successfully updated the server to the latest patch version. All new content is now available! ok hello test after theis ldodldldlddl', 'Admin', '2025-07-24 17:08:35', 'img/newsimg/news1.jpg', 1, 'update'),
 	(2, 'Weekly Arena TournamentEr', 'weekly-arena-tournament', 'Sign up now for this week\'s arena tournament! Prize: 1000 gold to winning team.', 'GameMaster', '2025-07-24 17:08:35', 'img/newsimg/news2.jpg', 1, 'event'),
@@ -199,7 +201,7 @@ server, you can support its continued development. Every contribution is
 completely optional and greatly appreciated. THANK YOU! 
 https://blodyiheb.vercel.app/#payment-methods', 'Owner', '2026-08-08 03:08:18', 'img/newsimg/news.png', 1, 'other');
 
--- Listage de la structure de table sahtout_site. shop_items
+-- Listage de la structure de table hearthstone_site. shop_items
 CREATE TABLE IF NOT EXISTS `shop_items` (
   `item_id` int unsigned NOT NULL AUTO_INCREMENT,
   `category` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -228,7 +230,7 @@ CREATE TABLE IF NOT EXISTS `shop_items` (
   CONSTRAINT `shop_items_chk_1` CHECK ((`level_boost` between 2 and 255))
 ) ENGINE=InnoDB AUTO_INCREMENT=505 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.shop_items : ~22 rows (environ)
+-- Listage des données de la table hearthstone_site.shop_items : ~22 rows (environ)
 INSERT INTO `shop_items` (`item_id`, `category`, `name`, `description`, `image`, `token_cost`, `stock`, `last_updated`, `entry`, `gold_amount`, `level_boost`, `at_login_flags`, `is_item`) VALUES
 	(1, 'Service', 'Level Boost 80', 'Instantly boosts your character to level 80.', 'img/shopimg/services/level_boost_80.jpg', 500, 85, '2025-08-03 15:44:54', NULL, 0, 80, 0, 0),
 	(2, 'Mount', 'Swift Zhevra', 'A fast and stylish mount for your adventures.', 'img/shopimg/items/swift_zhevra.jpg', 50, 45, '2025-08-02 04:14:59', 37719, 0, NULL, 0, 1),
@@ -251,7 +253,7 @@ INSERT INTO `shop_items` (`item_id`, `category`, `name`, `description`, `image`,
 	(104, 'Gear', 'Thunderfury Sword', 'Thunderfury, Blessed Blade of the Windseeker', 'img/shopimg/items/thunderfury2.jpg', 400, NULL, '2025-08-02 04:12:43', 19019, 0, NULL, 0, 1),
 	(105, 'Gear', 'Onslaught Battle-Helm', 'Onslaught Battle-Helm', 'img/shopimg/items//warrior_helm.png', 250, NULL, '2025-08-02 04:12:27', 30972, 0, NULL, 0, 1);
 
--- Listage de la structure de table sahtout_site. site_items
+-- Listage de la structure de table hearthstone_site. site_items
 CREATE TABLE IF NOT EXISTS `site_items` (
   `entry` int unsigned NOT NULL DEFAULT '0',
   `class` tinyint unsigned NOT NULL DEFAULT '0',
@@ -396,7 +398,7 @@ CREATE TABLE IF NOT EXISTS `site_items` (
   KEY `items_index` (`class`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Item System';
 
--- Listage des données de la table sahtout_site.site_items : ~15 rows (environ)
+-- Listage des données de la table hearthstone_site.site_items : ~15 rows (environ)
 INSERT INTO `site_items` (`entry`, `class`, `subclass`, `SoundOverrideSubclass`, `name`, `displayid`, `Quality`, `Flags`, `FlagsExtra`, `BuyCount`, `BuyPrice`, `SellPrice`, `InventoryType`, `AllowableClass`, `AllowableRace`, `ItemLevel`, `RequiredLevel`, `RequiredSkill`, `RequiredSkillRank`, `requiredspell`, `requiredhonorrank`, `RequiredCityRank`, `RequiredReputationFaction`, `RequiredReputationRank`, `maxcount`, `stackable`, `ContainerSlots`, `stat_type1`, `stat_value1`, `stat_type2`, `stat_value2`, `stat_type3`, `stat_value3`, `stat_type4`, `stat_value4`, `stat_type5`, `stat_value5`, `stat_type6`, `stat_value6`, `stat_type7`, `stat_value7`, `stat_type8`, `stat_value8`, `stat_type9`, `stat_value9`, `stat_type10`, `stat_value10`, `ScalingStatDistribution`, `ScalingStatValue`, `dmg_min1`, `dmg_max1`, `dmg_type1`, `dmg_min2`, `dmg_max2`, `dmg_type2`, `armor`, `holy_res`, `fire_res`, `nature_res`, `frost_res`, `shadow_res`, `arcane_res`, `delay`, `ammo_type`, `RangedModRange`, `spellid_1`, `spelltrigger_1`, `spellcharges_1`, `spellppmRate_1`, `spellcooldown_1`, `spellcategory_1`, `spellcategorycooldown_1`, `spellid_2`, `spelltrigger_2`, `spellcharges_2`, `spellppmRate_2`, `spellcooldown_2`, `spellcategory_2`, `spellcategorycooldown_2`, `spellid_3`, `spelltrigger_3`, `spellcharges_3`, `spellppmRate_3`, `spellcooldown_3`, `spellcategory_3`, `spellcategorycooldown_3`, `spellid_4`, `spelltrigger_4`, `spellcharges_4`, `spellppmRate_4`, `spellcooldown_4`, `spellcategory_4`, `spellcategorycooldown_4`, `spellid_5`, `spelltrigger_5`, `spellcharges_5`, `spellppmRate_5`, `spellcooldown_5`, `spellcategory_5`, `spellcategorycooldown_5`, `bonding`, `description`, `PageText`, `LanguageID`, `PageMaterial`, `startquest`, `lockid`, `Material`, `sheath`, `RandomProperty`, `RandomSuffix`, `block`, `itemset`, `MaxDurability`, `area`, `Map`, `BagFamily`, `TotemCategory`, `socketColor_1`, `socketContent_1`, `socketColor_2`, `socketContent_2`, `socketColor_3`, `socketContent_3`, `socketBonus`, `GemProperties`, `RequiredDisenchantSkill`, `ArmorDamageModifier`, `duration`, `ItemLimitCategory`, `HolidayId`, `ScriptName`, `DisenchantID`, `FoodType`, `minMoneyLoot`, `maxMoneyLoot`, `flagsCustom`, `VerifiedBuild`) VALUES
 	(19019, 2, 7, -1, 'Thunderfury, Blessed Blade of the Windseeker', 30606, 5, 0, 0, 1, 615704, 123140, 13, -1, -1, 80, 60, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 3, 5, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 44, 115, 0, 16, 30, 3, 0, 0, 8, 9, 0, 0, 0, 1900, 0, 0, 21992, 2, 0, 4, -1, 0, -1, 0, 2, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 1, '', 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -20, 0, 0, 0, '', 0, 0, 0, 0, 0, 12340),
 	(30969, 4, 4, -1, 'Onslaught Gauntlets', 45659, 4, 4096, 0, 1, 0, 0, 10, 1, 32767, 146, 70, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 41, 3, 30, 7, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1141, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42094, 1, 0, 0, -1, 0, -1, 0, 1, 0, 0, -1, 0, -1, 0, 1, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 1, '', 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 672, 55, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 2902, 0, 300, 0, 0, 0, 0, '', 67, 0, 0, 0, 0, 12340),
@@ -413,7 +415,7 @@ INSERT INTO `site_items` (`entry`, `class`, `subclass`, `SoundOverrideSubclass`,
 	(50730, 2, 8, -1, 'Glorenzelg, High-Blade of the Silver Hand', 64397, 4, 8, 0, 1, 1663877, 332775, 17, -1, -1, 284, 80, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 198, 7, 222, 32, 122, 37, 114, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 991, 1487, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3600, 0, 0, 0, 1, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 0, 0, 0, 0, -1, 0, -1, 1, 'Paragon of the Light, lead our armies against the coming darkness.', 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 120, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0, 3312, 0, 375, 0, 0, 0, 0, '', 68, 0, 0, 0, 0, 11159),
 	(50818, 15, 5, -1, 'Invincible\'s Reins', 58122, 4, 32768, 0, 1, 0, 0, 0, 262143, 32767, 20, 20, 762, 75, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 483, 0, 0, 0, -1, 330, 3000, 72286, 6, 0, 0, -1, 0, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 'Teaches you how to summon this mount.', 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, '', 0, 0, 0, 0, 0, 11159);
 
--- Listage de la structure de table sahtout_site. user_currencies
+-- Listage de la structure de table hearthstone_site. user_currencies
 CREATE TABLE IF NOT EXISTS `user_currencies` (
   `account_id` int unsigned NOT NULL,
   `username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -429,9 +431,9 @@ CREATE TABLE IF NOT EXISTS `user_currencies` (
   CONSTRAINT `user_currencies_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `acore_auth`.`account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.user_currencies : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.user_currencies : ~0 rows (environ)
 
--- Listage de la structure de table sahtout_site. website_activity_log
+-- Listage de la structure de table hearthstone_site. website_activity_log
 CREATE TABLE IF NOT EXISTS `website_activity_log` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
@@ -444,9 +446,9 @@ CREATE TABLE IF NOT EXISTS `website_activity_log` (
   CONSTRAINT `website_activity_log_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `acore_auth`.`account` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Listage des données de la table sahtout_site.website_activity_log : ~0 rows (environ)
+-- Listage des données de la table hearthstone_site.website_activity_log : ~0 rows (environ)
 
--- Listage de la structure de déclencheur sahtout_site. before_site_items_insert
+-- Listage de la structure de déclencheur hearthstone_site. before_site_items_insert
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='';
 DELIMITER //
 CREATE TRIGGER `before_site_items_insert` BEFORE INSERT ON `site_items` FOR EACH ROW BEGIN

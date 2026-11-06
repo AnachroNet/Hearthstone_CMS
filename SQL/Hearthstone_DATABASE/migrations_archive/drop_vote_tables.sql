@@ -1,4 +1,4 @@
--- Remove voting schema from an existing sahtout_site database.
+-- Remove voting schema from an existing hearthstone_site database.
 -- Safe to run if tables were already removed.
 
 SET FOREIGN_KEY_CHECKS = 0;

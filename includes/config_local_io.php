@@ -18,7 +18,7 @@ function sahtout_default_local_config(): array
             'auth' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'acore_auth'],
             'world' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'acore_world'],
             'char' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'acore_characters'],
-            'site' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'sahtout_site'],
+            'site' => ['host' => 'localhost', 'port' => 3306, 'user' => '', 'pass' => '', 'name' => 'hearthstone_site'],
             'playerbots' => ['name' => 'acore_playerbots'],
         ],
         'smtp' => [

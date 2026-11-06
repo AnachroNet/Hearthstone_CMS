@@ -61,7 +61,7 @@ Ensure the vhost `<Directory>` for the site allows **`AllowOverride All`**.
 
 ## Database setup (before the web installer)
 
-The CMS uses **four logical connections**: `acore_auth`, `acore_characters`, `acore_world`, and a **dedicated site database** (installer default name **`sahtout_site`**; you may use another name such as `hearthstone_site` if you create the schema and grant access accordingly).
+The CMS uses **four logical connections**: `acore_auth`, `acore_characters`, `acore_world`, and a **dedicated site database** (installer default name **`hearthstone_site`**).
 
 ### 1. AzerothCore databases
 
@@ -72,10 +72,10 @@ Import and run the standard AzerothCore **auth**, **characters**, and **world** 
 Create an empty database for the site, then import the maintained full seed:
 
 ```text
-SQL/Hearthstone_DATABASE/FULL_UPDATE/sahtout_site_install_demo.sql
+SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql
 ```
 
-That file targets the **`sahtout_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
+That file targets the **`hearthstone_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
 **Older deployments** that cannot re-import may still use one-off scripts preserved under **`SQL/Hearthstone_DATABASE/migrations_archive/`** (for example `site_drop_cross_db_foreign_keys.sql` when upgrading from dumps that used cross-database foreign keys).
 

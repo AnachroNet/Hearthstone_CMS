@@ -1,4 +1,4 @@
--- Rename shop_items category Stuff -> Gear (sahtout_site). Run once.
+-- Rename shop_items category Stuff -> Gear (hearthstone_site). Run once.
 -- Drop the check first: updating to 'Gear' fails while the old constraint still lists 'Stuff' only.
 
 ALTER TABLE `shop_items`

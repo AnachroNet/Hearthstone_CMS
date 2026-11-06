@@ -2,7 +2,7 @@
 -- Admin → Settings → General → "Allow multiple accounts to use the same email" is enabled.
 -- Saving that setting in the admin panel also runs this change automatically when possible.
 
-USE `sahtout_site`;
+USE `hearthstone_site`;
 
 ALTER TABLE `pending_accounts` DROP INDEX `unique_email`;
 

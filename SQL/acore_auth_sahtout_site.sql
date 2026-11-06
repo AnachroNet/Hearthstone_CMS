@@ -1,7 +1,7 @@
 -- DEPRECATED (SahtoutCMS 2026+)
 --
 -- You do NOT need to import anything into acore_auth for SahtoutCMS shop accounts.
--- The CMS creates rows in sahtout_site.user_currencies from PHP when users register or log in.
+-- The CMS creates rows in hearthstone_site.user_currencies from PHP when users register or log in.
 --
 -- If you installed triggers from an older release, remove them with:
 --   SQL/acore_auth_drop_sahtout_triggers.sql

@@ -326,7 +326,7 @@ The installer can only detect Apache modules when `apache_get_modules()` is avai
 
 ## Database
 
-* **MySQL or MariaDB** — website database (`sahtout_site`) plus connections to AzerothCore **`acore_auth`**, **`acore_characters`**, and **`acore_world`** (as configured in the installer).
+* **MySQL or MariaDB** — website database (`hearthstone_site`) plus connections to AzerothCore **`acore_auth`**, **`acore_characters`**, and **`acore_world`** (as configured in the installer).
 
 ## Build tools (project root)
 
@@ -453,7 +453,7 @@ SahtoutCMS uses its own website database and connects to the AzerothCore databas
 
 ## Website Database
 
-Import sahtout_site SQL file.
+Import `hearthstone_site_install_demo.sql` (see the main README) or your equivalent site-database schema.
 
 ## AzerothCore Databases
 
@@ -469,7 +469,7 @@ If you upgraded from an older release that installed auth triggers or cross-data
 
 ```text
 SQL/acore_auth_drop_sahtout_triggers.sql     → acore_auth (optional cleanup)
-SQL/.../site_drop_cross_db_foreign_keys.sql  → sahtout_site
+SQL/.../site_drop_cross_db_foreign_keys.sql  → hearthstone_site
 ```
 
 See **`SQL/DATABASE_PRIVILEGES.md`** for minimal MySQL grants per database.
@@ -534,7 +534,7 @@ This helps prevent unauthorized access to the installation system.
 
 ## 2. Configure Your Administrator Account
 
-After installation,Change the Account's Role to admin in sahtout_site ,user_currencies table
+After installation,Change the Account's Role to admin in hearthstone_site ,user_currencies table
 log into the **SahtoutCMS Admin Panel** and complete the remaining configuration.
 
 ---

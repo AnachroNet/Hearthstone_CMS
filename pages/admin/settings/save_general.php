@@ -124,7 +124,7 @@ if (empty($errors)) {
     if (!isset($site_db) || !($site_db instanceof mysqli)) {
         $errors[] = translate('error_database', 'Database error. Please try again later.');
     } elseif (!sahtout_site_settings_table_exists($site_db)) {
-        $errors[] = translate('error_file_write_failed', 'Site settings table is missing. Import site_settings.sql on sahtout_site.');
+        $errors[] = translate('error_file_write_failed', 'Site settings table is missing. Import site_settings.sql on hearthstone_site.');
     } else {
         $editorId = (int) ($_SESSION['user_id'] ?? 0);
         $ok = true;
@@ -158,7 +158,7 @@ if (empty($errors)) {
         if ($ok && $registration_allow_shared_email_new) {
             if (!sahtout_pending_accounts_drop_unique_email($site_db)
                 || !sahtout_password_resets_ensure_username_column($site_db)) {
-                $errors[] = translate('error_shared_email_index', 'Could not update pending signups table for shared emails. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/sahtout_site_install_demo.sql or apply migrations_archive/registration_allow_shared_email.sql on sahtout_site.');
+                $errors[] = translate('error_shared_email_index', 'Could not update pending signups table for shared emails. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql or apply migrations_archive/registration_allow_shared_email.sql on hearthstone_site.');
                 $ok = false;
             }
         }

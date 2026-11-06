@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a distributable sahtout_site seed from a production mysqldump."""
+"""Build a distributable hearthstone_site seed from a production mysqldump."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SRC = ROOT.parent / "sahtout_site.dump.sql"
+DEFAULT_SRC = ROOT.parent / "hearthstone_site.dump.sql"
 DEFAULT_OUT = (
     ROOT
     / "SQL"
     / "Hearthstone_DATABASE"
     / "FULL_UPDATE"
-    / "sahtout_site_install_demo.sql"
+    / "hearthstone_site_install_demo.sql"
 )
 
 EMPTY_DATA_TABLES = frozenset(
@@ -304,7 +304,7 @@ def build(src: Path, out: Path) -> None:
 
     header = """-- Hearthstone CMS distributable site database (demo seed)
 -- Generated from a production dump: scrubbed accounts, logs, token gifts, and site-specific settings.
--- Import after creating empty database `sahtout_site`, or uncomment CREATE DATABASE below.
+-- Import after creating empty database `hearthstone_site`, or uncomment CREATE DATABASE below.
 -- No SQL required on acore_auth for shop accounts (PHP sync via includes/site_account.php).
 -- Upgrading from older releases (cross-DB FKs): run migrations_archive/site_drop_cross_db_foreign_keys.sql
 -- and optional SQL/acore_auth_drop_sahtout_triggers.sql on auth.
@@ -315,10 +315,10 @@ def build(src: Path, out: Path) -> None:
 """
     out_lines.append(header)
     out_lines.append(
-        "CREATE DATABASE IF NOT EXISTS `sahtout_site` "
+        "CREATE DATABASE IF NOT EXISTS `hearthstone_site` "
         "DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\n"
     )
-    out_lines.append("USE `sahtout_site`;\n\n")
+    out_lines.append("USE `hearthstone_site`;\n\n")
 
     current_table: str | None = None
     skip_insert = False

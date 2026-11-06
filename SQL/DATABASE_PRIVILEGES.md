@@ -1,14 +1,14 @@
 # Database privileges (SahtoutCMS)
 
-SahtoutCMS keeps **all CMS-owned tables in `sahtout_site`**. It does **not** require triggers, views, or schema changes on AzerothCore databases.
+SahtoutCMS keeps **all CMS-owned tables in `hearthstone_site`**. It does **not** require triggers, views, or schema changes on AzerothCore databases.
 
 Use one MySQL user for everything on a small server, or split users as below for least privilege.
 
-## `sahtout_site` (required)
+## `hearthstone_site` (required)
 
 | Privilege | Purpose |
 |-----------|---------|
-| **ALL** on `sahtout_site.*` | Shop, news, settings, `user_currencies`, logs, rewards, etc. |
+| **ALL** on `hearthstone_site.*` | Shop, news, settings, `user_currencies`, logs, rewards, etc. |
 
 ## `acore_auth` (website account & admin)
 
