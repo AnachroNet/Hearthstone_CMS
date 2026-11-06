@@ -150,6 +150,16 @@ Other `SQL/*.sql` files at the repo root apply to **auth**, **characters**, or *
 
 ---
 
+## Maintainer scripts (`scripts/`)
+
+These are optional tools for development and diagnostics (not part of normal installs):
+
+| Script | Purpose |
+|--------|---------|
+| **`scripts/build_hearthstone_site_install_demo.py`** | Rebuild `SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql` from a full `hearthstone_site` mysqldump (scrubs volatile tables and injects demo `site_settings` / news / calendar / downloads). Run: `python scripts/build_hearthstone_site_install_demo.py [path/to/dump.sql] [path/to/output.sql]` |
+
+---
+
 ## Documentation
 
 - **`SQL/DATABASE_PRIVILEGES.md`** — MySQL privileges by database  

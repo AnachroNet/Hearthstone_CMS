@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a distributable hearthstone_site seed from a production mysqldump."""
+"""Build a distributable hearthstone_site seed from a production mysqldump (maintainer tool)."""
 
 from __future__ import annotations
 
@@ -81,7 +81,7 @@ def site_settings_insert() -> str:
     }
     social_json = json.dumps(social, separators=(",", ":"))
     rows = [
-        ("site.title", "SahtoutCMS", "string"),
+        ("site.title", "Hearthstone CMS", "string"),
         ("site.logo_path", "img/logo.png", "string"),
         ("site.timezone", "", "string"),
         ("social.links", social_json, "json"),
@@ -303,7 +303,7 @@ def build(src: Path, out: Path) -> None:
     out_lines: list[str] = []
 
     header = """-- Hearthstone CMS distributable site database (demo seed)
--- Generated from a production dump: scrubbed accounts, logs, token gifts, and site-specific settings.
+-- Generated from a production mysqldump: scrubbed accounts, logs, token gifts, and site-specific settings.
 -- Import after creating empty database `hearthstone_site`, or uncomment CREATE DATABASE below.
 -- No SQL required on acore_auth for shop accounts (PHP sync via includes/site_account.php).
 -- Upgrading from older releases (cross-DB FKs): run migrations_archive/site_drop_cross_db_foreign_keys.sql
