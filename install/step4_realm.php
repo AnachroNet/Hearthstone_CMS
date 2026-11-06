@@ -9,7 +9,7 @@ $current_step = 4;
 
 $errors = [];
 $success = false;
-$defaultLogo = 'img/logos/realm1_logo.webp'; 
+$defaultLogo = 'img/logo.png'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $realmName = trim($_POST['realm_name'] ?? '');

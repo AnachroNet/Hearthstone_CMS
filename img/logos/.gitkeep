@@ -1,2 +1,2 @@
-# Default bundled emblem: realm1_logo.webp
-# Uploaded emblems from the installer or admin are gitignored (realm_logo.*, realm_logo_*.*).
+# Uploaded realm emblems from the installer or admin (gitignored): realm_logo.*, realm_logo_*.*
+# Default realm logo in config is img/logo.png until a custom emblem is uploaded.
