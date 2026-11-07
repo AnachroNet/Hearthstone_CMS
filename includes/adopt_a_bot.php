@@ -2053,6 +2053,14 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'database'];
     }
 
+    $clearOnline = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? LIMIT 1');
+    if ($clearOnline) {
+        $clearOnline->bind_param('ii', $botGuid, $accountId);
+        $clearOnline->execute();
+        $clearOnline->close();
+    }
+    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
+
     if (!sahtout_adopt_a_bot_grant_customize_at_login($charDb, $botGuid, $accountId)) {
         error_log('adopt_a_bot: failed to grant at_login customize for adopted guid ' . $botGuid);
     }

@@ -145,8 +145,10 @@ try {
     $stmt->close();
     error_log("Character Details: " . print_r($character, true));
 
-    if ($character['online'] == 1) {
-        error_log("Character is online: guid=$character_guid");
+    global $auth_db;
+    $authForOnline = ($auth_db instanceof mysqli) ? $auth_db : null;
+    if (sahtout_adopt_a_bot_character_is_online($char_db, $character_guid, $authForOnline)) {
+        error_log("Character is online (DB and/or world): guid=$character_guid");
         throw new Exception('character_online');
     }
 
@@ -320,12 +322,12 @@ try {
         }
     } elseif (strtolower($item['category']) === 'service' && $item['at_login_flags'] > 0) {
         // Apply at_login flags for character customization
-        $stmt = $char_db->prepare("UPDATE characters SET at_login = ? WHERE guid = ?");
+        $stmt = $char_db->prepare('UPDATE characters SET at_login = at_login | ? WHERE guid = ? AND account = ?');
         if (!$stmt) {
             error_log("Failed to prepare at_login update: " . $char_db->error);
             throw new Exception('Database query error');
         }
-        $stmt->bind_param('ii', $item['at_login_flags'], $character_guid);
+        $stmt->bind_param('iii', $item['at_login_flags'], $character_guid, $account_id);
         if (!$stmt->execute()) {
             error_log("at_login update execution failed: " . $stmt->error);
             $stmt->close();
