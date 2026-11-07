@@ -172,6 +172,79 @@ function sahtout_adopt_a_bot_status_supports_processing(mysqli $siteDb): bool
     return str_contains(strtolower((string) ($row['Type'] ?? '')), 'processing');
 }
 
+function sahtout_adopt_a_bot_status_supports_draft(mysqli $siteDb): bool
+{
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+    $res = $siteDb->query("SHOW COLUMNS FROM adopt_a_bot_claims LIKE 'status'");
+    if (!$res) {
+        return false;
+    }
+    $row = $res->fetch_assoc();
+    $res->free();
+    if (!$row) {
+        return false;
+    }
+
+    return str_contains(strtolower((string) ($row['Type'] ?? '')), 'draft');
+}
+
+function sahtout_adopt_a_bot_claims_purchase_id_nullable(mysqli $siteDb): bool
+{
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+    $res = $siteDb->query("SHOW COLUMNS FROM adopt_a_bot_claims LIKE 'purchase_id'");
+    if (!$res) {
+        return false;
+    }
+    $row = $res->fetch_assoc();
+    $res->free();
+    if (!$row) {
+        return false;
+    }
+
+    return strtoupper((string) ($row['Null'] ?? '')) === 'YES';
+}
+
+function sahtout_adopt_a_bot_claims_supports_unpaid_draft(mysqli $siteDb): bool
+{
+    return sahtout_adopt_a_bot_status_supports_draft($siteDb)
+        && sahtout_adopt_a_bot_claims_purchase_id_nullable($siteDb);
+}
+
+function sahtout_adopt_a_bot_claims_upgrade_draft_schema(mysqli $siteDb): bool
+{
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+    if (sahtout_adopt_a_bot_claims_supports_unpaid_draft($siteDb)) {
+        return true;
+    }
+
+    static $attempted = false;
+    if ($attempted) {
+        return sahtout_adopt_a_bot_claims_supports_unpaid_draft($siteDb);
+    }
+    $attempted = true;
+
+    try {
+        $siteDb->query(
+            "ALTER TABLE adopt_a_bot_claims
+                MODIFY purchase_id int unsigned DEFAULT NULL,
+                MODIFY status enum('draft','pending','processing','completed','cancelled') NOT NULL DEFAULT 'draft'"
+        );
+    } catch (mysqli_sql_exception $e) {
+        error_log(
+            'adopt_a_bot: draft schema upgrade skipped — run SQL/Hearthstone_DATABASE/adopt_a_bot_claims_draft.sql as DBA: '
+            . $e->getMessage()
+        );
+    }
+
+    return sahtout_adopt_a_bot_claims_supports_unpaid_draft($siteDb);
+}
+
 /** True when progress columns exist and status enum includes processing (async adoption UI). */
 function sahtout_adopt_a_bot_claims_extended_schema(mysqli $siteDb, bool $forceRefresh = false): bool
 {
@@ -257,8 +330,8 @@ function sahtout_adopt_a_bot_claims_ensure_schema(mysqli $siteDb): bool
                 'CREATE TABLE IF NOT EXISTS adopt_a_bot_claims (
             claim_id int unsigned NOT NULL AUTO_INCREMENT,
             account_id int unsigned NOT NULL,
-            purchase_id int unsigned NOT NULL,
-            status enum(\'pending\',\'processing\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'pending\',
+            purchase_id int unsigned DEFAULT NULL,
+            status enum(\'draft\',\'pending\',\'processing\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'draft\',
             bot_character_guid int unsigned DEFAULT NULL,
             bot_character_name varchar(12) DEFAULT NULL,
             progress_message varchar(500) DEFAULT NULL,
@@ -283,6 +356,7 @@ function sahtout_adopt_a_bot_claims_ensure_schema(mysqli $siteDb): bool
     }
 
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    sahtout_adopt_a_bot_claims_upgrade_draft_schema($siteDb);
 
     return sahtout_adopt_a_bot_claims_table_exists($siteDb);
 }
@@ -495,9 +569,13 @@ function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): 
     if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
         return null;
     }
+    sahtout_adopt_a_bot_claims_upgrade_draft_schema($siteDb);
     $cols = sahtout_adopt_a_bot_claims_select_columns($siteDb);
+    $statusSql = sahtout_adopt_a_bot_claims_supports_unpaid_draft($siteDb)
+        ? "status IN ('draft', 'pending')"
+        : "status = 'pending'";
     $stmt = $siteDb->prepare(
-        "SELECT {$cols} FROM adopt_a_bot_claims WHERE account_id = ? AND status = 'pending' ORDER BY claim_id DESC LIMIT 1"
+        "SELECT {$cols} FROM adopt_a_bot_claims WHERE account_id = ? AND {$statusSql} ORDER BY claim_id DESC LIMIT 1"
     );
     if (!$stmt) {
         return null;
@@ -519,9 +597,14 @@ function sahtout_adopt_a_bot_get_open_claim(mysqli $siteDb, int $accountId): ?ar
     }
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
     $cols = sahtout_adopt_a_bot_claims_select_columns($siteDb);
-    $statusSql = sahtout_adopt_a_bot_claims_extended_schema($siteDb)
-        ? "status IN ('pending', 'processing')"
-        : "status = 'pending'";
+    sahtout_adopt_a_bot_claims_upgrade_draft_schema($siteDb);
+    if (sahtout_adopt_a_bot_claims_supports_unpaid_draft($siteDb)) {
+        $statusSql = "status IN ('draft', 'pending', 'processing')";
+    } elseif (sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        $statusSql = "status IN ('pending', 'processing')";
+    } else {
+        $statusSql = "status = 'pending'";
+    }
     $stmt = $siteDb->prepare(
         "SELECT {$cols} FROM adopt_a_bot_claims WHERE account_id = ? AND {$statusSql} ORDER BY claim_id DESC LIMIT 1"
     );
@@ -550,22 +633,167 @@ function sahtout_adopt_a_bot_resume_url(?array $claim, string $basePath): string
     if ($status === 'processing') {
         return $basePath . 'adopt-a-bot';
     }
-    if ($guid > 0 && $status === 'pending') {
+    if ($guid > 0 && ($status === 'pending' || $status === 'draft')) {
         return $basePath . 'adopt-a-bot-character?guid=' . $guid;
     }
 
     return $basePath . 'adopt-a-bot';
 }
 
-/** Return a stuck in-flight adoption to pending so the player can leave or pick another bot. */
-function sahtout_adopt_a_bot_revert_processing_claim(mysqli $siteDb, int $accountId): bool
+/** Open adopt session (no token charge) — one per account until completed or cancelled. */
+function sahtout_adopt_a_bot_create_draft_claim(mysqli $siteDb, int $accountId): ?int
+{
+    if (!sahtout_adopt_a_bot_claims_ensure_schema($siteDb)) {
+        return null;
+    }
+    if (!sahtout_adopt_a_bot_claims_supports_unpaid_draft($siteDb)) {
+        return null;
+    }
+    if (sahtout_adopt_a_bot_get_open_claim($siteDb, $accountId) !== null) {
+        return null;
+    }
+    $stmt = $siteDb->prepare(
+        "INSERT INTO adopt_a_bot_claims (account_id, purchase_id, status) VALUES (?, NULL, 'draft')"
+    );
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $accountId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return null;
+    }
+    $id = (int) $siteDb->insert_id;
+    $stmt->close();
+
+    return $id > 0 ? $id : null;
+}
+
+function sahtout_adopt_a_bot_claim_has_purchase(?array $claim): bool
+{
+    return $claim !== null && (int) ($claim['purchase_id'] ?? 0) > 0;
+}
+
+/**
+ * Debit tokens and attach purchase to a draft claim (final checkout).
+ *
+ * @return array{ok:bool, error?:string, purchase_id?:int}
+ */
+function sahtout_adopt_a_bot_charge_claim_purchase(
+    mysqli $siteDb,
+    int $accountId,
+    int $claimId,
+    int $shopItemId
+): array {
+    $stmt = $siteDb->prepare('SELECT token_cost, stock FROM shop_items WHERE item_id = ? LIMIT 1');
+    if (!$stmt) {
+        return ['ok' => false, 'error' => 'database'];
+    }
+    $stmt->bind_param('i', $shopItemId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $item = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    if (!$item) {
+        return ['ok' => false, 'error' => 'item_not_found'];
+    }
+    $cost = (int) ($item['token_cost'] ?? 0);
+    if ($cost <= 0) {
+        return ['ok' => false, 'error' => 'item_not_found'];
+    }
+
+    if (!$siteDb->begin_transaction()) {
+        return ['ok' => false, 'error' => 'database'];
+    }
+
+    $stmt = $siteDb->prepare(
+        'UPDATE user_currencies SET tokens = tokens - ?, last_updated = NOW()
+         WHERE account_id = ? AND tokens >= ?'
+    );
+    if (!$stmt) {
+        $siteDb->rollback();
+
+        return ['ok' => false, 'error' => 'database'];
+    }
+    $stmt->bind_param('iii', $cost, $accountId, $cost);
+    if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+        $stmt->close();
+        $siteDb->rollback();
+
+        return ['ok' => false, 'error' => 'insufficient_funds'];
+    }
+    $stmt->close();
+
+    if ($item['stock'] !== null) {
+        $stmt = $siteDb->prepare(
+            'UPDATE shop_items SET stock = stock - 1, last_updated = NOW()
+             WHERE item_id = ? AND stock IS NOT NULL AND stock > 0'
+        );
+        if (!$stmt) {
+            $siteDb->rollback();
+
+            return ['ok' => false, 'error' => 'database'];
+        }
+        $stmt->bind_param('i', $shopItemId);
+        if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+            $stmt->close();
+            $siteDb->rollback();
+
+            return ['ok' => false, 'error' => 'out_of_stock'];
+        }
+        $stmt->close();
+    }
+
+    $stmt = $siteDb->prepare('INSERT INTO purchases (account_id, item_id) VALUES (?, ?)');
+    if (!$stmt) {
+        $siteDb->rollback();
+
+        return ['ok' => false, 'error' => 'database'];
+    }
+    $stmt->bind_param('ii', $accountId, $shopItemId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        $siteDb->rollback();
+
+        return ['ok' => false, 'error' => 'database'];
+    }
+    $purchaseId = (int) $siteDb->insert_id;
+    $stmt->close();
+
+    $stmt = $siteDb->prepare(
+        "UPDATE adopt_a_bot_claims SET purchase_id = ?, status = 'pending'
+         WHERE claim_id = ? AND account_id = ? AND status = 'draft' AND purchase_id IS NULL"
+    );
+    if (!$stmt) {
+        $siteDb->rollback();
+
+        return ['ok' => false, 'error' => 'database'];
+    }
+    $stmt->bind_param('iii', $purchaseId, $claimId, $accountId);
+    if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+        $stmt->close();
+        $siteDb->rollback();
+
+        return ['ok' => false, 'error' => 'invalid_claim'];
+    }
+    $stmt->close();
+
+    if (!$siteDb->commit()) {
+        return ['ok' => false, 'error' => 'database'];
+    }
+
+    return ['ok' => true, 'purchase_id' => $purchaseId];
+}
+
+/** Cancel unpaid adoption (draft). No refund — tokens were not charged. */
+function sahtout_adopt_a_bot_cancel_draft_claim(mysqli $siteDb, int $accountId): bool
 {
     if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
         return false;
     }
     $stmt = $siteDb->prepare(
-        "UPDATE adopt_a_bot_claims SET status = 'pending', progress_message = NULL
-         WHERE account_id = ? AND status = 'processing' LIMIT 1"
+        "UPDATE adopt_a_bot_claims SET status = 'cancelled' WHERE account_id = ? AND status = 'draft' LIMIT 1"
     );
     if (!$stmt) {
         return false;
@@ -575,6 +803,17 @@ function sahtout_adopt_a_bot_revert_processing_claim(mysqli $siteDb, int $accoun
     $stmt->close();
 
     return $ok;
+}
+
+/** Legacy: pause processing — disabled after paid final confirm. */
+function sahtout_adopt_a_bot_revert_processing_claim(mysqli $siteDb, int $accountId): bool
+{
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+    unset($siteDb, $accountId);
+
+    return false;
 }
 
 /**
@@ -764,7 +1003,7 @@ function sahtout_adopt_a_bot_start_processing(
     $stmt = $siteDb->prepare(
         "UPDATE adopt_a_bot_claims
          SET status = 'processing', bot_character_guid = ?, bot_character_name = ?, progress_message = ?, progress_log = ?
-         WHERE claim_id = ? AND account_id = ? AND status = 'pending'"
+         WHERE claim_id = ? AND account_id = ? AND status IN ('pending', 'draft')"
     );
     if (!$stmt) {
         return false;

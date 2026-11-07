@@ -192,7 +192,9 @@ if ($status_message === '' && !empty($adoptABotOpenClaim)) {
     $adoptOpenStatus = (string) ($adoptABotOpenClaim['status'] ?? 'pending');
     $adoptResumeText = $adoptOpenStatus === 'processing'
         ? translate('shop_status_adopt_processing_resume', 'Your adoption is in progress. Open the character page to see status.')
-        : translate('shop_status_adopt_pending_resume', 'You have an Adopt a Bot purchase in progress. Choose your character to finish.');
+        : ((string) ($adoptABotOpenClaim['status'] ?? '') === 'draft'
+            ? translate('shop_status_adopt_draft_resume', 'You are browsing bots. Continue adoption or cancel before starting another.')
+            : translate('shop_status_adopt_pending_resume', 'Finish your adoption on the character page.'));
     $status_message = '<div class="bg-[rgba(242,207,82,0.12)] border border-[#c9a227]/40 text-gray-200 px-5 py-3 flex flex-wrap items-center gap-3 mb-4 force-wrap">'
         . '<i class="fas fa-robot text-[#f2cf5b] text-lg"></i>'
         . '<span class="flex-1">' . $adoptResumeText . '</span>'
@@ -654,20 +656,22 @@ include_once $project_root . 'includes/header.php';
                                                 $adoptOpenSt = (string) ($adoptABotOpenClaim['status'] ?? 'pending');
                                                 $adoptItemHint = $adoptOpenSt === 'processing'
                                                     ? translate('shop_adopt_a_bot_processing_resume', 'Adoption running. View progress on the character page.')
-                                                    : translate('shop_adopt_a_bot_pending_resume', 'Your tokens are paid. Pick a bot to complete adoption.');
+                                                    : ($adoptOpenSt === 'draft'
+                                                        ? translate('shop_adopt_a_bot_draft_resume', 'You are choosing a bot. Tokens are not charged until the final confirmation.')
+                                                        : translate('shop_adopt_a_bot_pending_resume', 'Finish your adoption on the character page.'));
                                                 ?>
                                                 <p class="text-amber-200/90 text-xs text-center mb-2 force-wrap"><?php echo $adoptItemHint; ?></p>
                                                 <a href="<?php echo htmlspecialchars(sahtout_adopt_a_bot_resume_url($adoptABotOpenClaim, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="buy-button block w-full text-center py-2.5 bg-[rgba(242,207,82,0.25)] border border-[#f2cf5b]/50 text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.35)] transition-all duration-300 font-semibold text-sm">
                                                     <?php echo translate('shop_adopt_a_bot_continue', 'Continue adoption'); ?>
                                                 </a>
                                             </div>
-                                        <?php else: ?>
-                                        <form action="<?php echo $base_path; ?>buy_item" method="POST" class="mt-3 purchase-form<?php echo $isAdoptABotItem ? ' purchase-form-adopt-a-bot' : ''; ?>">
-                                            <input type="hidden" name="item_id" value="<?php echo (int)$item['item_id']; ?>">
-                                            <?php if (!empty($_SESSION['csrf_token'])): ?>
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                            <?php endif; ?>
-                                            <?php if ($isAdoptABotItem): ?>
+                                        <?php elseif ($isAdoptABotItem && $canBuyAdopt): ?>
+                                            <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-start', ENT_QUOTES, 'UTF-8'); ?>" class="buy-button block w-full text-center py-2.5 mt-3 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold text-sm">
+                                                <?php echo translate('shop_adopt_a_bot_choose', 'Choose a bot'); ?>
+                                            </a>
+                                            <p class="text-gray-400 text-xs text-center mt-2 force-wrap"><?php echo translate('shop_adopt_a_bot_no_upfront_charge', 'Tokens are charged only when you confirm adoption on the final step.'); ?></p>
+                                        <?php elseif ($isAdoptABotItem): ?>
+                                            <div class="mt-3">
                                                 <p class="text-gray-300 text-xs text-center mb-2 force-wrap"><?php echo translate(
                                                     'shop_adopt_a_bot_hint',
                                                     'Requires a free character slot. You may adopt bots up to level %d (your highest: %d, max +%d).',
@@ -679,10 +683,18 @@ include_once $project_root . 'includes/header.php';
                                                     <?php if ($adoptBaseEligible && !$adoptABotHasEligiblePool): ?>
                                                         <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_no_level_match', 'No bot is available at or below level %d.', $adoptABotMaxBotLevel); ?></p>
                                                     <?php else: ?>
-                                                        <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_unavailable', 'You are not eligible (character slots full or adoption already used).'); ?></p>
+                                                        <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_unavailable', 'You are not eligible (character slots full or no matching bots in the pool).'); ?></p>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
-                                            <?php elseif (!empty($characters)): ?>
+                                                <span class="buy-button block w-full text-center py-2.5 opacity-50 cursor-not-allowed border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] font-semibold text-sm"><?php echo translate('shop_adopt_a_bot_choose', 'Choose a bot'); ?></span>
+                                            </div>
+                                        <?php else: ?>
+                                        <form action="<?php echo $base_path; ?>buy_item" method="POST" class="mt-3 purchase-form">
+                                            <input type="hidden" name="item_id" value="<?php echo (int)$item['item_id']; ?>">
+                                            <?php if (!empty($_SESSION['csrf_token'])): ?>
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                            <?php endif; ?>
+                                            <?php if (!empty($characters)): ?>
                                                 <select name="character_id" class="character-select w-full mb-2 px-3 py-2 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.2)] text-gray-200 text-sm focus:border-[#f2cf5b] focus:outline-none transition-colors" required>
                                                     <option value=""><?php echo translate('shop_select_character', 'Select a Character'); ?></option>
                                                     <?php foreach ($characters as $char): ?>
@@ -702,7 +714,7 @@ include_once $project_root . 'includes/header.php';
                                                 <?php
                                                 if ($is_out_of_stock) {
                                                     echo translate('shop_out_of_stock', 'Out of Stock');
-                                                } elseif ($cooldown_active && (!$purchaseBlockedNoChars || $isAdoptABotItem)) {
+                                                } elseif ($cooldown_active && !$purchaseBlockedNoChars) {
                                                     echo str_replace('{seconds}', (string) $remaining_cooldown, translate('shop_wait_cooldown', 'Wait {seconds}s'));
                                                 } else {
                                                     echo translate('shop_buy_now', 'Buy Now');
@@ -839,20 +851,6 @@ include_once $project_root . 'includes/header.php';
         // Purchase form validation
         document.querySelectorAll('.purchase-form').forEach(form => {
             form.addEventListener('submit', function(e) {
-                if (this.classList.contains('purchase-form-adopt-a-bot')) {
-                    if (isPurchaseBlocked) {
-                        e.preventDefault();
-                        showCustomAlert('<?php echo translate('shop_js_cooldown_active', 'Please wait {seconds} seconds before making another purchase.'); ?>'.replace('{seconds}', remainingCooldown), 'warning');
-                        return;
-                    }
-                    if (!confirm(<?php echo json_encode(translate(
-                        'shop_js_adopt_a_bot_confirm',
-                        'Spend tokens for Adopt a Bot? You will choose your character on the next page. Adoption is not finished until you confirm a bot.'
-                    )); ?>)) {
-                        e.preventDefault();
-                    }
-                    return;
-                }
                 const characterSelect = this.querySelector('.character-select');
                 if (characterSelect && !characterSelect.value) {
                     e.preventDefault();
@@ -952,9 +950,6 @@ include_once $project_root . 'includes/header.php';
         // No characters alert
         document.querySelectorAll('.buy-button:not([href])').forEach(button => {
             const form = button.closest('.purchase-form');
-            if (form && form.classList.contains('purchase-form-adopt-a-bot')) {
-                return;
-            }
             if (<?php echo json_encode(empty($characters)); ?>) {
                 button.addEventListener('click', function(e) {
                     e.preventDefault();

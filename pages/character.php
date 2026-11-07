@@ -671,7 +671,10 @@ if ($ilvl > 0) {
                     $requestGuid = (int) ($_GET['guid'] ?? 0);
                     if ($requestGuid > 0 && $requestGuid !== $charGuid) {
                         $adoptShowForCharacter = false;
-                    } elseif ($adoptPreview && (string) ($adoptOpenClaim['status'] ?? '') === 'pending') {
+                    } elseif (
+                        $adoptPreview
+                        && in_array((string) ($adoptOpenClaim['status'] ?? ''), ['pending', 'draft'], true)
+                    ) {
                         $adoptShowForCharacter = true;
                     } elseif (
                         $adoptProcessingView
@@ -744,12 +747,8 @@ if ($ilvl > 0) {
                         <div class="mt-4 flex flex-wrap gap-3 justify-center text-sm">
                             <a href="<?= htmlspecialchars($base_path . 'account', ENT_QUOTES, 'UTF-8') ?>" class="adopt-cancel-btn"><?= htmlspecialchars(translate('adopt_progress_browse_account', 'Go to account')) ?></a>
                             <a href="<?= htmlspecialchars($base_path . 'shop', ENT_QUOTES, 'UTF-8') ?>" class="adopt-cancel-btn"><?= htmlspecialchars(translate('adopt_progress_browse_shop', 'Browse shop')) ?></a>
-                            <form method="post" action="<?= htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8') ?>" class="inline" onsubmit="return confirm(<?= json_encode(translate('adopt_progress_abandon_confirm', 'Pause this adoption and return to bot selection?')) ?>);">
-                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
-                                <button type="submit" class="adopt-cancel-btn" style="cursor:pointer;border-style:solid;"><?= htmlspecialchars(translate('adopt_progress_pause', 'Pause adoption')) ?></button>
-                            </form>
                         </div>
-                        <p class="text-xs text-gray-500 mt-3 text-center"><?= htmlspecialchars(translate('adopt_progress_leave_hint', 'You can leave this page—keep it open in a tab for automatic updates, or pause and try again later.')) ?></p>
+                        <p class="text-xs text-gray-500 mt-3 text-center"><?= htmlspecialchars(translate('adopt_progress_locked_hint', 'Tokens have been charged. Adoption cannot be cancelled while transfer runs—keep this tab open for updates.')) ?></p>
                     </div>
                 <?php else: ?>
                     <button type="button" class="copy-link" id="copy-link"

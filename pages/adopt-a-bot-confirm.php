@@ -18,6 +18,19 @@ if (empty($_SESSION['user_id'])) {
 
 $accountId = (int) $_SESSION['user_id'];
 $guid = (int) ($_GET['guid'] ?? 0);
+$adoptShopItemId = sahtout_adopt_a_bot_resolve_shop_item_id($site_db);
+$adoptTokenCost = 0;
+if ($adoptShopItemId > 0) {
+    $costStmt = $site_db->prepare('SELECT token_cost FROM shop_items WHERE item_id = ? LIMIT 1');
+    if ($costStmt) {
+        $costStmt->bind_param('i', $adoptShopItemId);
+        $costStmt->execute();
+        $costRes = $costStmt->get_result();
+        $costRow = $costRes ? $costRes->fetch_assoc() : null;
+        $costStmt->close();
+        $adoptTokenCost = (int) ($costRow['token_cost'] ?? 0);
+    }
+}
 
 sahtout_adopt_a_bot_claims_ensure_schema($site_db);
 $pending = sahtout_adopt_a_bot_get_pending_claim($site_db, $accountId);
@@ -42,6 +55,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
     } else {
         $claimId = (int) $pending['claim_id'];
+        if (!sahtout_adopt_a_bot_claim_has_purchase($pending)) {
+            if ($adoptShopItemId <= 0) {
+                $error = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
+            } else {
+                $charge = sahtout_adopt_a_bot_charge_claim_purchase($site_db, $accountId, $claimId, $adoptShopItemId);
+                if (empty($charge['ok'])) {
+                    $chargeErr = (string) ($charge['error'] ?? '');
+                    if ($chargeErr === 'insufficient_funds') {
+                        $_SESSION['error'] = translate('shop_insufficient_funds', 'Insufficient tokens for this purchase.');
+                        header('Location: ' . $base_path . 'shop');
+                        exit;
+                    }
+                    if ($chargeErr === 'out_of_stock') {
+                        $_SESSION['error'] = translate('shop_out_of_stock', 'Out of Stock');
+                        header('Location: ' . $base_path . 'shop');
+                        exit;
+                    }
+                    $error = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
+                }
+            }
+        }
+        if ($error === '') {
+            $pending = sahtout_adopt_a_bot_get_pending_claim($site_db, $accountId) ?? $pending;
+        }
+        if ($error !== '') {
+            // fall through to form with error
+        } else {
         $started = sahtout_adopt_a_bot_start_processing(
             $site_db,
             $claimId,
@@ -85,6 +125,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
         header('Location: ' . $base_path . 'adopt-a-bot-confirm?guid=' . $guid);
         exit;
+    }
+        }
     }
 }
 
@@ -152,6 +194,15 @@ ob_start();
             </p>
         <?php endif; ?>
 
+        <?php if ($adoptTokenCost > 0 && !sahtout_adopt_a_bot_claim_has_purchase($pending)): ?>
+            <p class="text-amber-100/90 text-sm mb-4 text-center">
+                <?php echo htmlspecialchars(sprintf(
+                    translate('adopt_a_bot_confirm_token_charge', 'Completing adoption will spend %s shop tokens. This cannot be undone or cancelled.'),
+                    number_format($adoptTokenCost)
+                )); ?>
+            </p>
+        <?php endif; ?>
+
         <?php if ($error !== ''): ?>
             <div class="bg-red-900/40 border border-red-600/40 text-red-200 px-4 py-2 mb-4 text-sm"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
@@ -166,6 +217,12 @@ ob_start();
                 <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_submit', 'Complete adoption')); ?>
             </button>
         </form>
+        <?php if ((string) ($pending['status'] ?? '') === 'draft'): ?>
+            <form method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="mt-3 text-center" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                <button type="submit" class="text-gray-400 hover:text-gray-200 text-sm font-semibold underline-offset-2 hover:underline"><?php echo htmlspecialchars(translate('adopt_a_bot_cancel', 'Cancel adoption')); ?></button>
+            </form>
+        <?php endif; ?>
         <p class="text-center mt-4 text-xs text-gray-500">
             <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="text-[#c9a227] hover:underline"><?php echo translate('adopt_a_bot_search', 'Search'); ?> / <?php echo translate('adopt_a_bot_heading', 'Adopt a Bot'); ?></a>
         </p>

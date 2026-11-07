@@ -181,8 +181,8 @@ ob_start();
             box-shadow: 0 0 20px rgba(242, 207, 82, 0.15);
         }
 
-        .player-link { color: #ffffff; text-decoration: none; transition: all 0.2s ease; }
-        .player-link:hover { text-decoration: underline; color: #f2cf5b; }
+        .player-link { color: #ffffff; text-decoration: none; transition: color 0.2s ease; }
+        .player-link:hover { text-decoration: none; color: #f2cf5b; }
 
         .wow-title {
             font-family: 'Cinzel', serif;
@@ -230,7 +230,7 @@ include_once $project_root . 'includes/header.php';
                 $procResume = $procGuid > 0 ? sahtout_adopt_a_bot_resume_url($openClaim, $base_path) : '';
                 ?>
                 <div class="mb-4 px-4 py-3 border border-[#c9a227]/40 bg-[rgba(242,207,82,0.1)] text-gray-200 text-sm text-center rounded-lg">
-                    <?php echo htmlspecialchars(translate('adopt_a_bot_processing_background', 'An adoption is still running. You can browse the site; open the progress view to continue, or pause it below.')); ?>
+                    <?php echo htmlspecialchars(translate('adopt_a_bot_processing_background', 'An adoption is still running. Open the progress view to continue.')); ?>
                     <?php if ($procResume !== ''): ?>
                         <a href="<?php echo htmlspecialchars($procResume, ENT_QUOTES, 'UTF-8'); ?>" class="block mt-2 text-[#f2cf5b] font-semibold hover:underline"><?php echo htmlspecialchars(translate('adopt_progress_heading', 'Adoption in progress')); ?></a>
                     <?php endif; ?>
@@ -326,8 +326,14 @@ include_once $project_root . 'includes/header.php';
                 <?php echo translate('adopt_a_bot_table_footer', 'Open a name to preview the character, then click Select to continue.'); ?>
             </div>
 
-            <p class="mt-6 text-center text-sm">
+            <p class="mt-6 text-center text-sm flex flex-col sm:flex-row gap-3 justify-center items-center">
                 <a href="<?php echo $base_path; ?>account" class="text-[#f2cf5b] hover:underline font-semibold"><?php echo translate('adopt_a_bot_back_account', 'Back to account'); ?></a>
+                <?php if (!$claimProcessingInBackground && (string) ($openClaim['status'] ?? '') === 'draft'): ?>
+                    <form method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="inline" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                        <button type="submit" class="text-gray-400 hover:text-gray-200 text-sm font-semibold underline-offset-2 hover:underline"><?php echo htmlspecialchars(translate('adopt_a_bot_cancel', 'Cancel adoption')); ?></button>
+                    </form>
+                <?php endif; ?>
             </p>
         </div>
     </div>

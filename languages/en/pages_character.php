@@ -130,6 +130,7 @@ return [
     'adopt_confirm_adoption' => 'Confirm Adoption',
     'adopt_progress_heading' => 'Adoption in progress',
     'adopt_progress_queued' => 'Your adoption will be completed as soon as possible.',
+    'adopt_progress_locked_hint' => 'Tokens have been charged. Adoption cannot be cancelled while transfer runs—keep this tab open for updates.',
     'adopt_a_bot_confirm' => 'Adopt this character? This cannot be undone.',
     'adopt_a_bot_error_generic' => 'Adoption failed. Please try again or contact staff.',
     'link_copied' => 'Link copied',

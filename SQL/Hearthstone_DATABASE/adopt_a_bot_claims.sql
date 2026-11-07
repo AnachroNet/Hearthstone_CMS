@@ -2,8 +2,8 @@
 CREATE TABLE IF NOT EXISTS `adopt_a_bot_claims` (
   `claim_id` int unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
-  `purchase_id` int unsigned NOT NULL,
-  `status` enum('pending','processing','completed','cancelled') NOT NULL DEFAULT 'pending',
+  `purchase_id` int unsigned DEFAULT NULL,
+  `status` enum('draft','pending','processing','completed','cancelled') NOT NULL DEFAULT 'draft',
   `bot_character_guid` int unsigned DEFAULT NULL,
   `bot_character_name` varchar(12) DEFAULT NULL,
   `progress_message` varchar(500) DEFAULT NULL,

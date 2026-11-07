@@ -100,104 +100,11 @@ try {
             $char_db->rollback();
             $char_transaction_started = false;
         }
-        if (!sahtout_adopt_a_bot_enabled($site_db)) {
-            throw new Exception('adopt_a_bot_disabled');
+        if ($site_transaction_started) {
+            $site_db->rollback();
+            $site_transaction_started = false;
         }
-        if (!sahtout_adopt_a_bot_claims_ensure_schema($site_db)) {
-            throw new Exception('Database query error');
-        }
-        if (!sahtout_adopt_a_bot_has_character_slot($char_db, $account_id)) {
-            throw new Exception('adopt_no_slot');
-        }
-        $existingOpen = sahtout_adopt_a_bot_get_open_claim($site_db, $account_id);
-        if ($existingOpen !== null) {
-            if ($char_transaction_started) {
-                $char_db->rollback();
-                $char_transaction_started = false;
-            }
-            if ($site_transaction_started) {
-                $site_db->rollback();
-                $site_transaction_started = false;
-            }
-            header('Location: ' . sahtout_adopt_a_bot_resume_url($existingOpen, $base_path));
-            exit;
-        }
-        if (!sahtout_adopt_a_bot_pool_configured($auth_db, $site_db)) {
-            throw new Exception('adopt_pool_missing');
-        }
-        if (!sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $auth_db, $site_db, $account_id)) {
-            throw new Exception('adopt_no_eligible_bots');
-        }
-
-        $stmt = $site_db->prepare('
-            UPDATE user_currencies
-            SET tokens = tokens - ?,
-                last_updated = NOW()
-            WHERE account_id = ?
-              AND tokens >= ?
-        ');
-        if (!$stmt) {
-            throw new Exception('Database query error');
-        }
-        $stmt->bind_param('iii', $item['token_cost'], $account_id, $item['token_cost']);
-        if (!$stmt->execute() || $stmt->affected_rows !== 1) {
-            $stmt->close();
-            throw new Exception('insufficient_funds');
-        }
-        $stmt->close();
-
-        if ($item['stock'] !== null) {
-            $stmt = $site_db->prepare('
-                UPDATE shop_items
-                SET stock = stock - 1,
-                    last_updated = NOW()
-                WHERE item_id = ?
-                  AND stock IS NOT NULL
-                  AND stock > 0
-            ');
-            if (!$stmt) {
-                throw new Exception('Database query error');
-            }
-            $stmt->bind_param('i', $item_id);
-            if (!$stmt->execute() || $stmt->affected_rows !== 1) {
-                $stmt->close();
-                throw new Exception('out_of_stock');
-            }
-            $stmt->close();
-        }
-
-        $stmt = $site_db->prepare('INSERT INTO purchases (account_id, item_id) VALUES (?, ?)');
-        if (!$stmt) {
-            throw new Exception('Database query error');
-        }
-        $stmt->bind_param('ii', $account_id, $item_id);
-        if (!$stmt->execute()) {
-            $stmt->close();
-            throw new Exception('Database query error');
-        }
-        $purchase_id = (int) $site_db->insert_id;
-        $stmt->close();
-
-        $stmt = $site_db->prepare(
-            "INSERT INTO adopt_a_bot_claims (account_id, purchase_id, status) VALUES (?, ?, 'pending')"
-        );
-        if (!$stmt) {
-            throw new Exception('Database query error');
-        }
-        $stmt->bind_param('ii', $account_id, $purchase_id);
-        if (!$stmt->execute()) {
-            $stmt->close();
-            throw new Exception('Database query error');
-        }
-        $stmt->close();
-
-        if (!$site_db->commit()) {
-            throw new Exception('Database query error');
-        }
-        $site_transaction_started = false;
-
-        $_SESSION['last_purchase_time'] = time();
-        header("Location: {$base_path}adopt-a-bot");
+        header('Location: ' . $base_path . 'adopt-a-bot-start');
         exit;
     }
 

@@ -80,7 +80,7 @@ if ($step === 'processing') {
         header('Location: ' . sahtout_adopt_a_bot_resume_url($openClaim, $base_path));
         exit;
     }
-    if ($status !== 'pending') {
+    if ($status !== 'pending' && $status !== 'draft') {
         header('Location: ' . $base_path . 'adopt-a-bot');
         exit;
     }

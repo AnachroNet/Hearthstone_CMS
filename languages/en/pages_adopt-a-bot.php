@@ -42,4 +42,9 @@ return [
     'adopt_a_bot_error_level' => 'That character is above your allowed level (%d max).',
     'adopt_a_bot_error_generic' => 'Adoption failed. Please try again or contact staff.',
     'adopt_a_bot_error_no_claim' => 'You do not have an Adopt a Bot purchase ready to redeem.',
+    'adopt_a_bot_cancel' => 'Cancel adoption',
+    'adopt_a_bot_cancel_confirm' => 'Cancel adoption and return to the shop? No tokens will be charged.',
+    'adopt_a_bot_cancelled' => 'Adoption cancelled. No tokens were charged.',
+    'adopt_a_bot_confirm_token_charge' => 'Completing adoption will spend %s shop tokens. This cannot be undone or cancelled.',
+    'adopt_a_bot_error_cannot_cancel_processing' => 'Adoption is already in progress and cannot be cancelled.',
 ];
