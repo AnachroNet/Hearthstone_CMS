@@ -164,6 +164,33 @@ ob_start();
         font-weight: 800;
     }
     .confirm-btn-gold:hover { filter: brightness(1.05); }
+    .confirm-btn-secondary {
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 700;
+        color: #e5e7eb; background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 0.5rem;
+        text-decoration: none; transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .confirm-btn-secondary:hover { color: #fff; border-color: rgba(242, 207, 82, 0.45); background: rgba(255, 255, 255, 0.05); }
+    .cancel-adoption-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+        padding: 0.75rem 1rem; font-size: 0.875rem; font-weight: 700; width: 100%;
+        background: rgba(10, 14, 22, 0.75); border: 2px solid rgba(239, 68, 68, 0.45);
+        color: #fecaca; border-radius: 0.5rem; cursor: pointer;
+        transition: transform 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .cancel-adoption-btn:hover {
+        border-color: rgba(248, 113, 113, 0.85);
+        background: rgba(127, 29, 29, 0.35);
+        color: #fff;
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.25);
+    }
+    .confirm-actions { display: flex; flex-direction: column; gap: 0.75rem; }
+    @media (min-width: 640px) {
+        .confirm-actions-primary { display: flex; flex-direction: row; gap: 0.75rem; }
+        .confirm-actions-primary > * { flex: 1; }
+        .cancel-adoption-btn { width: auto; flex: 1; }
+    }
 </style>
 <div class="min-h-screen flex items-center justify-center px-4 py-10">
     <div class="confirm-card max-w-lg w-full rounded-lg p-6 md:p-8">
@@ -207,22 +234,29 @@ ob_start();
             <div class="bg-red-900/40 border border-red-600/40 text-red-200 px-4 py-2 mb-4 text-sm"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
-        <form method="post" class="flex flex-col sm:flex-row gap-3">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
-            <input type="hidden" name="adopt_complete" value="1">
-            <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="flex-1 text-center px-4 py-3 border border-gray-500/50 text-gray-200 hover:bg-white/5 rounded-lg font-semibold text-sm">
-                <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_back', 'Choose another')); ?>
-            </a>
-            <button type="submit" class="confirm-btn-gold flex-1 px-4 py-3 rounded-lg text-sm">
-                <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_submit', 'Complete adoption')); ?>
-            </button>
-        </form>
-        <?php if ((string) ($pending['status'] ?? '') === 'draft'): ?>
-            <form method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="mt-3 text-center" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
-                <button type="submit" class="text-gray-400 hover:text-gray-200 text-sm font-semibold underline-offset-2 hover:underline"><?php echo htmlspecialchars(translate('adopt_a_bot_cancel', 'Cancel adoption')); ?></button>
-            </form>
-        <?php endif; ?>
+        <div class="confirm-actions">
+            <div class="confirm-actions-primary">
+                <form method="post" class="flex flex-1 flex-col sm:flex-row gap-3 sm:contents">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                    <input type="hidden" name="adopt_complete" value="1">
+                    <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="confirm-btn-secondary">
+                        <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_back', 'Choose another')); ?>
+                    </a>
+                    <button type="submit" class="confirm-btn-gold px-4 py-3 rounded-lg text-sm">
+                        <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_submit', 'Complete adoption')); ?>
+                    </button>
+                </form>
+            </div>
+            <?php if ((string) ($pending['status'] ?? '') === 'draft'): ?>
+                <form method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="confirm-actions-primary" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                    <button type="submit" class="cancel-adoption-btn">
+                        <i class="fas fa-ban"></i>
+                        <?php echo htmlspecialchars(translate('adopt_a_bot_cancel_adoption', 'Cancel Adoption')); ?>
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
         <p class="text-center mt-4 text-xs text-gray-500">
             <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="text-[#c9a227] hover:underline"><?php echo translate('adopt_a_bot_search', 'Search'); ?> / <?php echo translate('adopt_a_bot_heading', 'Adopt a Bot'); ?></a>
         </p>

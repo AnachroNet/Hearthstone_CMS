@@ -252,6 +252,20 @@ ob_start();
         text-decoration: none; transition: border-color .2s, color .2s;
     }
     .adopt-cancel-btn:hover { color: #fff; border-color: rgba(242,207,82,.45); }
+    .adopt-cancel-adoption-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+        padding: .55rem 1.35rem; font-size: .85rem; font-weight: 700; letter-spacing: .03em;
+        background: rgba(10, 14, 22, 0.75); border: 2px solid rgba(239, 68, 68, 0.45);
+        color: #fecaca; border-radius: 999px; cursor: pointer;
+        transition: transform .2s, border-color .2s, background .2s, box-shadow .2s;
+    }
+    .adopt-cancel-adoption-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(248, 113, 113, 0.85);
+        background: rgba(127, 29, 29, 0.35);
+        color: #fff;
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.25);
+    }
     .adopt-progress-panel {
         margin-top: 1rem; max-width: 36rem; margin-left: auto; margin-right: auto; text-align: left;
         padding: 1rem 1.1rem; background: rgba(0,0,0,.45); border: 1px solid rgba(201,162,39,.25);
@@ -722,10 +736,22 @@ if ($ilvl > 0) {
                     <?php endif; ?>
                 </div>
                 <?php if ($adoptShowForCharacter && $adoptPreview): ?>
+                    <?php
+                    $adoptPreviewDraft = (string) ($adoptOpenClaim['status'] ?? '') === 'draft';
+                    ?>
                     <div class="adopt-hero-actions">
                         <a href="<?= htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8') ?>" class="adopt-cancel-btn">
-                            <?= htmlspecialchars(translate('adopt_preview_cancel', 'Cancel')) ?>
+                            <?= htmlspecialchars(translate('adopt_a_bot_confirm_back', 'Choose another')) ?>
                         </a>
+                        <?php if ($adoptPreviewDraft): ?>
+                            <form method="post" action="<?= htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8') ?>" class="inline" onsubmit="return confirm(<?= json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')) ?>);">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
+                                <button type="submit" class="adopt-cancel-adoption-btn">
+                                    <i class="fas fa-ban"></i>
+                                    <?= htmlspecialchars(translate('adopt_a_bot_cancel_adoption', 'Cancel Adoption')) ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
                         <a href="<?= htmlspecialchars($base_path . 'adopt-a-bot-confirm?guid=' . (int) ($character['guid'] ?? 0), ENT_QUOTES, 'UTF-8') ?>" class="adopt-confirm-btn">
                             <?= htmlspecialchars(translate('adopt_preview_confirm', 'Confirm')) ?>
                         </a>

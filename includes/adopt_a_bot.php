@@ -21,6 +21,8 @@ const SAHTOUT_ADOPT_A_BOT_DISCONNECT_RETRY_SECONDS = 12;
 /** playerbots_random_bots logout hold — blocks RandomPlayerbotMgr from re-adding the bot. */
 const SAHTOUT_ADOPT_A_BOT_PLAYERBOT_OFFLINE_HOLD_SECONDS = 900;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_TOKEN_COST = 100;
+/** Bots shown per page on the adoption picker (pool can be large). */
+const SAHTOUT_ADOPT_A_BOT_PICKER_PAGE_SIZE = 25;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX = 'RNDBOT';
 const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
 const SAHTOUT_ADOPT_A_BOT_SHOP_NAME = 'Adopt a Bot';
@@ -1148,6 +1150,59 @@ function sahtout_adopt_a_bot_build_progress_payload(
 
 /**
  * @param list<int> $poolAccountIds
+ */
+function sahtout_adopt_a_bot_count_pool_characters(
+    mysqli $charDb,
+    array $poolAccountIds,
+    string $search,
+    ?int $maxBotLevel = null
+): int {
+    $inList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
+    if ($inList === '0') {
+        return 0;
+    }
+    $search = trim($search);
+    if ($search !== '') {
+        $like = '%' . $search . '%';
+        if ($maxBotLevel !== null) {
+            $sql = 'SELECT COUNT(*) AS c FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? AND level <= ?';
+            $stmt = $charDb->prepare($sql);
+            if (!$stmt) {
+                return 0;
+            }
+            $stmt->bind_param('si', $like, $maxBotLevel);
+        } else {
+            $sql = 'SELECT COUNT(*) AS c FROM characters WHERE account IN (' . $inList . ') AND name LIKE ?';
+            $stmt = $charDb->prepare($sql);
+            if (!$stmt) {
+                return 0;
+            }
+            $stmt->bind_param('s', $like);
+        }
+    } elseif ($maxBotLevel !== null) {
+        $sql = 'SELECT COUNT(*) AS c FROM characters WHERE account IN (' . $inList . ') AND level <= ?';
+        $stmt = $charDb->prepare($sql);
+        if (!$stmt) {
+            return 0;
+        }
+        $stmt->bind_param('i', $maxBotLevel);
+    } else {
+        $sql = 'SELECT COUNT(*) AS c FROM characters WHERE account IN (' . $inList . ')';
+        $stmt = $charDb->prepare($sql);
+        if (!$stmt) {
+            return 0;
+        }
+    }
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    return (int) ($row['c'] ?? 0);
+}
+
+/**
+ * @param list<int> $poolAccountIds
  * @return list<array{guid:int,name:string,level:int,race:int,class:int,gender:int}>
  */
 function sahtout_adopt_a_bot_list_pool_characters(
@@ -1155,7 +1210,8 @@ function sahtout_adopt_a_bot_list_pool_characters(
     array $poolAccountIds,
     string $search,
     int $limit = 50,
-    ?int $maxBotLevel = null
+    ?int $maxBotLevel = null,
+    int $offset = 0
 ): array {
     $inList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
     if ($inList === '0') {
@@ -1163,39 +1219,40 @@ function sahtout_adopt_a_bot_list_pool_characters(
     }
 
     $limit = max(1, min(200, $limit));
+    $offset = max(0, $offset);
     $search = trim($search);
     if ($search !== '') {
         $like = '%' . $search . '%';
         if ($maxBotLevel !== null) {
-            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? AND level <= ? ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? AND level <= ? ORDER BY name ASC LIMIT ? OFFSET ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('sii', $like, $maxBotLevel, $limit);
+            $stmt->bind_param('siiii', $like, $maxBotLevel, $limit, $offset);
         } else {
-            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? ORDER BY name ASC LIMIT ? OFFSET ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('si', $like, $limit);
+            $stmt->bind_param('siii', $like, $limit, $offset);
         }
     } else {
         if ($maxBotLevel !== null) {
-            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND level <= ? ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND level <= ? ORDER BY name ASC LIMIT ? OFFSET ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('ii', $maxBotLevel, $limit);
+            $stmt->bind_param('iii', $maxBotLevel, $limit, $offset);
         } else {
-            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') ORDER BY name ASC LIMIT ? OFFSET ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('i', $limit);
+            $stmt->bind_param('ii', $limit, $offset);
         }
     }
     $stmt->execute();

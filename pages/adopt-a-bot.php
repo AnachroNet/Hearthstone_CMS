@@ -57,9 +57,31 @@ $poolAccountIds = sahtout_adopt_a_bot_pool_account_ids($auth_db, $site_db);
 $poolConfigured = $poolAccountIds !== [];
 $buyerHighest = sahtout_adopt_a_bot_highest_character_level($char_db, $accountId);
 $maxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $accountId);
+$pageSize = SAHTOUT_ADOPT_A_BOT_PICKER_PAGE_SIZE;
+$totalBots = $poolConfigured
+    ? sahtout_adopt_a_bot_count_pool_characters($char_db, $poolAccountIds, $search, $maxBotLevel)
+    : 0;
+$totalPages = $pageSize > 0 ? max(1, (int) ceil($totalBots / $pageSize)) : 1;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $pageSize;
 $bots = $poolConfigured
-    ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolAccountIds, $search, 80, $maxBotLevel)
+    ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolAccountIds, $search, $pageSize, $maxBotLevel, $offset)
     : [];
+$canCancelDraft = !$claimProcessingInBackground && (string) ($openClaim['status'] ?? '') === 'draft';
+
+$adoptPickerPageUrl = static function (int $targetPage) use ($base_path, $search): string {
+    $params = [];
+    if ($search !== '') {
+        $params['q'] = $search;
+    }
+    if ($targetPage > 1) {
+        $params['page'] = (string) $targetPage;
+    }
+    $qs = $params !== [] ? ('?' . http_build_query($params)) : '';
+
+    return $base_path . 'adopt-a-bot' . $qs;
+};
 
 $page_title = $site_title_name . ' — ' . translate('adopt_a_bot_page_title', 'Adopt a Bot');
 $page_meta_description = translate('adopt_a_bot_meta', 'Choose a bot character to add to your account.');
@@ -181,6 +203,68 @@ ob_start();
             box-shadow: 0 0 20px rgba(242, 207, 82, 0.15);
         }
 
+        .cancel-adoption-btn {
+            background: rgba(10, 14, 22, 0.75);
+            border: 2px solid rgba(239, 68, 68, 0.45);
+            color: #fecaca;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .cancel-adoption-btn:hover {
+            transform: scale(1.03);
+            border-color: rgba(248, 113, 113, 0.85);
+            background: rgba(127, 29, 29, 0.35);
+            color: #fff;
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.25);
+        }
+
+        .adopt-pagination {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.25rem;
+        }
+        .adopt-pagination a, .adopt-pagination span {
+            min-width: 2.25rem;
+            padding: 0.45rem 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            text-align: center;
+        }
+        .adopt-pagination a {
+            color: #f2cf5b;
+            border: 1px solid rgba(201, 162, 39, 0.45);
+            background: rgba(0, 0, 0, 0.45);
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .adopt-pagination a:hover {
+            background: rgba(242, 207, 82, 0.15);
+            border-color: #f2cf5b;
+        }
+        .adopt-pagination .current {
+            color: #1a1200;
+            background: linear-gradient(135deg, #f2cf5b, #c9a227);
+            border: 1px solid #f2cf5b;
+        }
+        .adopt-pagination .disabled {
+            opacity: 0.4;
+            pointer-events: none;
+            color: #9ca3af;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .adopt-pagination-summary {
+            width: 100%;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+        }
+
         .player-link { color: #ffffff; text-decoration: none; transition: color 0.2s ease; }
         .player-link:hover { text-decoration: none; color: #f2cf5b; }
 
@@ -237,7 +321,8 @@ include_once $project_root . 'includes/header.php';
                 </div>
             <?php } ?>
 
-            <form method="get" class="mb-8 flex flex-col sm:flex-row justify-center items-center gap-3">
+            <form method="get" class="mb-8 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 flex-wrap">
+                <input type="hidden" name="page" value="1">
                 <input
                     type="text"
                     name="q"
@@ -249,16 +334,31 @@ include_once $project_root . 'includes/header.php';
                 <button
                     type="submit"
                     id="search-btn"
-                    class="px-6 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-[rgba(242,207,82,0.3)] flex items-center gap-2"
+                    class="px-6 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-[rgba(242,207,82,0.3)] flex items-center justify-center gap-2"
                 >
                     <i class="fas fa-search"></i> <?php echo translate('adopt_a_bot_search', 'Search'); ?>
                 </button>
+                <?php if ($canCancelDraft): ?>
+                    <button
+                        type="submit"
+                        form="adopt-cancel-draft-form"
+                        class="cancel-adoption-btn px-5 py-2.5 rounded-lg flex items-center justify-center gap-2"
+                        onclick="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);"
+                    >
+                        <i class="fas fa-ban"></i> <?php echo htmlspecialchars(translate('adopt_a_bot_cancel_adoption', 'Cancel Adoption')); ?>
+                    </button>
+                <?php endif; ?>
                 <?php if ($search !== ''): ?>
-                    <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="reset-btn px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2">
+                    <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="reset-btn px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
                         <i class="fas fa-times"></i> <?php echo translate('adopt_a_bot_reset_btn', 'Reset'); ?>
                     </a>
                 <?php endif; ?>
             </form>
+            <?php if ($canCancelDraft): ?>
+                <form id="adopt-cancel-draft-form" method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="hidden">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                </form>
+            <?php endif; ?>
 
             <div class="table-container overflow-x-auto border border-[rgba(201,162,39,0.15)] shadow-2xl">
                 <table class="w-full text-sm md:text-base text-center min-w-[640px]">
@@ -321,20 +421,53 @@ include_once $project_root . 'includes/header.php';
                 </table>
             </div>
 
+            <?php if ($poolConfigured && $totalBots > 0): ?>
+                <nav class="adopt-pagination" aria-label="<?php echo htmlspecialchars(translate('adopt_a_bot_pagination', 'Bot list pages')); ?>">
+                    <p class="adopt-pagination-summary">
+                        <?php echo htmlspecialchars(sprintf(
+                            translate(
+                                'adopt_a_bot_pagination_summary',
+                                'Showing %1$d–%2$d of %3$d bots (page %4$d of %5$d).'
+                            ),
+                            min($totalBots, $offset + 1),
+                            min($totalBots, $offset + count($bots)),
+                            $totalBots,
+                            $page,
+                            $totalPages
+                        )); ?>
+                    </p>
+                    <?php if ($page > 1): ?>
+                        <a href="<?php echo htmlspecialchars($adoptPickerPageUrl(1), ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('adopt_a_bot_page_first', 'First'); ?></a>
+                        <a href="<?php echo htmlspecialchars($adoptPickerPageUrl($page - 1), ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('adopt_a_bot_page_prev', 'Prev'); ?></a>
+                    <?php else: ?>
+                        <span class="disabled"><?php echo translate('adopt_a_bot_page_first', 'First'); ?></span>
+                        <span class="disabled"><?php echo translate('adopt_a_bot_page_prev', 'Prev'); ?></span>
+                    <?php endif; ?>
+                    <?php
+                    $windowStart = max(1, $page - 2);
+                    $windowEnd = min($totalPages, $page + 2);
+                    for ($p = $windowStart; $p <= $windowEnd; $p++):
+                        if ($p === $page): ?>
+                            <span class="current" aria-current="page"><?php echo (int) $p; ?></span>
+                        <?php else: ?>
+                            <a href="<?php echo htmlspecialchars($adoptPickerPageUrl($p), ENT_QUOTES, 'UTF-8'); ?>"><?php echo (int) $p; ?></a>
+                        <?php endif;
+                    endfor;
+                    ?>
+                    <?php if ($page < $totalPages): ?>
+                        <a href="<?php echo htmlspecialchars($adoptPickerPageUrl($page + 1), ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('adopt_a_bot_page_next', 'Next'); ?></a>
+                        <a href="<?php echo htmlspecialchars($adoptPickerPageUrl($totalPages), ENT_QUOTES, 'UTF-8'); ?>"><?php echo translate('adopt_a_bot_page_last', 'Last'); ?></a>
+                    <?php else: ?>
+                        <span class="disabled"><?php echo translate('adopt_a_bot_page_next', 'Next'); ?></span>
+                        <span class="disabled"><?php echo translate('adopt_a_bot_page_last', 'Last'); ?></span>
+                    <?php endif; ?>
+                </nav>
+            <?php endif; ?>
+
             <div class="mt-6 text-center text-gray-400 text-xs md:text-sm">
                 <i class="fas fa-user-plus mr-2 text-[rgba(201,162,39,0.4)]"></i>
-                <?php echo translate('adopt_a_bot_table_footer', 'Open a name to preview the character, then click Select to continue.'); ?>
+                <?php echo translate('adopt_a_bot_table_footer', 'Click Select to preview the character, then confirm on the next screens.'); ?>
             </div>
-
-            <p class="mt-6 text-center text-sm flex flex-col sm:flex-row gap-3 justify-center items-center">
-                <a href="<?php echo $base_path; ?>account" class="text-[#f2cf5b] hover:underline font-semibold"><?php echo translate('adopt_a_bot_back_account', 'Back to account'); ?></a>
-                <?php if (!$claimProcessingInBackground && (string) ($openClaim['status'] ?? '') === 'draft'): ?>
-                    <form method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="inline" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
-                        <button type="submit" class="text-gray-400 hover:text-gray-200 text-sm font-semibold underline-offset-2 hover:underline"><?php echo htmlspecialchars(translate('adopt_a_bot_cancel', 'Cancel adoption')); ?></button>
-                    </form>
-                <?php endif; ?>
-            </p>
         </div>
     </div>
 </div>
