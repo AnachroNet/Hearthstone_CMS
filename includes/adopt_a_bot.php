@@ -28,6 +28,9 @@ const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
 const SAHTOUT_ADOPT_A_BOT_SHOP_NAME = 'Adopt a Bot';
 /** AzerothCore AT_LOGIN flag: appearance/customize at next login (same as shop “Customize Character”). */
 const SAHTOUT_AT_LOGIN_CUSTOMIZE = 8;
+/** OR’d with customize on adoption so the client shows the barber flow reliably after transfer. */
+const SAHTOUT_AT_LOGIN_FIRST = 32;
+const SAHTOUT_AT_LOGIN_ADOPT_APPEARANCE = 40;
 
 function sahtout_adopt_a_bot_config_override(): ?bool
 {
@@ -2030,14 +2033,18 @@ function sahtout_adopt_a_bot_adjust_realm_characters(
 }
 
 /** Apply missing customize flag for every completed adoption on this account (retroactive repair). */
-function sahtout_adopt_a_bot_sync_completed_adoption_characters(mysqli $siteDb, mysqli $charDb, int $accountId): void
-{
+function sahtout_adopt_a_bot_sync_completed_adoption_characters(
+    mysqli $siteDb,
+    mysqli $charDb,
+    int $accountId,
+    ?mysqli $authDb = null
+): void {
     if ($accountId <= 0 || !sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
         return;
     }
     $stmt = $siteDb->prepare(
-        'SELECT bot_character_guid FROM adopt_a_bot_claims
-         WHERE account_id = ? AND status = ? AND bot_character_guid IS NOT NULL AND bot_character_guid > 0'
+        'SELECT bot_character_guid, bot_character_name FROM adopt_a_bot_claims
+         WHERE account_id = ? AND status = ?'
     );
     if (!$stmt) {
         return;
@@ -2052,20 +2059,71 @@ function sahtout_adopt_a_bot_sync_completed_adoption_characters(mysqli $siteDb, 
     $res = $stmt->get_result();
     while ($res && ($row = $res->fetch_assoc())) {
         $guid = (int) ($row['bot_character_guid'] ?? 0);
+        $claimName = trim((string) ($row['bot_character_name'] ?? ''));
+        if ($guid <= 0 && $claimName === '') {
+            continue;
+        }
+        if ($guid <= 0 && $claimName !== '') {
+            $byName = $charDb->prepare('SELECT guid FROM characters WHERE account = ? AND name = ? LIMIT 1');
+            if ($byName) {
+                $byName->bind_param('is', $accountId, $claimName);
+                $byName->execute();
+                $nameRes = $byName->get_result();
+                $nameRow = $nameRes ? $nameRes->fetch_assoc() : null;
+                $byName->close();
+                $guid = (int) ($nameRow['guid'] ?? 0);
+            }
+        }
         if ($guid <= 0) {
             continue;
         }
-        sahtout_adopt_a_bot_remove_from_playerbots_random_pool($charDb, $guid);
-        sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $guid);
-        sahtout_adopt_a_bot_grant_customize_at_login($charDb, $guid, $accountId);
-        $off = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? AND online = 1 LIMIT 1');
-        if ($off) {
-            $off->bind_param('ii', $guid, $accountId);
-            $off->execute();
-            $off->close();
+        $charName = $claimName;
+        if ($charName === '') {
+            $nameStmt = $charDb->prepare('SELECT name FROM characters WHERE guid = ? AND account = ? LIMIT 1');
+            if ($nameStmt) {
+                $nameStmt->bind_param('ii', $guid, $accountId);
+                $nameStmt->execute();
+                $nameRes = $nameStmt->get_result();
+                $nameRow = $nameRes ? $nameRes->fetch_assoc() : null;
+                $nameStmt->close();
+                $charName = trim((string) ($nameRow['name'] ?? ''));
+            }
         }
+        sahtout_adopt_a_bot_repair_adopted_character_world_state($charDb, $authDb, $guid, $accountId, $charName);
     }
     $stmt->close();
+}
+
+/**
+ * Release an adopted guid from playerbots, clear stale online, kick realm sessions, re-apply at_login customize.
+ */
+function sahtout_adopt_a_bot_repair_adopted_character_world_state(
+    mysqli $charDb,
+    ?mysqli $authDb,
+    int $guid,
+    int $accountId,
+    string $characterName = ''
+): void {
+    if ($guid <= 0 || $accountId <= 0) {
+        return;
+    }
+    sahtout_adopt_a_bot_remove_from_playerbots_random_pool($charDb, $guid);
+    sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $guid);
+    $characterName = trim($characterName);
+    if ($characterName === '') {
+        $row = sahtout_adopt_a_bot_character_online_row($charDb, $guid);
+        $characterName = $row ? trim((string) ($row['name'] ?? '')) : '';
+    }
+    if ($characterName !== '' && sahtout_soap_is_configured()) {
+        sahtout_shop_disconnect_character_for_service($charDb, $authDb, $guid, $characterName);
+    }
+    $off = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? LIMIT 1');
+    if ($off) {
+        $off->bind_param('ii', $guid, $accountId);
+        $off->execute();
+        $off->close();
+    }
+    sahtout_adopt_a_bot_grant_customize_at_login($charDb, $guid, $accountId);
 }
 
 /** Grant AT_LOGIN customize on the adopted character (OR into existing at_login flags). */
@@ -2074,7 +2132,7 @@ function sahtout_adopt_a_bot_grant_customize_at_login(mysqli $charDb, int $chara
     if ($characterGuid <= 0 || $accountId <= 0) {
         return false;
     }
-    $flag = SAHTOUT_AT_LOGIN_CUSTOMIZE;
+    $flag = SAHTOUT_AT_LOGIN_ADOPT_APPEARANCE;
     $stmt = $charDb->prepare(
         'UPDATE characters SET at_login = at_login | ? WHERE guid = ? AND account = ? LIMIT 1'
     );
@@ -2082,10 +2140,27 @@ function sahtout_adopt_a_bot_grant_customize_at_login(mysqli $charDb, int $chara
         return false;
     }
     $stmt->bind_param('iii', $flag, $characterGuid, $accountId);
-    $ok = $stmt->execute() && $stmt->affected_rows === 1;
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return false;
+    }
     $stmt->close();
 
-    return $ok;
+    $check = $charDb->prepare(
+        'SELECT at_login FROM characters WHERE guid = ? AND account = ? LIMIT 1'
+    );
+    if (!$check) {
+        return false;
+    }
+    $check->bind_param('ii', $characterGuid, $accountId);
+    $check->execute();
+    $res = $check->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $check->close();
+    $atLogin = (int) ($row['at_login'] ?? 0);
+
+    return ($atLogin & SAHTOUT_AT_LOGIN_CUSTOMIZE) !== 0;
 }
 
 /**

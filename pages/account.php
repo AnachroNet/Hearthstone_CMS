@@ -38,7 +38,7 @@ $gmlevel = $_SESSION['gmlevel'] ?? 0;
 $role = $_SESSION['role'] ?? 'player';
 $debug_errors = $_SESSION['debug_errors'] ?? [];
 $adoptABotOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, (int) $_SESSION['user_id']);
-sahtout_adopt_a_bot_sync_completed_adoption_characters($site_db, $char_db, (int) $_SESSION['user_id']);
+sahtout_adopt_a_bot_sync_completed_adoption_characters($site_db, $char_db, (int) $_SESSION['user_id'], $auth_db ?? null);
 
 // Retrieve and clear session messages
 if (isset($_SESSION['message'])) {
