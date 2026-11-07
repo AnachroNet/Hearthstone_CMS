@@ -13,10 +13,6 @@ return [
 
     'label_cms_version' => 'CMS Version',
     'label_cms_release' => 'CMS Release',
-    'help_cms_build_db' => 'Stored in site_settings when you import the version base install or apply release update SQL.',
-    'help_cms_build_assumed' => 'Version and release are assumed (v1.0 / 2026110601) because site.version or site.release is not in site_settings yet. Apply pending update SQL to record the current release.',
-    'help_cms_build_code' => 'This codebase ships',
-
     // Website Title
     'label_website_title' => 'Website Title',
     'placeholder_site_title' => 'e.g. My Awesome Site',

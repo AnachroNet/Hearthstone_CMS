@@ -12,19 +12,15 @@ require_once $project_root . 'includes/site_release.php';
 global $world_db, $site_db;
 $cmsVersionDisplay = '';
 $cmsReleaseDisplay = 0;
-$cmsCodebuildLabel = '';
-$cmsReleaseAssumedBaseline = false;
 if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
     $cmsVersionDisplay = sahtout_site_version_applied($site_db);
     $cmsReleaseDisplay = sahtout_site_release_applied($site_db);
-    $cmsReleaseAssumedBaseline = sahtout_site_release_using_baseline_assumption($site_db);
     if ($cmsVersionDisplay === '') {
         $cmsVersionDisplay = SAHTOUT_CODE_VERSION;
     }
     if ($cmsReleaseDisplay === 0) {
         $cmsReleaseDisplay = SAHTOUT_CODE_RELEASE;
     }
-    $cmsCodebuildLabel = sahtout_site_release_label(SAHTOUT_CODE_VERSION, SAHTOUT_CODE_RELEASE);
 }
 $tokenGiftWorldIdSlots = [];
 $tokenGiftsFeatureEnabled = sahtout_site_token_gifts_enabled();
@@ -183,21 +179,6 @@ include $project_root . 'includes/header.php';
                                         <?php echo $cmsReleaseDisplay > 0 ? htmlspecialchars((string) $cmsReleaseDisplay) : '—'; ?>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="text-[#6a7a8a] text-xs -mt-2 md:-mt-4">
-                                <?php if ($cmsReleaseAssumedBaseline): ?>
-                                    <?php echo translate(
-                                        'help_cms_build_assumed',
-                                        'Version and release are assumed (v1.0 / 2026110601) because site.version or site.release is not in site_settings yet. Apply pending update SQL to record the current release.'
-                                    ); ?>
-                                <?php else: ?>
-                                    <?php echo translate('help_cms_build_db', 'Stored in site_settings when you import the version base install or apply release update SQL.'); ?>
-                                <?php endif; ?>
-                                <?php if ($cmsCodebuildLabel !== ''): ?>
-                                    <?php echo ' '; ?>
-                                    <?php echo translate('help_cms_build_code', 'This codebase ships'); ?>
-                                    <span class="text-[#c9a227]/90"><?php echo htmlspecialchars($cmsCodebuildLabel); ?></span>.
-                                <?php endif; ?>
                             </div>
 
                             <!-- Website Title -->
