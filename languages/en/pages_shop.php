@@ -65,6 +65,8 @@ return [
     'shop_status_adopt_no_slot' => 'You need an open character slot (fewer than 10 characters) to purchase Adopt a Bot.',
     'shop_status_adopt_already_claimed' => 'You have already completed Adopt a Bot on this account.',
     'shop_status_adopt_pending_resume' => 'You have an Adopt a Bot purchase in progress. Choose your character to finish.',
+    'shop_status_adopt_processing_resume' => 'Your adoption is in progress. Open the character page to see status.',
+    'shop_adopt_a_bot_processing_resume' => 'Adoption running. View progress on the character page.',
     'shop_adopt_a_bot_pending_resume' => 'Your tokens are paid. Pick a bot to complete adoption.',
     'shop_adopt_a_bot_continue' => 'Continue adoption',
     'shop_adopt_a_bot_completed' => 'You have already completed Adopt a Bot on this account.',

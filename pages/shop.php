@@ -15,14 +15,14 @@ $adoptABotShopItemId = sahtout_adopt_a_bot_resolve_shop_item_id($site_db);
 $adoptABotBuyerHighest = 0;
 $adoptABotMaxBotLevel = SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP;
 $adoptABotHasEligiblePool = false;
-$adoptABotPendingClaim = null;
+$adoptABotOpenClaim = null;
 if (!empty($_SESSION['user_id'])) {
     global $auth_db;
     $adoptUid = (int) $_SESSION['user_id'];
     $adoptABotBuyerHighest = sahtout_adopt_a_bot_highest_character_level($char_db, $adoptUid);
     $adoptABotMaxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $adoptUid);
     $adoptABotHasEligiblePool = sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $auth_db, $site_db, $adoptUid);
-    $adoptABotPendingClaim = sahtout_adopt_a_bot_get_pending_claim($site_db, $adoptUid);
+    $adoptABotOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, $adoptUid);
 }
 
 $page_class = 'shop';
@@ -187,11 +187,15 @@ if (isset($_GET['status'])) {
     }
 }
 
-if ($status_message === '' && !empty($adoptABotPendingClaim)) {
-    $adoptResumeUrl = htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8');
+if ($status_message === '' && !empty($adoptABotOpenClaim)) {
+    $adoptResumeUrl = htmlspecialchars(sahtout_adopt_a_bot_resume_url($adoptABotOpenClaim, $base_path), ENT_QUOTES, 'UTF-8');
+    $adoptOpenStatus = (string) ($adoptABotOpenClaim['status'] ?? 'pending');
+    $adoptResumeText = $adoptOpenStatus === 'processing'
+        ? translate('shop_status_adopt_processing_resume', 'Your adoption is in progress. Open the character page to see status.')
+        : translate('shop_status_adopt_pending_resume', 'You have an Adopt a Bot purchase in progress. Choose your character to finish.');
     $status_message = '<div class="bg-[rgba(242,207,82,0.12)] border border-[#c9a227]/40 text-gray-200 px-5 py-3 flex flex-wrap items-center gap-3 mb-4 force-wrap">'
         . '<i class="fas fa-robot text-[#f2cf5b] text-lg"></i>'
-        . '<span class="flex-1">' . translate('shop_status_adopt_pending_resume', 'You have an Adopt a Bot purchase in progress. Choose your character to finish.') . '</span>'
+        . '<span class="flex-1">' . $adoptResumeText . '</span>'
         . '<a href="' . $adoptResumeUrl . '" class="px-4 py-2 border border-[#c9a227]/50 text-[#f2cf5b] hover:bg-[#f2cf5b]/10 font-semibold text-sm whitespace-nowrap">'
         . translate('shop_adopt_a_bot_continue', 'Continue adoption') . '</a></div>';
 }
@@ -634,21 +638,27 @@ include_once $project_root . 'includes/header.php';
                                         <?php
                                         $isAdoptABotItem = $adoptABotShopItemId > 0 && (int) $item['item_id'] === $adoptABotShopItemId;
                                         $adoptUidShop = (int) $_SESSION['user_id'];
-                                        $adoptHasPending = $isAdoptABotItem && !empty($adoptABotPendingClaim);
+                                        $adoptHasOpen = $isAdoptABotItem && !empty($adoptABotOpenClaim);
                                         $adoptHasCompleted = $isAdoptABotItem && sahtout_adopt_a_bot_has_completed_claim($site_db, $adoptUidShop);
-                                        $canBuyAdopt = $isAdoptABotItem && !$adoptHasPending && !$adoptHasCompleted
+                                        $canBuyAdopt = $isAdoptABotItem && !$adoptHasOpen && !$adoptHasCompleted
                                             && sahtout_adopt_a_bot_has_character_slot($char_db, $adoptUidShop)
                                             && $adoptABotHasEligiblePool;
-                                        $adoptBaseEligible = $isAdoptABotItem && !$adoptHasPending && !$adoptHasCompleted
+                                        $adoptBaseEligible = $isAdoptABotItem && !$adoptHasOpen && !$adoptHasCompleted
                                             && sahtout_adopt_a_bot_has_character_slot($char_db, $adoptUidShop);
                                         $purchaseBlockedNoChars = !$isAdoptABotItem && empty($characters);
                                         $purchaseDisabled = $is_out_of_stock || $purchaseBlockedNoChars || $cooldown_active
-                                            || ($isAdoptABotItem && !$canBuyAdopt && !$adoptHasPending);
+                                            || ($isAdoptABotItem && !$canBuyAdopt && !$adoptHasOpen);
                                         ?>
-                                        <?php if ($adoptHasPending): ?>
+                                        <?php if ($adoptHasOpen): ?>
                                             <div class="mt-3">
-                                                <p class="text-amber-200/90 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_pending_resume', 'Your tokens are paid. Pick a bot to complete adoption.'); ?></p>
-                                                <a href="<?php echo $base_path; ?>adopt-a-bot" class="buy-button block w-full text-center py-2.5 bg-[rgba(242,207,82,0.25)] border border-[#f2cf5b]/50 text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.35)] transition-all duration-300 font-semibold text-sm">
+                                                <?php
+                                                $adoptOpenSt = (string) ($adoptABotOpenClaim['status'] ?? 'pending');
+                                                $adoptItemHint = $adoptOpenSt === 'processing'
+                                                    ? translate('shop_adopt_a_bot_processing_resume', 'Adoption running. View progress on the character page.')
+                                                    : translate('shop_adopt_a_bot_pending_resume', 'Your tokens are paid. Pick a bot to complete adoption.');
+                                                ?>
+                                                <p class="text-amber-200/90 text-xs text-center mb-2 force-wrap"><?php echo $adoptItemHint; ?></p>
+                                                <a href="<?php echo htmlspecialchars(sahtout_adopt_a_bot_resume_url($adoptABotOpenClaim, $base_path), ENT_QUOTES, 'UTF-8'); ?>" class="buy-button block w-full text-center py-2.5 bg-[rgba(242,207,82,0.25)] border border-[#f2cf5b]/50 text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.35)] transition-all duration-300 font-semibold text-sm">
                                                     <?php echo translate('shop_adopt_a_bot_continue', 'Continue adoption'); ?>
                                                 </a>
                                             </div>

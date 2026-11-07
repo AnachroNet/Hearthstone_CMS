@@ -37,7 +37,7 @@ $user_inquiries_view = ['available' => false, 'inquiries' => [], 'pending_count'
 $gmlevel = $_SESSION['gmlevel'] ?? 0;
 $role = $_SESSION['role'] ?? 'player';
 $debug_errors = $_SESSION['debug_errors'] ?? [];
-$adoptABotPendingClaim = sahtout_adopt_a_bot_get_pending_claim($site_db, (int) $_SESSION['user_id']);
+$adoptABotOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, (int) $_SESSION['user_id']);
 
 // Retrieve and clear session messages
 if (isset($_SESSION['message'])) {
@@ -1343,11 +1343,18 @@ include_once $project_root . 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <?php if (!empty($adoptABotPendingClaim)): ?>
+            <?php if (!empty($adoptABotOpenClaim)): ?>
+                <?php
+                $accountAdoptSt = (string) ($adoptABotOpenClaim['status'] ?? 'pending');
+                $accountAdoptMsg = $accountAdoptSt === 'processing'
+                    ? translate('account_adopt_a_bot_processing', 'Adoption in progress. View status on the character page.')
+                    : translate('account_adopt_a_bot_pending', 'You have an Adopt a Bot purchase ready. Choose your character on the adoption page.');
+                $accountAdoptUrl = sahtout_adopt_a_bot_resume_url($adoptABotOpenClaim, $base_path);
+                ?>
                 <div class="bg-[rgba(242,207,82,0.12)] border border-[#c9a227]/40 text-[#f2cf5b] px-5 py-3 flex flex-wrap items-center gap-3 mb-4">
                     <i class="fa-solid fa-robot text-lg"></i>
-                    <span class="flex-1 text-gray-200"><?php echo translate('account_adopt_a_bot_pending', 'You have an Adopt a Bot purchase ready. Choose your character on the adoption page.'); ?></span>
-                    <a href="<?php echo $base_path; ?>adopt-a-bot" class="px-4 py-2 border border-[#c9a227]/50 hover:bg-[#f2cf5b]/10 font-semibold text-sm"><?php echo translate('account_adopt_a_bot_cta', 'Adopt now'); ?></a>
+                    <span class="flex-1 text-gray-200"><?php echo $accountAdoptMsg; ?></span>
+                    <a href="<?php echo htmlspecialchars($accountAdoptUrl, ENT_QUOTES, 'UTF-8'); ?>" class="px-4 py-2 border border-[#c9a227]/50 hover:bg-[#f2cf5b]/10 font-semibold text-sm"><?php echo translate('account_adopt_a_bot_cta', 'Adopt now'); ?></a>
                 </div>
             <?php endif; ?>
             

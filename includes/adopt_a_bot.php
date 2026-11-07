@@ -11,6 +11,8 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'account_admin_actions.php';
 const SAHTOUT_ADOPT_A_BOT_MAX_CHARACTERS = 10;
 /** Max levels a pool bot may be above the buyer's highest character (inclusive). */
 const SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP = 5;
+/** Seconds to wait for a pool character to go offline after SOAP kick before adoption. */
+const SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS = 25;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_TOKEN_COST = 100;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX = 'RNDBOT';
 const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
@@ -132,20 +134,50 @@ function sahtout_adopt_a_bot_claims_table_exists(mysqli $siteDb): bool
     return $exists;
 }
 
+function sahtout_adopt_a_bot_claims_column_exists(mysqli $siteDb, string $column): bool
+{
+    $column = trim($column);
+    if ($column === '') {
+        return false;
+    }
+    $res = $siteDb->query(
+        "SHOW COLUMNS FROM adopt_a_bot_claims LIKE '" . $siteDb->real_escape_string($column) . "'"
+    );
+
+    return $res && $res->num_rows > 0;
+}
+
+function sahtout_adopt_a_bot_claims_upgrade_schema(mysqli $siteDb): void
+{
+    static $upgraded = false;
+    if ($upgraded || !sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return;
+    }
+    $upgraded = true;
+
+    if (!sahtout_adopt_a_bot_claims_column_exists($siteDb, 'progress_message')) {
+        $siteDb->query(
+            'ALTER TABLE adopt_a_bot_claims
+                MODIFY status enum(\'pending\',\'processing\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'pending\',
+                ADD COLUMN progress_message varchar(500) DEFAULT NULL AFTER bot_character_name,
+                ADD COLUMN progress_log text DEFAULT NULL AFTER progress_message'
+        );
+    }
+}
+
 function sahtout_adopt_a_bot_claims_ensure_schema(mysqli $siteDb): bool
 {
-    if (sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
-        return true;
-    }
-
-    return (bool) $siteDb->query(
-        'CREATE TABLE IF NOT EXISTS adopt_a_bot_claims (
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        $ok = (bool) $siteDb->query(
+            'CREATE TABLE IF NOT EXISTS adopt_a_bot_claims (
             claim_id int unsigned NOT NULL AUTO_INCREMENT,
             account_id int unsigned NOT NULL,
             purchase_id int unsigned NOT NULL,
-            status enum(\'pending\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'pending\',
+            status enum(\'pending\',\'processing\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'pending\',
             bot_character_guid int unsigned DEFAULT NULL,
             bot_character_name varchar(12) DEFAULT NULL,
+            progress_message varchar(500) DEFAULT NULL,
+            progress_log text DEFAULT NULL,
             created_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             completed_at timestamp NULL DEFAULT NULL,
             PRIMARY KEY (claim_id),
@@ -154,7 +186,15 @@ function sahtout_adopt_a_bot_claims_ensure_schema(mysqli $siteDb): bool
             CONSTRAINT fk_adopt_claim_account FOREIGN KEY (account_id) REFERENCES user_currencies (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
             CONSTRAINT fk_adopt_claim_purchase FOREIGN KEY (purchase_id) REFERENCES purchases (purchase_id) ON DELETE CASCADE ON UPDATE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-    );
+        );
+        if (!$ok) {
+            return false;
+        }
+    }
+
+    sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+
+    return true;
 }
 
 function sahtout_adopt_a_bot_configured_realm_id(): int
@@ -364,7 +404,8 @@ function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): 
         return null;
     }
     $stmt = $siteDb->prepare(
-        "SELECT claim_id, purchase_id, created_at FROM adopt_a_bot_claims WHERE account_id = ? AND status = 'pending' ORDER BY claim_id DESC LIMIT 1"
+        "SELECT claim_id, purchase_id, created_at, status, bot_character_guid, bot_character_name, progress_message, progress_log
+         FROM adopt_a_bot_claims WHERE account_id = ? AND status = 'pending' ORDER BY claim_id DESC LIMIT 1"
     );
     if (!$stmt) {
         return null;
@@ -376,6 +417,215 @@ function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): 
     $stmt->close();
 
     return $row ?: null;
+}
+
+/** Pending or in-progress adoption for this account. */
+function sahtout_adopt_a_bot_get_open_claim(mysqli $siteDb, int $accountId): ?array
+{
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return null;
+    }
+    sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    $stmt = $siteDb->prepare(
+        "SELECT claim_id, purchase_id, created_at, status, bot_character_guid, bot_character_name, progress_message, progress_log
+         FROM adopt_a_bot_claims WHERE account_id = ? AND status IN ('pending', 'processing') ORDER BY claim_id DESC LIMIT 1"
+    );
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $accountId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function sahtout_adopt_a_bot_resume_url(?array $claim, string $basePath): string
+{
+    if ($claim === null) {
+        return $basePath . 'adopt-a-bot';
+    }
+    $status = (string) ($claim['status'] ?? '');
+    $guid = (int) ($claim['bot_character_guid'] ?? 0);
+    if ($guid > 0 && $status === 'processing') {
+        return $basePath . 'character?guid=' . $guid . '&adopt=processing';
+    }
+    if ($guid > 0 && $status === 'pending') {
+        return $basePath . 'character?guid=' . $guid . '&adopt=1';
+    }
+
+    return $basePath . 'adopt-a-bot';
+}
+
+/**
+ * @return list<string>
+ */
+function sahtout_adopt_a_bot_progress_log_lines(?array $claim): array
+{
+    if ($claim === null) {
+        return [];
+    }
+    $raw = trim((string) ($claim['progress_log'] ?? ''));
+    if ($raw === '') {
+        return [];
+    }
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return [];
+    }
+    $lines = [];
+    foreach ($decoded as $line) {
+        if (is_string($line) && trim($line) !== '') {
+            $lines[] = trim($line);
+        }
+    }
+
+    return $lines;
+}
+
+function sahtout_adopt_a_bot_set_progress(mysqli $siteDb, int $claimId, int $accountId, string $message, bool $appendLog = true): void
+{
+    sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    $message = mb_substr(trim($message), 0, 500);
+    if ($message === '') {
+        return;
+    }
+
+    $claim = null;
+    $stmt = $siteDb->prepare(
+        'SELECT progress_log FROM adopt_a_bot_claims WHERE claim_id = ? AND account_id = ? LIMIT 1'
+    );
+    if ($stmt) {
+        $stmt->bind_param('ii', $claimId, $accountId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $claim = $res ? $res->fetch_assoc() : null;
+        $stmt->close();
+    }
+
+    $lines = sahtout_adopt_a_bot_progress_log_lines($claim);
+    if ($appendLog) {
+        $lines[] = $message;
+        if (count($lines) > 40) {
+            $lines = array_slice($lines, -40);
+        }
+    }
+    $logJson = json_encode($lines, JSON_UNESCAPED_UNICODE);
+    if (!is_string($logJson)) {
+        $logJson = '[]';
+    }
+
+    $stmt = $siteDb->prepare(
+        'UPDATE adopt_a_bot_claims SET progress_message = ?, progress_log = ? WHERE claim_id = ? AND account_id = ?'
+    );
+    if ($stmt) {
+        $stmt->bind_param('ssii', $message, $logJson, $claimId, $accountId);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+function sahtout_adopt_a_bot_start_processing(
+    mysqli $siteDb,
+    int $claimId,
+    int $accountId,
+    int $botGuid,
+    string $botName
+): bool {
+    sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    $botName = mb_substr(trim($botName), 0, 12);
+    $intro = 'Adoption queued. We will complete the transfer as soon as the character is offline.';
+    $logJson = json_encode([$intro], JSON_UNESCAPED_UNICODE);
+    if (!is_string($logJson)) {
+        $logJson = '[]';
+    }
+
+    $stmt = $siteDb->prepare(
+        "UPDATE adopt_a_bot_claims
+         SET status = 'processing', bot_character_guid = ?, bot_character_name = ?, progress_message = ?, progress_log = ?
+         WHERE claim_id = ? AND account_id = ? AND status = 'pending'"
+    );
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('isssii', $botGuid, $botName, $intro, $logJson, $claimId, $accountId);
+    $ok = $stmt->execute() && $stmt->affected_rows === 1;
+    $stmt->close();
+
+    return $ok;
+}
+
+/**
+ * @return array{ok:bool, error?:string, character_name?:string, done?:bool}
+ */
+function sahtout_adopt_a_bot_process_open_claim(
+    mysqli $siteDb,
+    mysqli $charDb,
+    mysqli $authDb,
+    int $accountId,
+    string $charDbName,
+    string $authDbName
+): array {
+    $open = sahtout_adopt_a_bot_get_open_claim($siteDb, $accountId);
+    if ($open === null) {
+        return ['ok' => false, 'error' => 'invalid_claim'];
+    }
+    $status = (string) ($open['status'] ?? '');
+    $claimId = (int) ($open['claim_id'] ?? 0);
+    $botGuid = (int) ($open['bot_character_guid'] ?? 0);
+    if ($claimId <= 0 || $botGuid <= 0) {
+        return ['ok' => false, 'error' => 'invalid_claim'];
+    }
+    if ($status === 'pending') {
+        return ['ok' => false, 'error' => 'not_started'];
+    }
+
+    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, 'Checking character and disconnecting from the world if needed…');
+
+    $result = sahtout_adopt_a_bot_complete_claim(
+        $siteDb,
+        $charDb,
+        $authDb,
+        $accountId,
+        $claimId,
+        $botGuid,
+        $charDbName,
+        $authDbName
+    );
+
+    if (!empty($result['ok'])) {
+        sahtout_adopt_a_bot_set_progress(
+            $siteDb,
+            $claimId,
+            $accountId,
+            'Adoption complete! The character is on your account.'
+        );
+
+        return ['ok' => true, 'done' => true, 'character_name' => (string) ($result['character_name'] ?? '')];
+    }
+
+    $err = (string) ($result['error'] ?? 'error');
+    if ($err === 'bot_online') {
+        sahtout_adopt_a_bot_set_progress(
+            $siteDb,
+            $claimId,
+            $accountId,
+            'Still waiting for the character to go offline. We will keep trying…'
+        );
+
+        return ['ok' => false, 'error' => 'bot_online', 'done' => false];
+    }
+
+    sahtout_adopt_a_bot_set_progress(
+        $siteDb,
+        $claimId,
+        $accountId,
+        'Adoption could not be completed: ' . $err
+    );
+
+    return ['ok' => false, 'error' => $err, 'done' => false];
 }
 
 /**
@@ -446,6 +696,135 @@ function sahtout_adopt_a_bot_list_pool_characters(
     $stmt->close();
 
     return $rows;
+}
+
+/**
+ * @return ?array{guid:int,name:string,level:int,race:int,class:int,gender:int,online:int,account:int}
+ */
+function sahtout_adopt_a_bot_fetch_eligible_pool_character(
+    mysqli $charDb,
+    mysqli $authDb,
+    mysqli $siteDb,
+    int $buyerAccountId,
+    int $botGuid
+): ?array {
+    if ($botGuid <= 0) {
+        return null;
+    }
+    $poolAccountIds = sahtout_adopt_a_bot_pool_account_ids($authDb, $siteDb);
+    if ($poolAccountIds === []) {
+        return null;
+    }
+    $maxLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($charDb, $buyerAccountId);
+    $inList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
+    $sql = 'SELECT guid, name, level, race, class, gender, online, account FROM characters WHERE guid = ? AND account IN ('
+        . $inList . ') AND level <= ? LIMIT 1';
+    $stmt = $charDb->prepare($sql);
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('ii', $botGuid, $maxLevel);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    if (!$row) {
+        return null;
+    }
+
+    return [
+        'guid' => (int) $row['guid'],
+        'name' => (string) $row['name'],
+        'level' => (int) $row['level'],
+        'race' => (int) $row['race'],
+        'class' => (int) $row['class'],
+        'gender' => (int) ($row['gender'] ?? 0),
+        'online' => (int) ($row['online'] ?? 0),
+        'account' => (int) $row['account'],
+    ];
+}
+
+function sahtout_adopt_a_bot_faction_icon(int $race): string
+{
+    global $base_path;
+    $alliance = [1, 3, 4, 7, 11, 22, 25, 29];
+    $faction = in_array($race, $alliance, true) ? 'alliance' : 'horde';
+
+    return $base_path . 'img/accountimg/faction/' . $faction . '.png';
+}
+
+function sahtout_adopt_a_bot_race_icon(int $race, int $gender): string
+{
+    global $base_path;
+    $genderFolder = ($gender === 0) ? 'male' : 'female';
+    $raceMap = [
+        1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
+        5 => 'undead', 6 => 'tauren', 7 => 'gnome', 8 => 'troll',
+        9 => 'goblin', 10 => 'bloodelf', 11 => 'draenei',
+        22 => 'worgen', 25 => 'pandaren_alliance', 26 => 'pandaren_horde',
+        29 => 'voidelf',
+    ];
+    $raceName = $raceMap[$race] ?? 'unknown';
+
+    return $base_path . "img/accountimg/race/{$genderFolder}/{$raceName}.png";
+}
+
+function sahtout_adopt_a_bot_class_icon(int $class): string
+{
+    global $base_path;
+    $classMap = [
+        1 => 'warrior', 2 => 'paladin', 3 => 'hunter', 4 => 'rogue',
+        5 => 'priest', 6 => 'deathknight', 7 => 'shaman', 8 => 'mage',
+        9 => 'warlock', 10 => 'monk', 11 => 'druid', 12 => 'demonhunter',
+    ];
+    $className = $classMap[$class] ?? 'unknown';
+
+    return $base_path . "img/accountimg/class/{$className}.webp";
+}
+
+function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid): bool
+{
+    $stmt = $charDb->prepare('SELECT online FROM characters WHERE guid = ? LIMIT 1');
+    if (!$stmt) {
+        return true;
+    }
+    $stmt->bind_param('i', $guid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    if (!$row) {
+        return true;
+    }
+
+    return (int) ($row['online'] ?? 0) === 1;
+}
+
+/** Kick via SOAP when configured, then poll until offline or timeout. */
+function sahtout_adopt_a_bot_prepare_character_offline(
+    mysqli $charDb,
+    string $charDbName,
+    int $guid,
+    int $maxWaitSeconds = SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS
+): bool {
+    if (!sahtout_adopt_a_bot_character_is_online($charDb, $guid)) {
+        return true;
+    }
+    sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid);
+    $deadline = time() + max(1, $maxWaitSeconds);
+    $lastKickAt = time();
+    while (time() < $deadline) {
+        usleep(800000);
+        if (!sahtout_adopt_a_bot_character_is_online($charDb, $guid)) {
+            return true;
+        }
+        if (time() - $lastKickAt >= 3) {
+            sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid);
+            $lastKickAt = time();
+        }
+    }
+
+    return !sahtout_adopt_a_bot_character_is_online($charDb, $guid);
 }
 
 function sahtout_adopt_a_bot_kick_character_if_online(mysqli $charDb, string $charDbName, int $guid): void
@@ -555,7 +934,7 @@ function sahtout_adopt_a_bot_complete_claim(
     }
 
     $stmt = $siteDb->prepare(
-        "SELECT claim_id, purchase_id FROM adopt_a_bot_claims WHERE claim_id = ? AND account_id = ? AND status = 'pending' LIMIT 1"
+        "SELECT claim_id, purchase_id FROM adopt_a_bot_claims WHERE claim_id = ? AND account_id = ? AND status IN ('pending', 'processing') LIMIT 1"
     );
     if (!$stmt) {
         return ['ok' => false, 'error' => 'database'];
@@ -574,6 +953,17 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'pool_missing'];
     }
     $poolInList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
+
+    $eligible = sahtout_adopt_a_bot_fetch_eligible_pool_character($charDb, $authDb, $siteDb, $accountId, $botGuid);
+    if ($eligible === null) {
+        return ['ok' => false, 'error' => 'bot_not_found'];
+    }
+
+    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, 'Preparing transfer (offline check)…');
+
+    if (!sahtout_adopt_a_bot_prepare_character_offline($charDb, $charDbName, $botGuid)) {
+        return ['ok' => false, 'error' => 'bot_online'];
+    }
 
     if (!$charDb->begin_transaction()) {
         return ['ok' => false, 'error' => 'database'];
@@ -608,19 +998,9 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'level_too_high'];
     }
     if ((int) ($bot['online'] ?? 0) === 1) {
-        sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $botGuid);
-        $chk = $charDb->prepare('SELECT online FROM characters WHERE guid = ? LIMIT 1');
-        if ($chk) {
-            $chk->bind_param('i', $botGuid);
-            $chk->execute();
-            $r = $chk->get_result()->fetch_assoc();
-            $chk->close();
-            if ($r && (int) ($r['online'] ?? 0) === 1) {
-                $charDb->rollback();
+        $charDb->rollback();
 
-                return ['ok' => false, 'error' => 'bot_online'];
-            }
-        }
+        return ['ok' => false, 'error' => 'bot_online'];
     }
 
     $poolAccountId = (int) ($bot['account'] ?? 0);

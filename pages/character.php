@@ -8,6 +8,57 @@ require_once $project_root . 'includes/character_talents.php';
 require_once $project_root . 'includes/character_lifetime_stats.php';
 $page_class = 'character';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/adopt_a_bot.php';
+
+global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name, $base_path;
+
+$adoptPreview = false;
+$adoptProcessingView = false;
+$adoptOpenClaim = null;
+$adoptShowForCharacter = false;
+$adoptProgressLines = [];
+
+if (!empty($_SESSION['user_id'])) {
+    $adoptAccountId = (int) $_SESSION['user_id'];
+    sahtout_adopt_a_bot_claims_ensure_schema($site_db);
+
+    if (
+        $_SERVER['REQUEST_METHOD'] === 'POST'
+        && !empty($_POST['adopt_confirm'])
+        && !empty($_POST['csrf_token'])
+        && hash_equals((string) ($_SESSION['csrf_token'] ?? ''), (string) $_POST['csrf_token'])
+    ) {
+        $confirmGuid = (int) ($_POST['character_guid'] ?? 0);
+        $pending = sahtout_adopt_a_bot_get_pending_claim($site_db, $adoptAccountId);
+        $botRow = $confirmGuid > 0
+            ? sahtout_adopt_a_bot_fetch_eligible_pool_character($char_db, $auth_db, $site_db, $adoptAccountId, $confirmGuid)
+            : null;
+        if ($pending && $botRow) {
+            sahtout_adopt_a_bot_start_processing(
+                $site_db,
+                (int) $pending['claim_id'],
+                $adoptAccountId,
+                $confirmGuid,
+                (string) $botRow['name']
+            );
+            header('Location: ' . $base_path . 'character?guid=' . $confirmGuid . '&adopt=processing');
+            exit;
+        }
+        $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
+        header('Location: ' . $base_path . 'adopt-a-bot');
+        exit;
+    }
+
+    $adoptOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, $adoptAccountId);
+}
+
+$adoptQueryStep = isset($_GET['adopt']) ? (string) $_GET['adopt'] : '';
+if ($adoptQueryStep === 'processing') {
+    $adoptProcessingView = true;
+} elseif ($adoptQueryStep === '1') {
+    $adoptPreview = true;
+}
+
 $page_title = $site_title_name . ' ' . translate('page_title', 'Character Equipment');
 $page_meta_description = translate('meta_description', 'View your World of Warcraft character equipment, stats, and PvP details.');
 $page_meta_robots = 'index';
@@ -191,6 +242,24 @@ ob_start();
     }
     .copy-link:hover { color: var(--gold); border-color: rgba(242,207,82,.45); }
     .copy-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .adopt-confirm-btn {
+        margin-top: .85rem;
+        display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+        padding: .65rem 1.75rem; font-size: .85rem; font-weight: 800; letter-spacing: .04em;
+        background: linear-gradient(180deg, #f6d478 0%, #c9a227 48%, #8a6a14 100%);
+        color: #1a1200; border: 2px solid #f2cf5b; border-radius: 999px; cursor: pointer;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 0 18px rgba(242,207,82,.2);
+        transition: transform .2s, box-shadow .2s;
+    }
+    .adopt-confirm-btn:hover { transform: translateY(-1px); box-shadow: 0 0 28px rgba(242,207,82,.35); }
+    .adopt-progress-panel {
+        margin-top: 1rem; max-width: 36rem; margin-left: auto; margin-right: auto; text-align: left;
+        padding: 1rem 1.1rem; background: rgba(0,0,0,.45); border: 1px solid rgba(201,162,39,.25);
+    }
+    .adopt-progress-panel h2 { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--gold); margin: 0 0 .5rem; }
+    .adopt-progress-log { list-style: none; margin: .75rem 0 0; padding: 0; font-size: .82rem; color: #d1d5db; max-height: 10rem; overflow-y: auto; }
+    .adopt-progress-log li { padding: .25rem 0; border-bottom: 1px dashed rgba(255,255,255,.06); }
+    .adopt-progress-log li:last-child { border-bottom: 0; color: #f2cf5b; }
     .notice {
         display: flex; align-items: center; gap: .6rem; margin: 0 0 1rem; padding: .6rem .9rem; font-size: .85rem; color: #fcd34d;
         background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.3);
@@ -595,11 +664,44 @@ if ($ilvl > 0) {
                 // Avatar: img/characterarmor/avatar/{raceId}-{gender}.png  (e.g. 1-0.png = Human male)
                 $avatarPath = "{$base_path}img/characterarmor/avatar/{$character['race']}-{$genderId}.png";
                 $avatarFallback = "{$base_path}img/accountimg/race/{$genderDir}/{$raceIcon}.png";
+
+                $adoptShowForCharacter = false;
+                $adoptProgressLines = [];
+                if (!empty($_SESSION['user_id']) && $adoptOpenClaim) {
+                    $charGuid = (int) ($character['guid'] ?? 0);
+                    $adoptAcct = (int) $_SESSION['user_id'];
+                    if ($adoptPreview && (string) ($adoptOpenClaim['status'] ?? '') === 'pending') {
+                        $adoptShowForCharacter = sahtout_adopt_a_bot_fetch_eligible_pool_character(
+                            $char_db,
+                            $auth_db,
+                            $site_db,
+                            $adoptAcct,
+                            $charGuid
+                        ) !== null;
+                    }
+                    if (
+                        $adoptProcessingView
+                        && (string) ($adoptOpenClaim['status'] ?? '') === 'processing'
+                        && (int) ($adoptOpenClaim['bot_character_guid'] ?? 0) === $charGuid
+                    ) {
+                        $adoptShowForCharacter = true;
+                        $adoptProgressLines = sahtout_adopt_a_bot_progress_log_lines($adoptOpenClaim);
+                    }
+                }
             ?>
 
             <!-- Hero -->
             <div class="hero" style="--cc: <?= $classColor ?>">
-                <h1 class="character-name"><?= htmlspecialchars($character['name'] ?? 'Unknown') ?></h1>
+                <h1 class="character-name"><?php
+                if ($adoptShowForCharacter && ($adoptPreview || $adoptProcessingView)) {
+                    echo htmlspecialchars(sprintf(
+                        translate('adopting_character_name', 'Adopting %s'),
+                        $character['name'] ?? 'Unknown'
+                    ));
+                } else {
+                    echo htmlspecialchars($character['name'] ?? 'Unknown');
+                }
+                ?></h1>
                 <div class="chips">
                     <span class="chip"><i class="fas fa-arrow-up"></i><?= translate('level_label', 'Level') ?> <?= (int)$character['level'] ?></span>
                     <span class="chip" style="color:<?= $classColor ?>">
@@ -620,11 +722,35 @@ if ($ilvl > 0) {
                         </span>
                     <?php endif; ?>
                 </div>
-                <button type="button" class="copy-link" id="copy-link"
-                        data-copied="<?= htmlspecialchars(translate('link_copied', 'Link copied')) ?>"
-                        data-failed="<?= htmlspecialchars(translate('link_copy_failed', 'Copy failed - use the address bar')) ?>">
-                    <i class="fas fa-link"></i><span><?= translate('copy_profile_link', 'Copy profile link') ?></span>
-                </button>
+                <?php if ($adoptShowForCharacter && $adoptPreview): ?>
+                    <form method="post" class="inline-block" onsubmit="return confirm(<?= json_encode(translate('adopt_a_bot_confirm', 'Adopt this character? This cannot be undone.')) ?>);">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
+                        <input type="hidden" name="character_guid" value="<?= (int) ($character['guid'] ?? 0) ?>">
+                        <input type="hidden" name="adopt_confirm" value="1">
+                        <button type="submit" class="adopt-confirm-btn">
+                            <?= htmlspecialchars(translate('adopt_confirm_adoption', 'Confirm Adoption')) ?>
+                        </button>
+                    </form>
+                <?php elseif ($adoptShowForCharacter && $adoptProcessingView): ?>
+                    <div class="adopt-progress-panel" id="adopt-progress-panel">
+                        <h2><?= htmlspecialchars(translate('adopt_progress_heading', 'Adoption in progress')) ?></h2>
+                        <p class="text-sm text-gray-300" id="adopt-progress-summary"><?= htmlspecialchars(
+                            trim((string) ($adoptOpenClaim['progress_message'] ?? ''))
+                                ?: translate('adopt_progress_queued', 'Your adoption will be completed as soon as possible.')
+                        ) ?></p>
+                        <ul class="adopt-progress-log" id="adopt-progress-log">
+                            <?php foreach ($adoptProgressLines as $line): ?>
+                                <li><?= htmlspecialchars($line) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php else: ?>
+                    <button type="button" class="copy-link" id="copy-link"
+                            data-copied="<?= htmlspecialchars(translate('link_copied', 'Link copied')) ?>"
+                            data-failed="<?= htmlspecialchars(translate('link_copy_failed', 'Copy failed - use the address bar')) ?>">
+                        <i class="fas fa-link"></i><span><?= translate('copy_profile_link', 'Copy profile link') ?></span>
+                    </button>
+                <?php endif; ?>
             </div>
 
             <?php foreach ($warnings as $w): ?>
@@ -1118,5 +1244,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
+<?php if ($adoptShowForCharacter && $adoptProcessingView): ?>
+<script>
+(function () {
+    const pollUrl = <?= json_encode($base_path . 'adopt-a-bot-progress') ?>;
+    const summary = document.getElementById('adopt-progress-summary');
+    const log = document.getElementById('adopt-progress-log');
+    let timer = null;
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+    async function tick() {
+        try {
+            const r = await fetch(pollUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+            const data = await r.json();
+            if (!data || typeof data !== 'object') return;
+            if (data.message && summary) summary.textContent = data.message;
+            if (Array.isArray(data.lines) && log) {
+                log.innerHTML = data.lines.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('');
+            }
+            if (data.done) {
+                if (timer) clearInterval(timer);
+                if (data.account_url) {
+                    window.setTimeout(function () { window.location.href = data.account_url; }, 2800);
+                }
+                return;
+            }
+            if (data.error === 'not_processing' || data.error === 'auth') {
+                if (timer) clearInterval(timer);
+            }
+        } catch (e) { /* retry on next interval */ }
+    }
+    tick();
+    timer = window.setInterval(tick, 4000);
+})();
+</script>
+<?php endif; ?>
 
 <?php include_once $project_root . 'includes/footer.php'; ?>

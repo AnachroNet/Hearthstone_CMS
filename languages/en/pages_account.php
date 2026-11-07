@@ -207,6 +207,7 @@ return [
     'inquiry_tokens_awarded' => 'Shop tokens included with this reply: %s',
 
     'account_adopt_a_bot_pending' => 'You have an Adopt a Bot purchase ready. Choose your character on the adoption page.',
+    'account_adopt_a_bot_processing' => 'Adoption in progress. View status on the character page.',
     'account_adopt_a_bot_cta' => 'Adopt now',
 ];
 ?>

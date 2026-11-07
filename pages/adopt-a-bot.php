@@ -19,12 +19,17 @@ if (empty($_SESSION['user_id'])) {
 $accountId = (int) $_SESSION['user_id'];
 sahtout_adopt_a_bot_claims_ensure_schema($site_db);
 
-$claim = sahtout_adopt_a_bot_get_pending_claim($site_db, $accountId);
-if (!$claim) {
+$openClaim = sahtout_adopt_a_bot_get_open_claim($site_db, $accountId);
+if ($openClaim === null) {
     $_SESSION['error'] = translate('adopt_a_bot_error_no_claim', 'You do not have an Adopt a Bot purchase ready to redeem.');
     header("Location: {$base_path}account");
     exit;
 }
+if ((string) ($openClaim['status'] ?? '') === 'processing') {
+    header('Location: ' . sahtout_adopt_a_bot_resume_url($openClaim, $base_path));
+    exit;
+}
+$claim = $openClaim;
 
 $error = '';
 $search = trim((string) ($_GET['q'] ?? ''));
@@ -35,36 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = translate('adopt_a_bot_error_csrf', 'Invalid form token. Please try again.');
     } else {
         $botGuid = (int) ($_POST['character_guid'] ?? 0);
-        $result = sahtout_adopt_a_bot_complete_claim(
-            $site_db,
+        $selected = sahtout_adopt_a_bot_fetch_eligible_pool_character(
             $char_db,
             $auth_db,
+            $site_db,
             $accountId,
-            (int) $claim['claim_id'],
-            $botGuid,
-            $db_char_name,
-            $db_auth_name
+            $botGuid
         );
-        if (!empty($result['ok'])) {
-            $_SESSION['message'] = translate(
-                'adopt_a_bot_success',
-                'You adopted %s! Log in to the game with that character on your account.',
-                (string) ($result['character_name'] ?? '')
-            );
-            header("Location: {$base_path}account");
+        if ($selected === null) {
+            $error = translate('adopt_a_bot_error_bot_missing', 'That character is no longer available.');
+        } else {
+            header('Location: ' . $base_path . 'character?guid=' . $botGuid . '&adopt=1');
             exit;
         }
-        $errKey = (string) ($result['error'] ?? 'error');
-        $errorsMap = [
-            'no_slot' => translate('adopt_a_bot_error_no_slot', 'You no longer have a free character slot.'),
-            'invalid_claim' => translate('adopt_a_bot_error_invalid_claim', 'This adoption session is no longer valid.'),
-            'pool_missing' => translate('adopt_a_bot_error_pool', 'Bot pool account is missing.'),
-            'bot_not_found' => translate('adopt_a_bot_error_bot_missing', 'That character is no longer available.'),
-            'bot_online' => translate('adopt_a_bot_error_bot_online', 'That character must be offline. Try again in a moment.'),
-            'transfer_failed' => translate('adopt_a_bot_error_transfer', 'Could not transfer the character. Contact staff if this persists.'),
-            'level_too_high' => translate('adopt_a_bot_error_level', 'That character is above your allowed level (%d max).', sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $accountId)),
-        ];
-        $error = $errorsMap[$errKey] ?? translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
     }
 }
 
@@ -75,44 +63,6 @@ $maxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $accountId)
 $bots = $poolConfigured
     ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolAccountIds, $search, 80, $maxBotLevel)
     : [];
-
-function sahtout_adopt_a_bot_faction_icon(int $race): string
-{
-    global $base_path;
-    $alliance = [1, 3, 4, 7, 11, 22, 25, 29];
-    $faction = in_array($race, $alliance, true) ? 'alliance' : 'horde';
-
-    return $base_path . 'img/accountimg/faction/' . $faction . '.png';
-}
-
-function sahtout_adopt_a_bot_race_icon(int $race, int $gender): string
-{
-    global $base_path;
-    $genderFolder = ($gender === 0) ? 'male' : 'female';
-    $raceMap = [
-        1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
-        5 => 'undead', 6 => 'tauren', 7 => 'gnome', 8 => 'troll',
-        9 => 'goblin', 10 => 'bloodelf', 11 => 'draenei',
-        22 => 'worgen', 25 => 'pandaren_alliance', 26 => 'pandaren_horde',
-        29 => 'voidelf',
-    ];
-    $raceName = $raceMap[$race] ?? 'unknown';
-
-    return $base_path . "img/accountimg/race/{$genderFolder}/{$raceName}.png";
-}
-
-function sahtout_adopt_a_bot_class_icon(int $class): string
-{
-    global $base_path;
-    $classMap = [
-        1 => 'warrior', 2 => 'paladin', 3 => 'hunter', 4 => 'rogue',
-        5 => 'priest', 6 => 'deathknight', 7 => 'shaman', 8 => 'mage',
-        9 => 'warlock', 10 => 'monk', 11 => 'druid', 12 => 'demonhunter',
-    ];
-    $className = $classMap[$class] ?? 'unknown';
-
-    return $base_path . "img/accountimg/class/{$className}.webp";
-}
 
 $page_title = $site_title_name . ' — ' . translate('adopt_a_bot_page_title', 'Adopt a Bot');
 $page_meta_description = translate('adopt_a_bot_meta', 'Choose a bot character to add to your account.');
@@ -347,11 +297,11 @@ include_once $project_root . 'includes/header.php';
                                     </td>
                                     <td class="py-3.5 px-3 md:px-6 font-bold text-[#f2cf5b] whitespace-nowrap"><?php echo (int) $bot['level']; ?></td>
                                     <td class="py-3.5 px-3 md:px-6 whitespace-nowrap">
-                                        <form method="post" class="inline-block" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_confirm', 'Adopt this character? This cannot be undone.')); ?>);">
+                                        <form method="post" class="inline-block">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $_SESSION['csrf_token']); ?>">
                                             <input type="hidden" name="character_guid" value="<?php echo $guid; ?>">
                                             <button type="submit" class="adopt-btn rounded-lg shadow-md">
-                                                <?php echo translate('adopt_a_bot_adopt_button', 'Adopt'); ?>
+                                                <?php echo translate('adopt_a_bot_select_button', 'Select'); ?>
                                             </button>
                                         </form>
                                     </td>
@@ -364,7 +314,7 @@ include_once $project_root . 'includes/header.php';
 
             <div class="mt-6 text-center text-gray-400 text-xs md:text-sm">
                 <i class="fas fa-user-plus mr-2 text-[rgba(201,162,39,0.4)]"></i>
-                <?php echo translate('adopt_a_bot_table_footer', 'Open a name to preview the character, then click Adopt to add it to your account.'); ?>
+                <?php echo translate('adopt_a_bot_table_footer', 'Open a name to preview the character, then click Select to continue.'); ?>
             </div>
 
             <p class="mt-6 text-center text-sm">
