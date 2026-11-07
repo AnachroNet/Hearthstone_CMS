@@ -710,7 +710,8 @@ function sahtout_adopt_a_bot_process_open_claim(
         $botGuid,
         $charDbName,
         $authDbName,
-        SAHTOUT_ADOPT_A_BOT_OFFLINE_POLL_WAIT_SECONDS
+        SAHTOUT_ADOPT_A_BOT_OFFLINE_POLL_WAIT_SECONDS,
+        true
     );
 
     if (!empty($result['ok'])) {
@@ -1018,9 +1019,34 @@ function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid, ?mys
         if ($inWorld === true) {
             return true;
         }
+        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
+
+        return false;
     }
 
-    return true;
+    return (int) ($row['online'] ?? 0) === 1;
+}
+
+function sahtout_adopt_a_bot_progress_note_soap(
+    mysqli $siteDb,
+    int $claimId,
+    int $accountId,
+    string $command,
+    array $soapResult
+): void {
+    $msg = sahtout_soap_extract_command_message(
+        (string) ($soapResult['output'] ?? ''),
+        false
+    );
+    if ($msg === '' && !empty($soapResult['error'])) {
+        $msg = (string) $soapResult['error'];
+    }
+    $msg = preg_replace('/\s+/', ' ', trim($msg)) ?? '';
+    if (strlen($msg) > 220) {
+        $msg = substr($msg, 0, 217) . '…';
+    }
+    $line = $command . ': ' . ($msg !== '' ? $msg : ($soapResult['ok'] ? 'ok' : 'no response'));
+    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $line);
 }
 
 /** Kick via SOAP when configured, then poll until offline or timeout. */
@@ -1158,7 +1184,8 @@ function sahtout_adopt_a_bot_complete_claim(
     int $botGuid,
     string $charDbName,
     string $authDbName,
-    int $offlineWaitSeconds = SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS
+    int $offlineWaitSeconds = SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS,
+    bool $logSoapToProgress = false
 ): array {
     sahtout_adopt_a_bot_claims_ensure_schema($siteDb);
 
@@ -1198,6 +1225,18 @@ function sahtout_adopt_a_bot_complete_claim(
     if (!sahtout_adopt_a_bot_prepare_character_offline($charDb, $charDbName, $botGuid, $offlineWaitSeconds, $authDb)) {
         sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
         if (sahtout_adopt_a_bot_character_is_online($charDb, $botGuid, $authDb)) {
+            if ($logSoapToProgress && sahtout_soap_is_configured()) {
+                $row = sahtout_adopt_a_bot_character_online_row($charDb, $botGuid);
+                $botName = $row['name'] ?? '';
+                if ($botName !== '') {
+                    $listResult = sahtout_soap_execute_command('.account onlinelist');
+                    sahtout_adopt_a_bot_progress_note_soap($siteDb, $claimId, $accountId, '.account onlinelist', $listResult);
+                    $literal = sahtout_soap_character_name_for_command($botName);
+                    $kickResult = sahtout_soap_execute_command('.kick ' . $literal . ' Adoption');
+                    sahtout_adopt_a_bot_progress_note_soap($siteDb, $claimId, $accountId, '.kick', $kickResult);
+                }
+            }
+
             return ['ok' => false, 'error' => 'bot_online'];
         }
     }

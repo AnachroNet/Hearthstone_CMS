@@ -256,6 +256,14 @@ function sahtout_soap_character_in_world(string $characterName, ?string $account
 
     $listText = sahtout_soap_account_onlinelist_text();
     if ($listText !== null) {
+        $trimList = trim($listText);
+        if ($trimList === '') {
+            return false;
+        }
+        $listLower = strtolower($trimList);
+        if (preg_match('/\b(no players|nobody online|0 accounts|accounts online:\s*0)\b/', $listLower)) {
+            return false;
+        }
         if (sahtout_soap_onlinelist_contains_name($listText, $characterName)) {
             return true;
         }
