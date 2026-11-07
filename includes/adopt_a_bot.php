@@ -7,6 +7,7 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'site_settings.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'soap_client.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'website_activity.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'account_admin_actions.php';
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'armory_playerbots.php';
 
 const SAHTOUT_ADOPT_A_BOT_MAX_CHARACTERS = 10;
 /** Max levels a pool bot may be above the buyer's highest character (inclusive). */
@@ -15,6 +16,10 @@ const SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP = 5;
 const SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS = 25;
 /** Per progress-poll wait (0 = one kick/check per request; client polls again). */
 const SAHTOUT_ADOPT_A_BOT_OFFLINE_POLL_WAIT_SECONDS = 0;
+/** Seconds between SOAP disconnect retries while a rndbot keeps relogging. */
+const SAHTOUT_ADOPT_A_BOT_DISCONNECT_RETRY_SECONDS = 12;
+/** playerbots_random_bots logout hold — blocks RandomPlayerbotMgr from re-adding the bot. */
+const SAHTOUT_ADOPT_A_BOT_PLAYERBOT_OFFLINE_HOLD_SECONDS = 900;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_TOKEN_COST = 100;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX = 'RNDBOT';
 const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
@@ -1171,6 +1176,134 @@ function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid, ?mys
     return (int) ($row['online'] ?? 0) === 1;
 }
 
+function sahtout_adopt_a_bot_disconnect_retry_due(int $claimId, int $cooldownSeconds = SAHTOUT_ADOPT_A_BOT_DISCONNECT_RETRY_SECONDS): bool
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return true;
+    }
+    $key = (string) $claimId;
+    $last = (int) ($_SESSION['adopt_a_bot_disconnect_retry'][$key] ?? 0);
+    if ($last > 0 && (time() - $last) < max(3, $cooldownSeconds)) {
+        return false;
+    }
+
+    return true;
+}
+
+function sahtout_adopt_a_bot_mark_disconnect_attempt(int $claimId): void
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return;
+    }
+    $_SESSION['adopt_a_bot_disconnect_retry'][(string) $claimId] = time();
+}
+
+/**
+ * Tell RandomPlayerbotMgr not to re-login this guid for a while (needs UPDATE on playerbots DB).
+ */
+function sahtout_adopt_a_bot_playerbots_hold_offline(mysqli $charDb, int $botGuid, int $holdSeconds = SAHTOUT_ADOPT_A_BOT_PLAYERBOT_OFFLINE_HOLD_SECONDS): bool
+{
+    if ($botGuid <= 0 || !sahtout_playerbots_db_configured()) {
+        return false;
+    }
+    if (!armory_playerbots_table_exists($charDb, null, 'playerbots_random_bots')) {
+        return false;
+    }
+
+    $table = sahtout_sql_quoted_identifier(sahtout_playerbots_db_name()) . '.'
+        . sahtout_sql_quoted_identifier('playerbots_random_bots');
+    $botGuid = (int) $botGuid;
+    $now = time();
+    $holdSeconds = max(60, $holdSeconds);
+
+    try {
+        if (!$charDb->query(
+            "DELETE FROM {$table} WHERE owner = 0 AND bot = {$botGuid} AND event IN ('logout', 'add')"
+        )) {
+            return false;
+        }
+        $stmt = $charDb->prepare(
+            "INSERT INTO {$table} (owner, bot, `time`, validIn, event, `value`, `data`)
+             VALUES (0, ?, ?, ?, 'logout', 1, 'adopt_a_bot')"
+        );
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('iii', $botGuid, $now, $holdSeconds);
+        if (!$stmt->execute()) {
+            $stmt->close();
+
+            return false;
+        }
+        $stmt->close();
+
+        $stmt = $charDb->prepare(
+            "INSERT INTO {$table} (owner, bot, `time`, validIn, event, `value`, `data`)
+             VALUES (0, ?, ?, ?, 'add', 1, 'adopt_a_bot')"
+        );
+        if (!$stmt) {
+            return true;
+        }
+        $stmt->bind_param('iii', $botGuid, $now, $holdSeconds);
+        $stmt->execute();
+        $stmt->close();
+
+        return true;
+    } catch (mysqli_sql_exception $e) {
+        error_log('adopt_a_bot playerbots hold: ' . $e->getMessage());
+
+        return false;
+    }
+}
+
+function sahtout_adopt_a_bot_force_disconnect_for_adoption(
+    mysqli $siteDb,
+    mysqli $charDb,
+    ?mysqli $authDb,
+    int $claimId,
+    int $accountId,
+    int $botGuid,
+    string $botName,
+    bool $logProgress = true
+): void {
+    if (!sahtout_soap_is_configured()) {
+        return;
+    }
+    $botName = trim($botName);
+    if ($botName === '') {
+        return;
+    }
+
+    if (sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $botGuid) && $logProgress) {
+        sahtout_adopt_a_bot_set_progress(
+            $siteDb,
+            $claimId,
+            $accountId,
+            'Requested playerbots logout hold for ' . $botName . ' (prevents random-bot relog).'
+        );
+    }
+
+    if ($authDb instanceof mysqli) {
+        $login = sahtout_adopt_a_bot_auth_login_for_character($charDb, $authDb, $botGuid);
+        $acctLiteral = sahtout_soap_account_name_literal($login);
+        if ($acctLiteral !== null) {
+            $accountKick = sahtout_soap_execute_command('.account kick ' . $acctLiteral);
+            if ($logProgress) {
+                sahtout_adopt_a_bot_progress_note_soap($siteDb, $claimId, $accountId, '.account kick', $accountKick);
+            }
+        }
+    }
+
+    $literal = sahtout_soap_character_name_for_command($botName);
+    $kick = sahtout_soap_execute_command('.kick ' . $literal . ' Adoption');
+    if ($logProgress) {
+        sahtout_adopt_a_bot_progress_note_soap($siteDb, $claimId, $accountId, '.kick', $kick);
+    }
+
+    sahtout_adopt_a_bot_kick_character_if_online($charDb, '', $botGuid, $authDb);
+    sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
+}
+
 /**
  * Pool-bot offline: trust .account onlinelist for this character name only (not sibling chars on same account).
  *
@@ -1212,7 +1345,8 @@ function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
 
     $onList = sahtout_soap_onlinelist_contains_character($listText, $botName);
     $proceedingMsg = $botName . ' is not on .account onlinelist (other pool bots may be online). Proceeding.';
-    $waitAfterKickMsg = $botName . ' is still on .account onlinelist after kick (playerbot may be relogging).';
+    $waitAfterKickMsg = $botName . ' is still on .account onlinelist after disconnect (random playerbot may be relogging; retrying every '
+        . SAHTOUT_ADOPT_A_BOT_DISCONNECT_RETRY_SECONDS . 's).';
     $lastLine = sahtout_adopt_a_bot_last_progress_line($siteDb, $claimId, $accountId);
 
     if (!$onList) {
@@ -1225,7 +1359,10 @@ function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
         return ['ready' => true, 'on_onlinelist' => false, 'debug' => $debug];
     }
 
-    if ($lastLine === $waitAfterKickMsg) {
+    $alreadyWaiting = ($lastLine === $waitAfterKickMsg);
+    $retryDue = sahtout_adopt_a_bot_disconnect_retry_due($claimId);
+
+    if ($alreadyWaiting && !$retryDue) {
         $listCheck = sahtout_soap_account_onlinelist_text();
         if ($listCheck !== null && !sahtout_soap_onlinelist_contains_character($listCheck, $botName)) {
             sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
@@ -1238,19 +1375,41 @@ function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
         return ['ready' => false, 'on_onlinelist' => true, 'debug' => $waitAfterKickMsg];
     }
 
-    sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $botGuid, $authDb);
+    if ($alreadyWaiting && $retryDue) {
+        sahtout_adopt_a_bot_set_progress(
+            $siteDb,
+            $claimId,
+            $accountId,
+            'Retrying disconnect for ' . $botName . ' (kick, account kick, playerbots hold)…'
+        );
+    }
+
+    sahtout_adopt_a_bot_mark_disconnect_attempt($claimId);
+    sahtout_adopt_a_bot_force_disconnect_for_adoption(
+        $siteDb,
+        $charDb,
+        $authDb,
+        $claimId,
+        $accountId,
+        $botGuid,
+        $botName,
+        !$alreadyWaiting
+    );
+    usleep(700000);
     $listAfter = sahtout_soap_account_onlinelist_text();
     $stillOn = $listAfter !== null && sahtout_soap_onlinelist_contains_character($listAfter, $botName);
     if (!$stillOn) {
         sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
-        $debug = $botName . ' was on onlinelist; kick sent and they are offline now.';
+        $debug = $botName . ' was on onlinelist; disconnect succeeded and they are offline now.';
         sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
 
         return ['ready' => true, 'on_onlinelist' => true, 'debug' => $debug];
     }
 
     $debug = $waitAfterKickMsg;
-    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+    if ($lastLine !== $waitAfterKickMsg) {
+        sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+    }
 
     return ['ready' => false, 'on_onlinelist' => true, 'debug' => $debug];
 }
