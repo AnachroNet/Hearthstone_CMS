@@ -77,7 +77,7 @@ SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql
 
 That file targets the **`hearthstone_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
-This repository ships **only that full seed** for the site database—no separate migration SQL for upgrades.
+For **upgrades** after install, apply scripts under **`SQL/Hearthstone_UPDATE/`** in release order (see **`SQL/Hearthstone_UPDATE/README.md`**). The repo root **`RELEASE`** file is the codebase release id; the database stores the last applied id in **`site_settings.site.release`** (`YYYYMMDD` + daily counter, e.g. `2026110701`).
 
 ### 3. AzerothCore optional SQL (only for specific features)
 
@@ -142,6 +142,7 @@ Core **auth / characters / world** still come from your **AzerothCore revision**
 ```text
 SQL/Hearthstone_DATABASE/FULL_UPDATE/        — full site DB for new installs (hearthstone_site_install_demo.sql)
 SQL/Hearthstone_DATABASE/generated/          — tooling output (e.g. achievement catalog import)
+SQL/Hearthstone_UPDATE/                      — numbered release SQL for existing site DBs (site.release)
 SQL/acore_world_DATABASE/                    — optional world SQL bundled with the CMS
 ```
 

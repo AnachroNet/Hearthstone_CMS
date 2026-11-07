@@ -1,4 +1,5 @@
--- Adopt a Bot redemption tracking (hearthstone_site). Run on your site database if not created automatically.
+-- Adopt a Bot reference schema (canonical shape). Prefer SQL/Hearthstone_UPDATE/2026110701_adopt-a-bot.sql on live sites.
+-- The PHP app can CREATE this table automatically when the DB user has CREATE privilege.
 CREATE TABLE IF NOT EXISTS `adopt_a_bot_claims` (
   `claim_id` int unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,

@@ -9,6 +9,7 @@ if (defined('SAHTOUT_CONFIG_LOADED')) {
 
 require_once __DIR__ . '/config_local_io.php';
 require_once __DIR__ . '/site_settings.php';
+require_once __DIR__ . '/release.php';
 
 $sahtout_local = sahtout_load_local_config();
 $localConfigPath = sahtout_local_config_path();

@@ -1,4 +1,2 @@
--- Optional: allow browsing bot pool before token charge (draft claims).
-ALTER TABLE `adopt_a_bot_claims`
-  MODIFY `purchase_id` int unsigned DEFAULT NULL,
-  MODIFY `status` enum('draft','pending','processing','completed','cancelled') NOT NULL DEFAULT 'draft';
+-- Deprecated: merged into SQL/Hearthstone_UPDATE/2026110701_adopt-a-bot.sql
+-- Apply release updates from SQL/Hearthstone_UPDATE/ instead.
