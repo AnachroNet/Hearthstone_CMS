@@ -540,11 +540,34 @@ function sahtout_adopt_a_bot_resume_url(?array $claim, string $basePath): string
     if ($guid > 0 && $status === 'processing') {
         return $basePath . 'adopt-a-bot-character?guid=' . $guid . '&step=processing';
     }
+    if ($status === 'processing') {
+        return $basePath . 'adopt-a-bot';
+    }
     if ($guid > 0 && $status === 'pending') {
         return $basePath . 'adopt-a-bot-character?guid=' . $guid;
     }
 
     return $basePath . 'adopt-a-bot';
+}
+
+/** Return a stuck in-flight adoption to pending so the player can leave or pick another bot. */
+function sahtout_adopt_a_bot_revert_processing_claim(mysqli $siteDb, int $accountId): bool
+{
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+    $stmt = $siteDb->prepare(
+        "UPDATE adopt_a_bot_claims SET status = 'pending', progress_message = NULL
+         WHERE account_id = ? AND status = 'processing' LIMIT 1"
+    );
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $accountId);
+    $ok = $stmt->execute() && $stmt->affected_rows === 1;
+    $stmt->close();
+
+    return $ok;
 }
 
 /**

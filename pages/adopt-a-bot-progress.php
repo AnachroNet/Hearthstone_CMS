@@ -13,9 +13,10 @@ if (empty($_SESSION['user_id'])) {
     exit;
 }
 
-global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name;
-
 $accountId = (int) $_SESSION['user_id'];
+session_write_close();
+
+global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name;
 sahtout_adopt_a_bot_claims_ensure_schema($site_db);
 
 $open = sahtout_adopt_a_bot_get_open_claim($site_db, $accountId);

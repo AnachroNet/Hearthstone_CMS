@@ -42,7 +42,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Define protected and admin pages
-$protected_pages = ['account.php', 'buy_item.php', 'adopt-a-bot.php', 'adopt-a-bot-character.php', 'adopt-a-bot-confirm.php', 'adopt-a-bot-progress.php'];
+$protected_pages = ['account.php', 'buy_item.php', 'adopt-a-bot.php', 'adopt-a-bot-character.php', 'adopt-a-bot-confirm.php', 'adopt-a-bot-progress.php', 'adopt-a-bot-abandon.php'];
 $admin_pages = ['dashboard.php', 'users.php', 'anews.php','characters.php','ashop.php', 'logout.php','save_general.php'];
 $current_page = basename($_SERVER['PHP_SELF']);
 
