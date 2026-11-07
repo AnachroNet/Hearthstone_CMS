@@ -536,10 +536,10 @@ function sahtout_adopt_a_bot_resume_url(?array $claim, string $basePath): string
     $status = (string) ($claim['status'] ?? '');
     $guid = (int) ($claim['bot_character_guid'] ?? 0);
     if ($guid > 0 && $status === 'processing') {
-        return $basePath . 'character?guid=' . $guid . '&adopt=processing';
+        return $basePath . 'adopt-a-bot-character?guid=' . $guid . '&step=processing';
     }
     if ($guid > 0 && $status === 'pending') {
-        return $basePath . 'character?guid=' . $guid . '&adopt=1';
+        return $basePath . 'adopt-a-bot-character?guid=' . $guid;
     }
 
     return $basePath . 'adopt-a-bot';

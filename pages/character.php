@@ -8,93 +8,35 @@ require_once $project_root . 'includes/character_talents.php';
 require_once $project_root . 'includes/character_lifetime_stats.php';
 $page_class = 'character';
 require_once $project_root . 'includes/config.settings.php';
-require_once $project_root . 'includes/adopt_a_bot.php';
 
-global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name, $base_path;
+global $site_db, $char_db, $auth_db, $base_path;
 
-$adoptPreview = false;
-$adoptProcessingView = false;
+$adoptBotCharacterPage = defined('SAHTOUT_ADOPT_A_BOT_CHARACTER_PAGE')
+    ? (string) SAHTOUT_ADOPT_A_BOT_CHARACTER_PAGE
+    : '';
+$adoptPreview = $adoptBotCharacterPage === 'preview';
+$adoptProcessingView = $adoptBotCharacterPage === 'processing';
 $adoptOpenClaim = null;
 $adoptShowForCharacter = false;
 $adoptProgressLines = [];
 
-if (!empty($_SESSION['user_id'])) {
-    $adoptAccountId = (int) $_SESSION['user_id'];
-    sahtout_adopt_a_bot_claims_ensure_schema($site_db);
-
-    if (
-        $_SERVER['REQUEST_METHOD'] === 'POST'
-        && !empty($_POST['adopt_confirm'])
-        && !empty($_POST['csrf_token'])
-        && hash_equals((string) ($_SESSION['csrf_token'] ?? ''), (string) $_POST['csrf_token'])
-    ) {
-        $confirmGuid = (int) ($_POST['character_guid'] ?? 0);
-        $pending = sahtout_adopt_a_bot_get_pending_claim($site_db, $adoptAccountId);
-        $botRow = $confirmGuid > 0
-            ? sahtout_adopt_a_bot_fetch_eligible_pool_character($char_db, $auth_db, $site_db, $adoptAccountId, $confirmGuid)
-            : null;
-        if ($pending && $botRow) {
-            $claimId = (int) $pending['claim_id'];
-            $started = sahtout_adopt_a_bot_start_processing(
-                $site_db,
-                $claimId,
-                $adoptAccountId,
-                $confirmGuid,
-                (string) $botRow['name']
-            );
-            if ($started) {
-                header('Location: ' . $base_path . 'character?guid=' . $confirmGuid . '&adopt=processing');
-                exit;
-            }
-            if (!sahtout_adopt_a_bot_claims_extended_schema($site_db)) {
-                $result = sahtout_adopt_a_bot_complete_claim(
-                    $site_db,
-                    $char_db,
-                    $auth_db,
-                    $adoptAccountId,
-                    $claimId,
-                    $confirmGuid,
-                    $db_char_name,
-                    $db_auth_name
-                );
-                if (!empty($result['ok'])) {
-                    $_SESSION['success'] = translate(
-                        'adopt_a_bot_success',
-                        'Adoption complete! %s is now on your account.',
-                        (string) ($result['character_name'] ?? $botRow['name'])
-                    );
-                    header('Location: ' . $base_path . 'account');
-                    exit;
-                }
-                $syncErr = (string) ($result['error'] ?? '');
-                if ($syncErr === 'bot_online') {
-                    $_SESSION['error'] = translate(
-                        'adopt_a_bot_error_online',
-                        'That character must be offline before adoption. Log out or wait a moment and try again.'
-                    );
-                    header('Location: ' . $base_path . 'character?guid=' . $confirmGuid . '&adopt=1');
-                    exit;
-                }
-            }
-        }
-        $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
-        header('Location: ' . $base_path . 'adopt-a-bot');
+if ($adoptBotCharacterPage === '' && isset($_GET['adopt'])) {
+    $legacyGuid = (int) ($_GET['guid'] ?? 0);
+    if ($legacyGuid > 0) {
+        $legacyStep = (string) $_GET['adopt'] === 'processing' ? 'step=processing&' : '';
+        header('Location: ' . $base_path . 'adopt-a-bot-character?' . $legacyStep . 'guid=' . $legacyGuid);
         exit;
     }
-
-    $adoptOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, $adoptAccountId);
 }
 
-$adoptQueryStep = isset($_GET['adopt']) ? (string) $_GET['adopt'] : '';
-if ($adoptQueryStep === 'processing') {
-    $adoptProcessingView = true;
-} elseif ($adoptQueryStep === '1') {
-    $adoptPreview = true;
+if ($adoptBotCharacterPage !== '' && !empty($_SESSION['user_id'])) {
+    require_once $project_root . 'includes/adopt_a_bot.php';
+    $adoptOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, (int) $_SESSION['user_id']);
 }
 
 $page_title = $site_title_name . ' ' . translate('page_title', 'Character Equipment');
 $page_meta_description = translate('meta_description', 'View your World of Warcraft character equipment, stats, and PvP details.');
-$page_meta_robots = 'index';
+$page_meta_robots = $adoptBotCharacterPage !== '' ? 'noindex' : 'index';
 
 ob_start();
 ?>
@@ -276,15 +218,22 @@ ob_start();
     .copy-link:hover { color: var(--gold); border-color: rgba(242,207,82,.45); }
     .copy-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
     .adopt-confirm-btn {
-        margin-top: .85rem;
         display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
         padding: .65rem 1.75rem; font-size: .85rem; font-weight: 800; letter-spacing: .04em;
         background: linear-gradient(180deg, #f6d478 0%, #c9a227 48%, #8a6a14 100%);
         color: #1a1200; border: 2px solid #f2cf5b; border-radius: 999px; cursor: pointer;
         box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 0 18px rgba(242,207,82,.2);
-        transition: transform .2s, box-shadow .2s;
+        transition: transform .2s, box-shadow .2s; text-decoration: none;
     }
     .adopt-confirm-btn:hover { transform: translateY(-1px); box-shadow: 0 0 28px rgba(242,207,82,.35); }
+    .adopt-hero-actions { margin-top: .85rem; display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; align-items: center; }
+    .adopt-cancel-btn {
+        display: inline-flex; align-items: center; justify-content: center; padding: .55rem 1.35rem;
+        font-size: .85rem; font-weight: 700; letter-spacing: .03em; color: #e5e7eb;
+        background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.22); border-radius: 999px;
+        text-decoration: none; transition: border-color .2s, color .2s;
+    }
+    .adopt-cancel-btn:hover { color: #fff; border-color: rgba(242,207,82,.45); }
     .adopt-progress-panel {
         margin-top: 1rem; max-width: 36rem; margin-left: auto; margin-right: auto; text-align: left;
         padding: 1rem 1.1rem; background: rgba(0,0,0,.45); border: 1px solid rgba(201,162,39,.25);
@@ -700,19 +649,14 @@ if ($ilvl > 0) {
 
                 $adoptShowForCharacter = false;
                 $adoptProgressLines = [];
-                if (!empty($_SESSION['user_id']) && $adoptOpenClaim) {
+                if ($adoptBotCharacterPage !== '' && $adoptOpenClaim) {
                     $charGuid = (int) ($character['guid'] ?? 0);
-                    $adoptAcct = (int) $_SESSION['user_id'];
-                    if ($adoptPreview && (string) ($adoptOpenClaim['status'] ?? '') === 'pending') {
-                        $adoptShowForCharacter = sahtout_adopt_a_bot_fetch_eligible_pool_character(
-                            $char_db,
-                            $auth_db,
-                            $site_db,
-                            $adoptAcct,
-                            $charGuid
-                        ) !== null;
-                    }
-                    if (
+                    $requestGuid = (int) ($_GET['guid'] ?? 0);
+                    if ($requestGuid > 0 && $requestGuid !== $charGuid) {
+                        $adoptShowForCharacter = false;
+                    } elseif ($adoptPreview && (string) ($adoptOpenClaim['status'] ?? '') === 'pending') {
+                        $adoptShowForCharacter = true;
+                    } elseif (
                         $adoptProcessingView
                         && (string) ($adoptOpenClaim['status'] ?? '') === 'processing'
                         && (int) ($adoptOpenClaim['bot_character_guid'] ?? 0) === $charGuid
@@ -756,14 +700,14 @@ if ($ilvl > 0) {
                     <?php endif; ?>
                 </div>
                 <?php if ($adoptShowForCharacter && $adoptPreview): ?>
-                    <form method="post" class="inline-block" onsubmit="return confirm(<?= json_encode(translate('adopt_a_bot_confirm', 'Adopt this character? This cannot be undone.')) ?>);">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
-                        <input type="hidden" name="character_guid" value="<?= (int) ($character['guid'] ?? 0) ?>">
-                        <input type="hidden" name="adopt_confirm" value="1">
-                        <button type="submit" class="adopt-confirm-btn">
-                            <?= htmlspecialchars(translate('adopt_confirm_adoption', 'Confirm Adoption')) ?>
-                        </button>
-                    </form>
+                    <div class="adopt-hero-actions">
+                        <a href="<?= htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8') ?>" class="adopt-cancel-btn">
+                            <?= htmlspecialchars(translate('adopt_preview_cancel', 'Cancel')) ?>
+                        </a>
+                        <a href="<?= htmlspecialchars($base_path . 'adopt-a-bot-confirm?guid=' . (int) ($character['guid'] ?? 0), ENT_QUOTES, 'UTF-8') ?>" class="adopt-confirm-btn">
+                            <?= htmlspecialchars(translate('adopt_preview_confirm', 'Confirm')) ?>
+                        </a>
+                    </div>
                 <?php elseif ($adoptShowForCharacter && $adoptProcessingView): ?>
                     <div class="adopt-progress-panel" id="adopt-progress-panel">
                         <h2><?= htmlspecialchars(translate('adopt_progress_heading', 'Adoption in progress')) ?></h2>
