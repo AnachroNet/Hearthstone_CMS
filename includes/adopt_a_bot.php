@@ -147,29 +147,107 @@ function sahtout_adopt_a_bot_claims_column_exists(mysqli $siteDb, string $column
     return $res && $res->num_rows > 0;
 }
 
-function sahtout_adopt_a_bot_claims_upgrade_schema(mysqli $siteDb): void
+function sahtout_adopt_a_bot_status_supports_processing(mysqli $siteDb): bool
 {
-    static $upgraded = false;
-    if ($upgraded || !sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
-        return;
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
     }
-    $upgraded = true;
+    $res = $siteDb->query("SHOW COLUMNS FROM adopt_a_bot_claims LIKE 'status'");
+    if (!$res) {
+        return false;
+    }
+    $row = $res->fetch_assoc();
+    $res->free();
+    if (!$row) {
+        return false;
+    }
 
-    if (!sahtout_adopt_a_bot_claims_column_exists($siteDb, 'progress_message')) {
-        $siteDb->query(
-            'ALTER TABLE adopt_a_bot_claims
-                MODIFY status enum(\'pending\',\'processing\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'pending\',
-                ADD COLUMN progress_message varchar(500) DEFAULT NULL AFTER bot_character_name,
-                ADD COLUMN progress_log text DEFAULT NULL AFTER progress_message'
+    return str_contains(strtolower((string) ($row['Type'] ?? '')), 'processing');
+}
+
+/** True when progress columns exist and status enum includes processing (async adoption UI). */
+function sahtout_adopt_a_bot_claims_extended_schema(mysqli $siteDb, bool $forceRefresh = false): bool
+{
+    static $ready = null;
+    if ($forceRefresh) {
+        $ready = null;
+    }
+    if ($ready !== null) {
+        return $ready;
+    }
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        $ready = false;
+
+        return false;
+    }
+    $ready = sahtout_adopt_a_bot_claims_column_exists($siteDb, 'progress_message')
+        && sahtout_adopt_a_bot_status_supports_processing($siteDb);
+
+    return $ready;
+}
+
+/**
+ * Attempt ALTER when the app DB user is allowed; otherwise log once and keep serving with legacy schema.
+ */
+function sahtout_adopt_a_bot_claims_upgrade_schema(mysqli $siteDb): bool
+{
+    if (sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        return true;
+    }
+    if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+
+    static $attempted = false;
+    if ($attempted) {
+        return sahtout_adopt_a_bot_claims_extended_schema($siteDb);
+    }
+    $attempted = true;
+
+    try {
+        if (!sahtout_adopt_a_bot_claims_column_exists($siteDb, 'progress_message')) {
+            $siteDb->query(
+                'ALTER TABLE adopt_a_bot_claims
+                    MODIFY status enum(\'pending\',\'processing\',\'completed\',\'cancelled\') NOT NULL DEFAULT \'pending\',
+                    ADD COLUMN progress_message varchar(500) DEFAULT NULL AFTER bot_character_name,
+                    ADD COLUMN progress_log text DEFAULT NULL AFTER progress_message'
+            );
+        } elseif (!sahtout_adopt_a_bot_status_supports_processing($siteDb)) {
+            $siteDb->query(
+                "ALTER TABLE adopt_a_bot_claims
+                    MODIFY status enum('pending','processing','completed','cancelled') NOT NULL DEFAULT 'pending'"
+            );
+        }
+    } catch (mysqli_sql_exception $e) {
+        error_log(
+            'adopt_a_bot: schema upgrade skipped — grant ALTER or run SQL/Hearthstone_DATABASE/adopt_a_bot_claims_upgrade.sql as DBA: '
+            . $e->getMessage()
         );
     }
+
+    sahtout_adopt_a_bot_claims_extended_schema($siteDb, true);
+
+    return sahtout_adopt_a_bot_claims_extended_schema($siteDb);
+}
+
+/**
+ * @return string Comma-separated SELECT list for adopt_a_bot_claims rows.
+ */
+function sahtout_adopt_a_bot_claims_select_columns(mysqli $siteDb): string
+{
+    if (sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        return 'claim_id, purchase_id, created_at, status, bot_character_guid, bot_character_name, progress_message, progress_log';
+    }
+
+    return 'claim_id, purchase_id, created_at, status, bot_character_guid, bot_character_name';
 }
 
 function sahtout_adopt_a_bot_claims_ensure_schema(mysqli $siteDb): bool
 {
     if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
-        $ok = (bool) $siteDb->query(
-            'CREATE TABLE IF NOT EXISTS adopt_a_bot_claims (
+        try {
+            $ok = (bool) $siteDb->query(
+                'CREATE TABLE IF NOT EXISTS adopt_a_bot_claims (
             claim_id int unsigned NOT NULL AUTO_INCREMENT,
             account_id int unsigned NOT NULL,
             purchase_id int unsigned NOT NULL,
@@ -186,15 +264,20 @@ function sahtout_adopt_a_bot_claims_ensure_schema(mysqli $siteDb): bool
             CONSTRAINT fk_adopt_claim_account FOREIGN KEY (account_id) REFERENCES user_currencies (account_id) ON DELETE CASCADE ON UPDATE CASCADE,
             CONSTRAINT fk_adopt_claim_purchase FOREIGN KEY (purchase_id) REFERENCES purchases (purchase_id) ON DELETE CASCADE ON UPDATE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-        );
-        if (!$ok) {
-            return false;
+            );
+            if (!$ok) {
+                return false;
+            }
+        } catch (mysqli_sql_exception $e) {
+            error_log('adopt_a_bot: CREATE TABLE adopt_a_bot_claims failed: ' . $e->getMessage());
+
+            return sahtout_adopt_a_bot_claims_table_exists($siteDb);
         }
     }
 
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
 
-    return true;
+    return sahtout_adopt_a_bot_claims_table_exists($siteDb);
 }
 
 function sahtout_adopt_a_bot_configured_realm_id(): int
@@ -403,9 +486,9 @@ function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): 
     if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
         return null;
     }
+    $cols = sahtout_adopt_a_bot_claims_select_columns($siteDb);
     $stmt = $siteDb->prepare(
-        "SELECT claim_id, purchase_id, created_at, status, bot_character_guid, bot_character_name, progress_message, progress_log
-         FROM adopt_a_bot_claims WHERE account_id = ? AND status = 'pending' ORDER BY claim_id DESC LIMIT 1"
+        "SELECT {$cols} FROM adopt_a_bot_claims WHERE account_id = ? AND status = 'pending' ORDER BY claim_id DESC LIMIT 1"
     );
     if (!$stmt) {
         return null;
@@ -426,9 +509,12 @@ function sahtout_adopt_a_bot_get_open_claim(mysqli $siteDb, int $accountId): ?ar
         return null;
     }
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    $cols = sahtout_adopt_a_bot_claims_select_columns($siteDb);
+    $statusSql = sahtout_adopt_a_bot_claims_extended_schema($siteDb)
+        ? "status IN ('pending', 'processing')"
+        : "status = 'pending'";
     $stmt = $siteDb->prepare(
-        "SELECT claim_id, purchase_id, created_at, status, bot_character_guid, bot_character_name, progress_message, progress_log
-         FROM adopt_a_bot_claims WHERE account_id = ? AND status IN ('pending', 'processing') ORDER BY claim_id DESC LIMIT 1"
+        "SELECT {$cols} FROM adopt_a_bot_claims WHERE account_id = ? AND {$statusSql} ORDER BY claim_id DESC LIMIT 1"
     );
     if (!$stmt) {
         return null;
@@ -488,6 +574,9 @@ function sahtout_adopt_a_bot_progress_log_lines(?array $claim): array
 function sahtout_adopt_a_bot_set_progress(mysqli $siteDb, int $claimId, int $accountId, string $message, bool $appendLog = true): void
 {
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    if (!sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        return;
+    }
     $message = mb_substr(trim($message), 0, 500);
     if ($message === '') {
         return;
@@ -535,6 +624,9 @@ function sahtout_adopt_a_bot_start_processing(
     string $botName
 ): bool {
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
+    if (!sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        return false;
+    }
     $botName = mb_substr(trim($botName), 0, 12);
     $intro = 'Adoption queued. We will complete the transfer as soon as the character is offline.';
     $logJson = json_encode([$intro], JSON_UNESCAPED_UNICODE);

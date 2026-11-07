@@ -34,15 +34,48 @@ if (!empty($_SESSION['user_id'])) {
             ? sahtout_adopt_a_bot_fetch_eligible_pool_character($char_db, $auth_db, $site_db, $adoptAccountId, $confirmGuid)
             : null;
         if ($pending && $botRow) {
-            sahtout_adopt_a_bot_start_processing(
+            $claimId = (int) $pending['claim_id'];
+            $started = sahtout_adopt_a_bot_start_processing(
                 $site_db,
-                (int) $pending['claim_id'],
+                $claimId,
                 $adoptAccountId,
                 $confirmGuid,
                 (string) $botRow['name']
             );
-            header('Location: ' . $base_path . 'character?guid=' . $confirmGuid . '&adopt=processing');
-            exit;
+            if ($started) {
+                header('Location: ' . $base_path . 'character?guid=' . $confirmGuid . '&adopt=processing');
+                exit;
+            }
+            if (!sahtout_adopt_a_bot_claims_extended_schema($site_db)) {
+                $result = sahtout_adopt_a_bot_complete_claim(
+                    $site_db,
+                    $char_db,
+                    $auth_db,
+                    $adoptAccountId,
+                    $claimId,
+                    $confirmGuid,
+                    $db_char_name,
+                    $db_auth_name
+                );
+                if (!empty($result['ok'])) {
+                    $_SESSION['success'] = translate(
+                        'adopt_a_bot_success',
+                        'Adoption complete! %s is now on your account.',
+                        (string) ($result['character_name'] ?? $botRow['name'])
+                    );
+                    header('Location: ' . $base_path . 'account');
+                    exit;
+                }
+                $syncErr = (string) ($result['error'] ?? '');
+                if ($syncErr === 'bot_online') {
+                    $_SESSION['error'] = translate(
+                        'adopt_a_bot_error_online',
+                        'That character must be offline before adoption. Log out or wait a moment and try again.'
+                    );
+                    header('Location: ' . $base_path . 'character?guid=' . $confirmGuid . '&adopt=1');
+                    exit;
+                }
+            }
         }
         $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
         header('Location: ' . $base_path . 'adopt-a-bot');
