@@ -25,10 +25,7 @@ if ($openClaim === null) {
     header("Location: {$base_path}account");
     exit;
 }
-if ((string) ($openClaim['status'] ?? '') === 'processing') {
-    header('Location: ' . sahtout_adopt_a_bot_resume_url($openClaim, $base_path));
-    exit;
-}
+$claimProcessingInBackground = (string) ($openClaim['status'] ?? '') === 'processing';
 $claim = $openClaim;
 
 $error = '';
@@ -226,6 +223,19 @@ include_once $project_root . 'includes/header.php';
             <?php if ($error !== ''): ?>
                 <div class="mb-4 text-center text-red-400 font-semibold text-sm"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
+
+            <?php
+            if (!empty($claimProcessingInBackground)) {
+                $procGuid = (int) ($openClaim['bot_character_guid'] ?? 0);
+                $procResume = $procGuid > 0 ? sahtout_adopt_a_bot_resume_url($openClaim, $base_path) : '';
+                ?>
+                <div class="mb-4 px-4 py-3 border border-[#c9a227]/40 bg-[rgba(242,207,82,0.1)] text-gray-200 text-sm text-center rounded-lg">
+                    <?php echo htmlspecialchars(translate('adopt_a_bot_processing_background', 'An adoption is still running. You can browse the site; open the progress view to continue, or pause it below.')); ?>
+                    <?php if ($procResume !== ''): ?>
+                        <a href="<?php echo htmlspecialchars($procResume, ENT_QUOTES, 'UTF-8'); ?>" class="block mt-2 text-[#f2cf5b] font-semibold hover:underline"><?php echo htmlspecialchars(translate('adopt_progress_heading', 'Adoption in progress')); ?></a>
+                    <?php endif; ?>
+                </div>
+            <?php } ?>
 
             <form method="get" class="mb-8 flex flex-col sm:flex-row justify-center items-center gap-3">
                 <input
