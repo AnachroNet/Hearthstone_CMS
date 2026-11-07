@@ -15,7 +15,7 @@ return [
     'adopt_a_bot_error_csrf' => 'Invalid form token. Please try again.',
     'adopt_a_bot_error_no_slot' => 'You no longer have a free character slot.',
     'adopt_a_bot_error_invalid_claim' => 'This adoption session is no longer valid.',
-    'adopt_a_bot_error_pool' => 'Bot pool account is missing.',
+    'adopt_a_bot_error_pool' => 'No bot pool accounts are configured for adoption.',
     'adopt_a_bot_error_bot_missing' => 'That character is no longer available.',
     'adopt_a_bot_error_bot_online' => 'That character must be offline. Try again in a moment.',
     'adopt_a_bot_error_transfer' => 'Could not transfer the character. Contact staff if this persists.',

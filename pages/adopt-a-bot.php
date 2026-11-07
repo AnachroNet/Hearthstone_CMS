@@ -67,11 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$poolId = sahtout_adopt_a_bot_pool_account_id($auth_db, $site_db);
+$poolAccountIds = sahtout_adopt_a_bot_pool_account_ids($auth_db, $site_db);
+$poolConfigured = $poolAccountIds !== [];
 $buyerHighest = sahtout_adopt_a_bot_highest_character_level($char_db, $accountId);
 $maxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $accountId);
-$bots = $poolId > 0
-    ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolId, $search, 80, $maxBotLevel)
+$bots = $poolConfigured
+    ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolAccountIds, $search, 80, $maxBotLevel)
     : [];
 
 $page_title = $site_title_name . ' — ' . translate('adopt_a_bot_page_title', 'Adopt a Bot');
@@ -110,7 +111,7 @@ include_once $project_root . 'includes/header.php';
         <button type="submit" class="px-4 py-2 border border-[#c9a227]/40 text-[#f2cf5b] hover:bg-[#f2cf5b]/10"><?php echo translate('adopt_a_bot_search', 'Search'); ?></button>
     </form>
 
-    <?php if ($poolId <= 0): ?>
+    <?php if (!$poolConfigured): ?>
         <p class="text-amber-200"><?php echo translate('adopt_a_bot_error_pool', 'Bot pool account is missing.'); ?></p>
     <?php elseif (empty($bots)): ?>
         <p class="text-gray-400"><?php echo translate('adopt_a_bot_empty', 'No matching characters in the bot pool at level %d or below.', $maxBotLevel); ?></p>

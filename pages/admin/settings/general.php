@@ -354,15 +354,16 @@ include $project_root . 'includes/header.php';
                                 <p class="text-[#6a7a8a] text-xs mb-3 max-w-3xl">
                                     <?php echo translate(
                                         'help_shop_adopt_a_bot_enabled',
-                                        'When enabled, adds the Adopt a Bot item (default 100 tokens; change price in A-Shop). When disabled, removes the shop row. Requires auth account RNDBOT (or name below) with pool characters.'
+                                        'When enabled, adds the Adopt a Bot item (default 100 tokens; change price in A-Shop). When disabled, removes the shop row. Pool characters live on auth accounts whose usernames start with the prefix below (e.g. RNDBOT123).'
                                     ); ?>
                                 </p>
-                                <label for="shop_adopt_a_bot_pool_username" class="text-sm text-gray-300 block mb-1">
-                                    <?php echo translate('label_shop_adopt_a_bot_pool', 'Bot pool account username'); ?>
+                                <label for="shop_adopt_a_bot_pool_username_prefix" class="text-sm text-gray-300 block mb-1">
+                                    <?php echo translate('label_shop_adopt_a_bot_pool_prefix', 'Bot account names begin with'); ?>
                                 </label>
-                                <input type="text" name="shop_adopt_a_bot_pool_username" id="shop_adopt_a_bot_pool_username" maxlength="32"
+                                <input type="text" name="shop_adopt_a_bot_pool_username_prefix" id="shop_adopt_a_bot_pool_username_prefix" maxlength="32"
                                        class="w-full max-w-xs px-4 py-3 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none"
-                                       value="<?php echo htmlspecialchars(sahtout_adopt_a_bot_pool_username($site_db)); ?>">
+                                       value="<?php echo htmlspecialchars(sahtout_adopt_a_bot_pool_username_prefix($site_db)); ?>"
+                                       placeholder="<?php echo htmlspecialchars(SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX); ?>">
                             </div>
                             <?php endif; ?>
 

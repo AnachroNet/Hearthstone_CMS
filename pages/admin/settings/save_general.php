@@ -113,8 +113,8 @@ $registration_signup_tokens_amount_new = max(0, min(9999999, (int) ($_POST['regi
 
 $shop_token_gifts_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_POST['shop_token_gifts_enabled']) : null;
 $shop_adopt_a_bot_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_POST['shop_adopt_a_bot_enabled']) : null;
-$shop_adopt_a_bot_pool_username_new = ($_SESSION['role'] ?? '') === 'admin'
-    ? trim((string) ($_POST['shop_adopt_a_bot_pool_username'] ?? SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME))
+$shop_adopt_a_bot_pool_username_prefix_new = ($_SESSION['role'] ?? '') === 'admin'
+    ? trim((string) ($_POST['shop_adopt_a_bot_pool_username_prefix'] ?? SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX))
     : null;
 
 $shop_token_gift_loot_ids_raw = trim((string) ($_POST['shop_token_gift_loot_ids'] ?? ''));
@@ -152,8 +152,14 @@ if (empty($errors)) {
         if ($shop_adopt_a_bot_enabled_new !== null) {
             $ok = $ok && sahtout_site_setting_set($site_db, 'shop.adopt_a_bot_enabled', $shop_adopt_a_bot_enabled_new, 'bool', $editorId);
         }
-        if ($shop_adopt_a_bot_pool_username_new !== null && $shop_adopt_a_bot_pool_username_new !== '') {
-            $ok = $ok && sahtout_site_setting_set($site_db, 'shop.adopt_a_bot_pool_username', $shop_adopt_a_bot_pool_username_new, 'string', $editorId);
+        if ($shop_adopt_a_bot_pool_username_prefix_new !== null && $shop_adopt_a_bot_pool_username_prefix_new !== '') {
+            $ok = $ok && sahtout_site_setting_set(
+                $site_db,
+                'shop.adopt_a_bot_pool_username_prefix',
+                $shop_adopt_a_bot_pool_username_prefix_new,
+                'string',
+                $editorId
+            );
         }
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_loot_ids', $shop_token_gift_loot_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_world_ids', $shop_token_gift_world_ids_new, 'string', $editorId);

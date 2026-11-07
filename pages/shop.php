@@ -20,8 +20,7 @@ if (!empty($_SESSION['user_id'])) {
     $adoptUid = (int) $_SESSION['user_id'];
     $adoptABotBuyerHighest = sahtout_adopt_a_bot_highest_character_level($char_db, $adoptUid);
     $adoptABotMaxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $adoptUid);
-    $adoptPoolIdForShop = sahtout_adopt_a_bot_pool_account_id($auth_db, $site_db);
-    $adoptABotHasEligiblePool = sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $adoptPoolIdForShop, $adoptUid);
+    $adoptABotHasEligiblePool = sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $auth_db, $site_db, $adoptUid);
 }
 
 $page_class = 'shop';

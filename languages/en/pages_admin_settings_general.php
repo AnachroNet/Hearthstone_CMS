@@ -68,8 +68,8 @@ return [
 
     'label_shop_adopt_a_bot' => 'Adopt a Bot (shop)',
     'label_shop_adopt_a_bot_enabled' => 'Enable Adopt a Bot shop service',
-    'help_shop_adopt_a_bot_enabled' => 'When enabled, adds the Adopt a Bot item (default 100 tokens; change price in A-Shop). When disabled, removes the shop row. Buyers may only adopt pool bots up to 5 levels above their highest character. Requires an auth account with bot characters (default username RNDBOT).',
-    'label_shop_adopt_a_bot_pool' => 'Bot pool account username',
+    'help_shop_adopt_a_bot_enabled' => 'When enabled, adds the Adopt a Bot item (default 100 tokens; change price in A-Shop). When disabled, removes the shop row. Buyers may only adopt pool bots up to 5 levels above their highest character. Characters are pooled from every auth account whose username starts with the prefix below (default RNDBOT, e.g. RNDBOT123).',
+    'label_shop_adopt_a_bot_pool_prefix' => 'Bot account names begin with',
 
     'label_shop_token_gifts' => 'Token gift letters (shop)',
     'label_shop_token_gifts_enabled' => 'Enable token gift letter promos (A-Shop Rewards)',

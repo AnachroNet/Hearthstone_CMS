@@ -64,7 +64,7 @@ return [
     'shop_adopt_a_bot_no_level_match' => 'No bot is available at or below level %d.',
     'shop_status_adopt_no_slot' => 'You need an open character slot (fewer than 10 characters) to purchase Adopt a Bot.',
     'shop_status_adopt_already_claimed' => 'You already have an Adopt a Bot purchase in progress or completed.',
-    'shop_status_adopt_pool_missing' => 'The bot pool account is not configured. Contact staff.',
+    'shop_status_adopt_pool_missing' => 'No bot pool accounts match the configured username prefix. Contact staff.',
     'shop_status_adopt_disabled' => 'Adopt a Bot is not available right now.',
     'shop_status_adopt_no_eligible_bots' => 'No bot in the pool is within 5 levels of your highest character. Level up or try again when new bots are added.',
 ];

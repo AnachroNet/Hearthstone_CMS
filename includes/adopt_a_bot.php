@@ -12,7 +12,7 @@ const SAHTOUT_ADOPT_A_BOT_MAX_CHARACTERS = 10;
 /** Max levels a pool bot may be above the buyer's highest character (inclusive). */
 const SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP = 5;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_TOKEN_COST = 100;
-const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME = 'RNDBOT';
+const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX = 'RNDBOT';
 const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
 const SAHTOUT_ADOPT_A_BOT_SHOP_NAME = 'Adopt a Bot';
 
@@ -42,15 +42,81 @@ function sahtout_adopt_a_bot_enabled(mysqli $siteDb): bool
     return !empty($sahtout_site_settings['shop.adopt_a_bot_enabled']);
 }
 
-function sahtout_adopt_a_bot_pool_username(mysqli $siteDb): string
+/** Username prefix for bot pool auth accounts (e.g. RNDBOT matches RNDBOT123). */
+function sahtout_adopt_a_bot_pool_username_prefix(mysqli $siteDb): string
 {
     global $sahtout_site_settings;
-    $name = trim((string) ($sahtout_site_settings['shop.adopt_a_bot_pool_username'] ?? ''));
-    if ($name === '') {
-        return SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME;
+    $prefix = trim((string) ($sahtout_site_settings['shop.adopt_a_bot_pool_username_prefix'] ?? ''));
+    if ($prefix === '') {
+        $legacy = trim((string) ($sahtout_site_settings['shop.adopt_a_bot_pool_username'] ?? ''));
+        if ($legacy !== '') {
+            return $legacy;
+        }
+
+        return SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX;
     }
 
-    return $name;
+    return $prefix;
+}
+
+/**
+ * @return list<int>
+ */
+function sahtout_adopt_a_bot_pool_account_ids(mysqli $authDb, mysqli $siteDb): array
+{
+    static $cache = null;
+    if (is_array($cache)) {
+        return $cache;
+    }
+
+    $prefix = sahtout_adopt_a_bot_pool_username_prefix($siteDb);
+    if ($prefix === '') {
+        $cache = [];
+
+        return $cache;
+    }
+
+    $like = $prefix . '%';
+    $stmt = $authDb->prepare('SELECT id FROM account WHERE username LIKE ? ORDER BY id ASC');
+    if (!$stmt) {
+        $cache = [];
+
+        return $cache;
+    }
+    $stmt->bind_param('s', $like);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        $cache = [];
+
+        return $cache;
+    }
+    $res = $stmt->get_result();
+    $ids = [];
+    while ($row = $res->fetch_assoc()) {
+        $ids[] = (int) $row['id'];
+    }
+    $stmt->close();
+    $cache = $ids;
+
+    return $cache;
+}
+
+function sahtout_adopt_a_bot_pool_configured(mysqli $authDb, mysqli $siteDb): bool
+{
+    return sahtout_adopt_a_bot_pool_account_ids($authDb, $siteDb) !== [];
+}
+
+/**
+ * @param list<int> $poolAccountIds
+ */
+function sahtout_adopt_a_bot_sql_account_in_list(array $poolAccountIds): string
+{
+    $poolAccountIds = array_values(array_unique(array_filter(array_map('intval', $poolAccountIds), static fn (int $id): bool => $id > 0)));
+    if ($poolAccountIds === []) {
+        return '0';
+    }
+
+    return implode(',', $poolAccountIds);
 }
 
 function sahtout_adopt_a_bot_claims_table_exists(mysqli $siteDb): bool
@@ -240,19 +306,24 @@ function sahtout_adopt_a_bot_is_bot_level_allowed(int $botLevel, int $buyerHighe
     return $botLevel <= $buyerHighestLevel + SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP;
 }
 
-function sahtout_adopt_a_bot_pool_has_eligible_bot(mysqli $charDb, int $poolAccountId, int $buyerAccountId): bool
-{
-    if ($poolAccountId <= 0) {
+function sahtout_adopt_a_bot_pool_has_eligible_bot(
+    mysqli $charDb,
+    mysqli $authDb,
+    mysqli $siteDb,
+    int $buyerAccountId
+): bool {
+    $poolAccountIds = sahtout_adopt_a_bot_pool_account_ids($authDb, $siteDb);
+    if ($poolAccountIds === []) {
         return false;
     }
     $maxLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($charDb, $buyerAccountId);
-    $stmt = $charDb->prepare(
-        'SELECT guid FROM characters WHERE account = ? AND level <= ? LIMIT 1'
-    );
+    $inList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
+    $sql = 'SELECT guid FROM characters WHERE account IN (' . $inList . ') AND level <= ? LIMIT 1';
+    $stmt = $charDb->prepare($sql);
     if (!$stmt) {
         return false;
     }
-    $stmt->bind_param('ii', $poolAccountId, $maxLevel);
+    $stmt->bind_param('i', $maxLevel);
     $stmt->execute();
     $res = $stmt->get_result();
     $ok = $res && $res->num_rows > 0;
@@ -301,70 +372,56 @@ function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): 
     return $row ?: null;
 }
 
-function sahtout_adopt_a_bot_pool_account_id(mysqli $authDb, mysqli $siteDb): int
-{
-    $username = sahtout_adopt_a_bot_pool_username($siteDb);
-    $stmt = $authDb->prepare('SELECT id FROM account WHERE username = ? LIMIT 1');
-    if (!$stmt) {
-        return 0;
-    }
-    $stmt->bind_param('s', $username);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res ? $res->fetch_assoc() : null;
-    $stmt->close();
-
-    return $row ? (int) $row['id'] : 0;
-}
-
 /**
+ * @param list<int> $poolAccountIds
  * @return list<array{guid:int,name:string,level:int,race:int,class:int}>
  */
 function sahtout_adopt_a_bot_list_pool_characters(
     mysqli $charDb,
-    int $poolAccountId,
+    array $poolAccountIds,
     string $search,
     int $limit = 50,
     ?int $maxBotLevel = null
 ): array {
+    $inList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
+    if ($inList === '0') {
+        return [];
+    }
+
     $limit = max(1, min(200, $limit));
     $search = trim($search);
     if ($search !== '') {
         $like = '%' . $search . '%';
         if ($maxBotLevel !== null) {
-            $stmt = $charDb->prepare(
-                'SELECT guid, name, level, race, class FROM characters WHERE account = ? AND name LIKE ? AND level <= ? ORDER BY name ASC LIMIT ?'
-            );
+            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? AND level <= ? ORDER BY name ASC LIMIT ?';
+            $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('isii', $poolAccountId, $like, $maxBotLevel, $limit);
+            $stmt->bind_param('sii', $like, $maxBotLevel, $limit);
         } else {
-            $stmt = $charDb->prepare(
-                'SELECT guid, name, level, race, class FROM characters WHERE account = ? AND name LIKE ? ORDER BY name ASC LIMIT ?'
-            );
+            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? ORDER BY name ASC LIMIT ?';
+            $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('isi', $poolAccountId, $like, $limit);
+            $stmt->bind_param('si', $like, $limit);
         }
     } else {
         if ($maxBotLevel !== null) {
-            $stmt = $charDb->prepare(
-                'SELECT guid, name, level, race, class FROM characters WHERE account = ? AND level <= ? ORDER BY name ASC LIMIT ?'
-            );
+            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') AND level <= ? ORDER BY name ASC LIMIT ?';
+            $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('iii', $poolAccountId, $maxBotLevel, $limit);
+            $stmt->bind_param('ii', $maxBotLevel, $limit);
         } else {
-            $stmt = $charDb->prepare(
-                'SELECT guid, name, level, race, class FROM characters WHERE account = ? ORDER BY name ASC LIMIT ?'
-            );
+            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') ORDER BY name ASC LIMIT ?';
+            $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('ii', $poolAccountId, $limit);
+            $stmt->bind_param('i', $limit);
         }
     }
     $stmt->execute();
@@ -505,23 +562,23 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'invalid_claim'];
     }
 
-    $poolAccountId = sahtout_adopt_a_bot_pool_account_id($authDb, $siteDb);
-    if ($poolAccountId <= 0) {
+    $poolAccountIds = sahtout_adopt_a_bot_pool_account_ids($authDb, $siteDb);
+    if ($poolAccountIds === []) {
         return ['ok' => false, 'error' => 'pool_missing'];
     }
+    $poolInList = sahtout_adopt_a_bot_sql_account_in_list($poolAccountIds);
 
     if (!$charDb->begin_transaction()) {
         return ['ok' => false, 'error' => 'database'];
     }
-    $stmt = $charDb->prepare(
-        'SELECT guid, name, level, online, account FROM characters WHERE guid = ? AND account = ? FOR UPDATE'
-    );
+    $sql = 'SELECT guid, name, level, online, account FROM characters WHERE guid = ? AND account IN (' . $poolInList . ') FOR UPDATE';
+    $stmt = $charDb->prepare($sql);
     if (!$stmt) {
         $charDb->rollback();
 
         return ['ok' => false, 'error' => 'database'];
     }
-    $stmt->bind_param('ii', $botGuid, $poolAccountId);
+    $stmt->bind_param('i', $botGuid);
     if (!$stmt->execute()) {
         $stmt->close();
         $charDb->rollback();
@@ -557,6 +614,13 @@ function sahtout_adopt_a_bot_complete_claim(
                 return ['ok' => false, 'error' => 'bot_online'];
             }
         }
+    }
+
+    $poolAccountId = (int) ($bot['account'] ?? 0);
+    if ($poolAccountId <= 0) {
+        $charDb->rollback();
+
+        return ['ok' => false, 'error' => 'bot_not_found'];
     }
 
     $charName = (string) $bot['name'];

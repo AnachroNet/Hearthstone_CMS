@@ -112,11 +112,10 @@ try {
         if (!sahtout_adopt_a_bot_account_may_purchase($site_db, $account_id)) {
             throw new Exception('adopt_already_claimed');
         }
-        $poolAccountId = sahtout_adopt_a_bot_pool_account_id($auth_db, $site_db);
-        if ($poolAccountId <= 0) {
+        if (!sahtout_adopt_a_bot_pool_configured($auth_db, $site_db)) {
             throw new Exception('adopt_pool_missing');
         }
-        if (!sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $poolAccountId, $account_id)) {
+        if (!sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $auth_db, $site_db, $account_id)) {
             throw new Exception('adopt_no_eligible_bots');
         }
 
