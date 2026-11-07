@@ -184,6 +184,11 @@ ob_start();
         color: #fff;
         box-shadow: 0 0 18px rgba(239, 68, 68, 0.25);
     }
+    .confirm-status-ready { color: #6ee7b7; }
+    .confirm-status-ready i { color: #34d399; }
+    .confirm-status-online { color: #fde68a; }
+    .confirm-status-online i { color: #fbbf24; }
+    .confirm-status-tokens { color: #fef3c7; }
     .confirm-actions { display: flex; flex-direction: column; gap: 0.75rem; }
     @media (min-width: 640px) {
         .confirm-actions-primary { display: flex; flex-direction: row; gap: 0.75rem; }
@@ -209,19 +214,19 @@ ob_start();
         </div>
 
         <?php if ($online): ?>
-            <p class="text-amber-200/90 text-sm mb-4">
+            <p class="confirm-status-online text-sm mb-4">
                 <i class="fas fa-circle-notch fa-spin mr-1"></i>
                 <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_online_notice', 'This character is in the world. We will disconnect them when you confirm; that can take up to half a minute.')); ?>
             </p>
         <?php else: ?>
-            <p class="text-emerald-300/90 text-sm mb-4">
+            <p class="confirm-status-ready text-sm mb-4">
                 <i class="fas fa-check-circle mr-1"></i>
                 <?php echo htmlspecialchars(translate('adopt_a_bot_confirm_offline_ready', 'Character is offline and ready to transfer.')); ?>
             </p>
         <?php endif; ?>
 
         <?php if ($adoptTokenCost > 0 && !sahtout_adopt_a_bot_claim_has_purchase($pending)): ?>
-            <p class="text-amber-100/90 text-sm mb-4 text-center">
+            <p class="confirm-status-tokens text-sm mb-4 text-center">
                 <?php echo htmlspecialchars(sprintf(
                     translate('adopt_a_bot_confirm_token_charge', 'Completing adoption will spend %s shop tokens. This cannot be undone or cancelled.'),
                     number_format($adoptTokenCost)
