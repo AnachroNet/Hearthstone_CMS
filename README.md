@@ -77,7 +77,27 @@ SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.s
 
 That file targets the **`hearthstone_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
-For **upgrades** after install, apply scripts under **`SQL/Hearthstone_DATABASE/UPDATES/`** in release order (see **`SQL/Hearthstone_DATABASE/UPDATES/README.md`**). The repo root **`VERSION`** and **`RELEASE`** files are the shipped CMS version (e.g. **1.0**) and release id; the database stores them in **`site_settings.site.version`** and **`site_settings.site.release`** (`YYYYMMDD` + daily counter, e.g. **Version 1.0 — Release 2026110701**).
+The repo root **`VERSION`** and **`RELEASE`** files describe the CMS code you deployed (e.g. **Version 1.0 — Release 2026110701**). The database keeps the applied copy in **`site_settings.site.version`** and **`site_settings.site.release`** (release id = `YYYYMMDD` + daily counter).
+
+#### New site database
+
+Use **`BASE_INSTALL`** only (see path above). That dump already seeds **1.0** / **2026110601**. Then run any **`UPDATES`** files whose release id is **greater** than the value in the dump (see **`SQL/Hearthstone_DATABASE/UPDATES/README.md`**).
+
+#### Upgrading an existing `hearthstone_site`
+
+If you already had a site database **before** version tracking was added, you may have no `site.version` or `site.release` rows even though `site_settings` exists. The CMS assumes **Version 1.0 — Release 2026110601** in that case (same as the v1.0 base install) when deciding which update scripts are still pending. Applying release SQL writes the real keys to the database. **Admin → Settings → General** shows version/release and notes when values are assumed.
+
+**Recommended (Linux or Windows):** after you deploy new code and have run the web installer so **`includes/config.local.php`** exists:
+
+```bash
+cd /path/to/Hearthstone_CMS
+python3 tools/apply_site_db_updates.py --list    # preview
+python3 tools/apply_site_db_updates.py --apply   # confirm at prompt
+```
+
+On Windows, use `python` if `python3` is not on your PATH. Requires the **`mysql`** client on PATH (or pass **`--mysql`**). Use **`--yes`** to skip the confirmation prompt.
+
+You can still apply **`SQL/Hearthstone_DATABASE/UPDATES/*.sql`** manually with the `mysql` client if you prefer; run files in ascending release order.
 
 ### 3. AzerothCore optional SQL (only for specific features)
 
@@ -121,7 +141,7 @@ Core **auth / characters / world** still come from your **AzerothCore revision**
 
 4. **Deploy** the project tree to your Apache document root (not double-nested). Examples: `C:\xampp\htdocs\...` on Windows, `/var/www/html/...` on Linux.
 
-5. **Prepare databases** as in the previous section.
+5. **Prepare databases** as in the previous section (new install: import **`BASE_INSTALL`**; existing site: see **Upgrading an existing `hearthstone_site`** above).
 
 6. **Run the web installer** in a browser:
 
@@ -133,7 +153,9 @@ Core **auth / characters / world** still come from your **AzerothCore revision**
 
 7. **After success:** delete or protect the **`install/`** directory so it is not publicly reachable.
 
-8. **First admin:** ensure your game account’s corresponding row in the site DB (`user_currencies` or as shown in the legacy guide) has **`role` = `admin`**, then sign in and finish settings in the admin panel.
+8. **Site DB release updates (existing installs or new BASE_INSTALL behind current code):** from the project root, run **`python tools/apply_site_db_updates.py --apply`** so pending **`UPDATES`** SQL is applied and **`site.version`** / **`site.release`** are recorded. Skip if you already imported every update file manually.
+
+9. **First admin:** ensure your game account’s corresponding row in the site DB (`user_currencies` or as shown in the legacy guide) has **`role` = `admin`**, then sign in and finish settings in the admin panel (version/release appear at the top of **General** settings).
 
 ---
 
@@ -159,6 +181,7 @@ These are optional tools for development and diagnostics (not part of normal ins
 |--------|---------|
 | **`tools/import_achievement_catalog.php`** | Build achievement catalog SQL from WotLK DBC files under `data/dbc/`. See the header in that script for usage. |
 | **`tools/build_hearthstone_site_install_demo.py`** | Rebuild `SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql` from a full `hearthstone_site` mysqldump (scrubs volatile tables and injects demo `site_settings` / news / calendar / downloads). Run: `python tools/build_hearthstone_site_install_demo.py [path/to/dump.sql] [path/to/output.sql]` |
+| **`tools/apply_site_db_updates.py`** | List and apply pending `SQL/Hearthstone_DATABASE/UPDATES/*.sql` release scripts (reads `includes/config.local.php`, requires `mysql` on PATH). Run: `python tools/apply_site_db_updates.py --list` then `--apply` |
 
 ---
 

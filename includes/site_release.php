@@ -46,16 +46,44 @@ function sahtout_site_setting_string(mysqli $siteDb, string $key, string $defaul
     return $val !== '' ? $val : $default;
 }
 
-/** @return int Last applied release id stored in site_settings, or 0 when unset. */
+/** @return int Last applied release id, baseline when keys are missing, or 0 if site_settings is absent. */
 function sahtout_site_release_applied(mysqli $siteDb): int
 {
-    return (int) preg_replace('/\D/', '', sahtout_site_setting_string($siteDb, SAHTOUT_SITE_RELEASE_SETTING, '0'));
+    if (!sahtout_site_settings_table_exists($siteDb)) {
+        return 0;
+    }
+    $raw = sahtout_site_setting_string($siteDb, SAHTOUT_SITE_RELEASE_SETTING, '');
+    if ($raw === '') {
+        return SAHTOUT_SITE_DB_BASELINE_RELEASE;
+    }
+
+    return (int) preg_replace('/\D/', '', $raw);
 }
 
-/** @return string Applied CMS version (e.g. 1.0), or empty when unset. */
+/** @return string Applied CMS version, baseline when key is missing, or empty if site_settings is absent. */
 function sahtout_site_version_applied(mysqli $siteDb): string
 {
-    return sahtout_site_setting_string($siteDb, SAHTOUT_SITE_VERSION_SETTING, '');
+    if (!sahtout_site_settings_table_exists($siteDb)) {
+        return '';
+    }
+    $raw = sahtout_site_setting_string($siteDb, SAHTOUT_SITE_VERSION_SETTING, '');
+    if ($raw === '') {
+        return SAHTOUT_SITE_DB_BASELINE_VERSION;
+    }
+
+    return $raw;
+}
+
+/** True when version/release are inferred from the v1.0 baseline, not stored in site_settings yet. */
+function sahtout_site_release_using_baseline_assumption(mysqli $siteDb): bool
+{
+    if (!sahtout_site_settings_table_exists($siteDb)) {
+        return false;
+    }
+    $hasVersion = sahtout_site_setting_string($siteDb, SAHTOUT_SITE_VERSION_SETTING, '') !== '';
+    $hasRelease = sahtout_site_setting_string($siteDb, SAHTOUT_SITE_RELEASE_SETTING, '') !== '';
+
+    return !$hasVersion || !$hasRelease;
 }
 
 /** Human-readable label, e.g. "Version 1.0 — Release 2026110601". */

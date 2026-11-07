@@ -319,6 +319,8 @@ return [
     'finish_errors_msg'           => 'Some required configuration files are missing. Please make sure all steps are completed.',
     'finish_all_present'          => 'All configuration files are present!',
     'finish_congrats'             => 'Congratulations, Hearthstone CMS is fully installed and ready to use.',
+    'finish_db_updates_note'      => 'If this is an existing site database, or your BASE_INSTALL is older than this code release, run <code class="bg-slate-800 px-1 rounded text-amber-200 text-xs">python tools/apply_site_db_updates.py --apply</code> from the project root (see README.md). Sites without <code class="bg-slate-800 px-1 rounded text-xs">site.version</code> / <code class="bg-slate-800 px-1 rounded text-xs">site.release</code> are treated as v1.0 release 2026110601 until update SQL is applied.',
+    'finish_db_updates_title'     => 'Database release updates',
     'finish_security_note'        => 'For security, it is strongly recommended to <strong>delete the "install" folder</strong> from your server.',
     'btn_go_to_homepage'          => 'Go to homepage',
 'finish_description' => 'Hearthstone CMS is ready for action!',

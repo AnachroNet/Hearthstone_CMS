@@ -142,6 +142,15 @@ foreach ($configFiles as $name => $path) {
                     </p>
                 </div>
 
+                <!-- Site DB updates -->
+                <div class="bg-slate-800/40 border border-slate-600/40 text-slate-200 p-4 mb-6 rounded-lg flex items-start gap-3">
+                    <i class="fas fa-database text-gold-400 text-xl mt-0.5"></i>
+                    <div class="text-sm text-left">
+                        <p class="font-semibold text-gold-300 mb-1"><?= translate('finish_db_updates_title', 'Database release updates') ?></p>
+                        <p class="text-slate-300/90 leading-relaxed"><?= translate('finish_db_updates_note', 'If this is an existing site database, or your BASE_INSTALL is older than this code release, run <code class="bg-slate-800 px-1 rounded text-amber-200 text-xs">python tools/apply_site_db_updates.py --apply</code> from the project root (see README.md). Sites without <code class="bg-slate-800 px-1 rounded text-xs">site.version</code> / <code class="bg-slate-800 px-1 rounded text-xs">site.release</code> are treated as v1.0 release 2026110601 until update SQL is applied.') ?></p>
+                    </div>
+                </div>
+
                 <!-- Security Note -->
                 <div class="bg-amber-900/20 border border-amber-500/30 text-amber-200 p-4 mb-6 rounded-lg flex items-start gap-3">
                     <i class="fas fa-shield-alt text-amber-400 text-xl mt-0.5"></i>

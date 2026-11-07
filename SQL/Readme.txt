@@ -17,5 +17,6 @@ acore_world_DATABASE/
 
 Code version / release: VERSION and RELEASE at project root (includes/release.php).
 Database: site_settings.site.version and site_settings.site.release.
+Apply pending UPDATES: python tools/apply_site_db_updates.py --apply (see UPDATES/README.md).
 
 See DATABASE_PRIVILEGES.md for MySQL grants.

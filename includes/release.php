@@ -20,3 +20,10 @@ const SAHTOUT_SITE_BASE_INSTALL_SQL = 'SQL/Hearthstone_DATABASE/BASE_INSTALL/202
 
 /** Relative path from project root to ordered site DB release patches. */
 const SAHTOUT_SITE_UPDATES_SQL_DIR = 'SQL/Hearthstone_DATABASE/UPDATES';
+
+/**
+ * When site_settings exists but site.version / site.release were never written (pre-tracking installs),
+ * treat the database as this v1.0 baseline (first shipped release).
+ */
+const SAHTOUT_SITE_DB_BASELINE_VERSION = '1.0';
+const SAHTOUT_SITE_DB_BASELINE_RELEASE = 2026110601;
