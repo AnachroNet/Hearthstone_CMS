@@ -122,9 +122,6 @@ try {
             header('Location: ' . sahtout_adopt_a_bot_resume_url($existingOpen, $base_path));
             exit;
         }
-        if (!sahtout_adopt_a_bot_account_may_purchase($site_db, $account_id)) {
-            throw new Exception('adopt_already_claimed');
-        }
         if (!sahtout_adopt_a_bot_pool_configured($auth_db, $site_db)) {
             throw new Exception('adopt_pool_missing');
         }

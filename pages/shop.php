@@ -173,7 +173,7 @@ if (isset($_GET['status'])) {
             $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_no_slot', 'You need an open character slot (fewer than 10 characters) to purchase Adopt a Bot.') . '</span></div>';
             break;
         case 'adopt_already_claimed':
-            $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_already_claimed', 'You already have an Adopt a Bot purchase in progress or completed.') . '</span></div>';
+            $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_already_claimed', 'You already have an Adopt a Bot purchase in progress. Finish or pause it before buying again.') . '</span></div>';
             break;
         case 'adopt_pool_missing':
             $status_message = '<div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-circle text-red-400 text-lg"></i><span>' . translate('shop_status_adopt_pool_missing', 'The bot pool account is not configured. Contact staff.') . '</span></div>';
@@ -639,11 +639,10 @@ include_once $project_root . 'includes/header.php';
                                         $isAdoptABotItem = $adoptABotShopItemId > 0 && (int) $item['item_id'] === $adoptABotShopItemId;
                                         $adoptUidShop = (int) $_SESSION['user_id'];
                                         $adoptHasOpen = $isAdoptABotItem && !empty($adoptABotOpenClaim);
-                                        $adoptHasCompleted = $isAdoptABotItem && sahtout_adopt_a_bot_has_completed_claim($site_db, $adoptUidShop);
-                                        $canBuyAdopt = $isAdoptABotItem && !$adoptHasOpen && !$adoptHasCompleted
+                                        $canBuyAdopt = $isAdoptABotItem && !$adoptHasOpen
                                             && sahtout_adopt_a_bot_has_character_slot($char_db, $adoptUidShop)
                                             && $adoptABotHasEligiblePool;
-                                        $adoptBaseEligible = $isAdoptABotItem && !$adoptHasOpen && !$adoptHasCompleted
+                                        $adoptBaseEligible = $isAdoptABotItem && !$adoptHasOpen
                                             && sahtout_adopt_a_bot_has_character_slot($char_db, $adoptUidShop);
                                         $purchaseBlockedNoChars = !$isAdoptABotItem && empty($characters);
                                         $purchaseDisabled = $is_out_of_stock || $purchaseBlockedNoChars || $cooldown_active
@@ -676,9 +675,7 @@ include_once $project_root . 'includes/header.php';
                                                     $adoptABotBuyerHighest,
                                                     SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP
                                                 ); ?></p>
-                                                <?php if ($adoptHasCompleted): ?>
-                                                    <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_completed', 'You have already completed Adopt a Bot on this account.'); ?></p>
-                                                <?php elseif (!$canBuyAdopt && !$is_out_of_stock): ?>
+                                                <?php if (!$canBuyAdopt && !$is_out_of_stock): ?>
                                                     <?php if ($adoptBaseEligible && !$adoptABotHasEligiblePool): ?>
                                                         <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_no_level_match', 'No bot is available at or below level %d.', $adoptABotMaxBotLevel); ?></p>
                                                     <?php else: ?>

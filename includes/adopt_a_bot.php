@@ -482,10 +482,12 @@ function sahtout_adopt_a_bot_has_completed_claim(mysqli $siteDb, int $accountId)
     return $has;
 }
 
-/** False when the account already finished Adopt a Bot (completed claim). Pending claims are resumed, not rebought. */
+/** True unless business rules block purchase (no lifetime adoption cap; price and slots limit repeat buys). */
 function sahtout_adopt_a_bot_account_may_purchase(mysqli $siteDb, int $accountId): bool
 {
-    return !sahtout_adopt_a_bot_has_completed_claim($siteDb, $accountId);
+    unset($siteDb, $accountId);
+
+    return true;
 }
 
 function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): ?array
