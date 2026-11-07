@@ -12,6 +12,8 @@ return [
     'adopt_a_bot_empty' => 'No matching characters in the bot pool at level %d or below.',
     'adopt_a_bot_level' => 'Level',
     'adopt_a_bot_select_button' => 'Select',
+    'adopt_preview_cancel' => 'Cancel',
+    'adopt_preview_confirm' => 'Confirm',
     'adopt_a_bot_adopt_button' => 'Adopt',
     'adopt_a_bot_confirm_page_title' => 'Confirm adoption',
     'adopt_a_bot_confirm_heading' => 'Confirm adoption',

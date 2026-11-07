@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($selected === null) {
             $error = translate('adopt_a_bot_error_bot_missing', 'That character is no longer available.');
         } else {
-            header('Location: ' . $base_path . 'character?guid=' . $botGuid . '&adopt=1');
+            header('Location: ' . $base_path . 'adopt-a-bot-character?guid=' . $botGuid);
             exit;
         }
     }
