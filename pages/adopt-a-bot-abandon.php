@@ -29,7 +29,7 @@ $accountId = (int) $_SESSION['user_id'];
 sahtout_adopt_a_bot_claims_ensure_schema($site_db);
 
 if (sahtout_adopt_a_bot_revert_processing_claim($site_db, $accountId)) {
-    $_SESSION['success'] = 'Adoption paused. You can choose a bot again or retry when ready.';
+    $_SESSION['message'] = 'Adoption paused. You can choose a bot again or retry when ready.';
 } else {
     $_SESSION['error'] = 'No in-progress adoption to pause.';
 }

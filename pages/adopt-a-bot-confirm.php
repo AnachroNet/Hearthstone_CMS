@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db_auth_name
             );
             if (!empty($result['ok'])) {
-                $_SESSION['success'] = translate(
+                $_SESSION['message'] = translate(
                     'adopt_a_bot_success',
                     'You adopted %s! Log in to the game with that character on your account.',
                     (string) ($result['character_name'] ?? $bot['name'])

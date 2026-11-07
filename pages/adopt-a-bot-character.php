@@ -24,6 +24,25 @@ if ($guid <= 0) {
 sahtout_adopt_a_bot_claims_ensure_schema($site_db);
 $openClaim = sahtout_adopt_a_bot_get_open_claim($site_db, $accountId);
 if ($openClaim === null) {
+    if ($step === 'processing' && $guid > 0) {
+        $stmt = $char_db->prepare('SELECT name FROM characters WHERE guid = ? AND account = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('ii', $guid, $accountId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $row = $res ? $res->fetch_assoc() : null;
+            $stmt->close();
+            if ($row && trim((string) ($row['name'] ?? '')) !== '') {
+                $_SESSION['message'] = translate(
+                    'adopt_a_bot_success',
+                    'You adopted %s! Log in to the game with that character on your account.',
+                    (string) $row['name']
+                );
+                header('Location: ' . $base_path . 'account');
+                exit;
+            }
+        }
+    }
     $_SESSION['error'] = translate('adopt_a_bot_error_no_claim', 'You do not have an Adopt a Bot purchase ready to redeem.');
     header('Location: ' . $base_path . 'account');
     exit;
@@ -47,7 +66,7 @@ if ($step === 'processing') {
         $db_auth_name
     );
     if (!empty($tick['done'])) {
-        $_SESSION['success'] = translate(
+        $_SESSION['message'] = translate(
             'adopt_a_bot_success',
             'You adopted %s! Log in to the game with that character on your account.',
             (string) ($tick['character_name'] ?? ($openClaim['bot_character_name'] ?? ''))
