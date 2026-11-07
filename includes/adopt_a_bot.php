@@ -13,8 +13,8 @@ const SAHTOUT_ADOPT_A_BOT_MAX_CHARACTERS = 10;
 const SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP = 5;
 /** Seconds to wait for a pool character to go offline after SOAP kick before adoption (sync confirm). */
 const SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS = 25;
-/** Per progress-poll wait; avoids blocking a single HTTP request for the full sync window. */
-const SAHTOUT_ADOPT_A_BOT_OFFLINE_POLL_WAIT_SECONDS = 6;
+/** Per progress-poll wait (0 = one kick/check per request; client polls again). */
+const SAHTOUT_ADOPT_A_BOT_OFFLINE_POLL_WAIT_SECONDS = 0;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_TOKEN_COST = 100;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX = 'RNDBOT';
 const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
@@ -1004,6 +1004,10 @@ function sahtout_adopt_a_bot_prepare_character_offline(
         return true;
     }
     sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid);
+    sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid);
+    if ($maxWaitSeconds <= 0) {
+        return !sahtout_adopt_a_bot_character_is_online($charDb, $guid);
+    }
     $deadline = time() + max(1, $maxWaitSeconds);
     $lastKickAt = time();
     while (time() < $deadline) {

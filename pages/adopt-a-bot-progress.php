@@ -5,6 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'includes/adopt_a_bot.php';
 
 header('Content-Type: application/json; charset=utf-8');
+@set_time_limit(20);
 
 if (empty($_SESSION['user_id'])) {
     http_response_code(401);
