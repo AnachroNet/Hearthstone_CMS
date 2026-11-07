@@ -247,7 +247,7 @@ ob_start();
                     </button>
                 </form>
             </div>
-            <?php if ((string) ($pending['status'] ?? '') === 'draft'): ?>
+            <?php if (sahtout_adopt_a_bot_may_cancel_unpaid_adoption($pending)): ?>
                 <form method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="confirm-actions-primary" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
                     <button type="submit" class="cancel-adoption-btn">

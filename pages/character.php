@@ -736,14 +736,12 @@ if ($ilvl > 0) {
                     <?php endif; ?>
                 </div>
                 <?php if ($adoptShowForCharacter && $adoptPreview): ?>
-                    <?php
-                    $adoptPreviewDraft = (string) ($adoptOpenClaim['status'] ?? '') === 'draft';
-                    ?>
+                    <?php $adoptPreviewMayCancel = sahtout_adopt_a_bot_may_cancel_unpaid_adoption($adoptOpenClaim); ?>
                     <div class="adopt-hero-actions">
                         <a href="<?= htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8') ?>" class="adopt-cancel-btn">
                             <?= htmlspecialchars(translate('adopt_a_bot_confirm_back', 'Choose another')) ?>
                         </a>
-                        <?php if ($adoptPreviewDraft): ?>
+                        <?php if ($adoptPreviewMayCancel): ?>
                             <form method="post" action="<?= htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8') ?>" class="inline" onsubmit="return confirm(<?= json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')) ?>);">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')) ?>">
                                 <button type="submit" class="adopt-cancel-adoption-btn">

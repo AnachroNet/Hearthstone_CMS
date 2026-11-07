@@ -677,6 +677,26 @@ function sahtout_adopt_a_bot_claim_has_purchase(?array $claim): bool
     return $claim !== null && (int) ($claim['purchase_id'] ?? 0) > 0;
 }
 
+/** User may abandon before tokens are charged and transfer starts. */
+function sahtout_adopt_a_bot_may_cancel_unpaid_adoption(?array $claim): bool
+{
+    if ($claim === null) {
+        return false;
+    }
+    $status = strtolower(trim((string) ($claim['status'] ?? '')));
+    if ($status === 'processing') {
+        return false;
+    }
+    if ($status === 'draft') {
+        return true;
+    }
+    if ($status === 'pending' && !sahtout_adopt_a_bot_claim_has_purchase($claim)) {
+        return true;
+    }
+
+    return false;
+}
+
 /**
  * Debit tokens and attach purchase to a draft claim (final checkout).
  *
@@ -788,14 +808,29 @@ function sahtout_adopt_a_bot_charge_claim_purchase(
     return ['ok' => true, 'purchase_id' => $purchaseId];
 }
 
-/** Cancel unpaid adoption (draft). No refund — tokens were not charged. */
+/** Cancel unpaid adoption (draft or unpaid pending). No refund — tokens were not charged. */
 function sahtout_adopt_a_bot_cancel_draft_claim(mysqli $siteDb, int $accountId): bool
 {
     if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
         return false;
     }
     $stmt = $siteDb->prepare(
-        "UPDATE adopt_a_bot_claims SET status = 'cancelled' WHERE account_id = ? AND status = 'draft' LIMIT 1"
+        "UPDATE adopt_a_bot_claims SET status = 'cancelled'
+         WHERE account_id = ? AND status = 'draft' LIMIT 1"
+    );
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $accountId);
+    $ok = $stmt->execute() && $stmt->affected_rows === 1;
+    $stmt->close();
+    if ($ok) {
+        return true;
+    }
+
+    $stmt = $siteDb->prepare(
+        "UPDATE adopt_a_bot_claims SET status = 'cancelled'
+         WHERE account_id = ? AND status = 'pending' AND (purchase_id IS NULL OR purchase_id = 0) LIMIT 1"
     );
     if (!$stmt) {
         return false;

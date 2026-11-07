@@ -68,7 +68,7 @@ $offset = ($page - 1) * $pageSize;
 $bots = $poolConfigured
     ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolAccountIds, $search, $pageSize, $maxBotLevel, $offset)
     : [];
-$canCancelDraft = !$claimProcessingInBackground && (string) ($openClaim['status'] ?? '') === 'draft';
+$canCancelAdoption = sahtout_adopt_a_bot_may_cancel_unpaid_adoption($openClaim);
 
 $adoptPickerPageUrl = static function (int $targetPage) use ($base_path, $search): string {
     $params = [];
@@ -321,44 +321,47 @@ include_once $project_root . 'includes/header.php';
                 </div>
             <?php } ?>
 
-            <form method="get" class="mb-8 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 flex-wrap">
-                <input type="hidden" name="page" value="1">
-                <input
-                    type="text"
-                    name="q"
-                    value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>"
-                    placeholder="<?php echo translate('adopt_a_bot_search_placeholder', 'Search by name…'); ?>"
-                    maxlength="12"
-                    class="w-full sm:w-80 px-4 py-2.5 rounded-lg bg-black/60 text-white border-2 border-[rgba(201,162,39,0.4)] focus:outline-none focus:border-[#f2cf5b] focus:shadow-[0_0_15px_rgba(242,207,82,0.2)] transition-all duration-300 placeholder:text-gray-400 text-sm"
-                >
-                <button
-                    type="submit"
-                    id="search-btn"
-                    class="px-6 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-[rgba(242,207,82,0.3)] flex items-center justify-center gap-2"
-                >
-                    <i class="fas fa-search"></i> <?php echo translate('adopt_a_bot_search', 'Search'); ?>
-                </button>
-                <?php if ($canCancelDraft): ?>
+            <div class="mb-8 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 flex-wrap">
+                <form method="get" class="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 flex-wrap flex-1">
+                    <input type="hidden" name="page" value="1">
+                    <input
+                        type="text"
+                        name="q"
+                        value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>"
+                        placeholder="<?php echo translate('adopt_a_bot_search_placeholder', 'Search by name…'); ?>"
+                        maxlength="12"
+                        class="w-full sm:w-80 px-4 py-2.5 rounded-lg bg-black/60 text-white border-2 border-[rgba(201,162,39,0.4)] focus:outline-none focus:border-[#f2cf5b] focus:shadow-[0_0_15px_rgba(242,207,82,0.2)] transition-all duration-300 placeholder:text-gray-400 text-sm"
+                    >
                     <button
                         type="submit"
-                        form="adopt-cancel-draft-form"
-                        class="cancel-adoption-btn px-5 py-2.5 rounded-lg flex items-center justify-center gap-2"
-                        onclick="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);"
+                        id="search-btn"
+                        class="px-6 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-[rgba(242,207,82,0.3)] flex items-center justify-center gap-2"
                     >
-                        <i class="fas fa-ban"></i> <?php echo htmlspecialchars(translate('adopt_a_bot_cancel_adoption', 'Cancel Adoption')); ?>
+                        <i class="fas fa-search"></i> <?php echo translate('adopt_a_bot_search', 'Search'); ?>
                     </button>
-                <?php endif; ?>
-                <?php if ($search !== ''): ?>
-                    <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="reset-btn px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
-                        <i class="fas fa-times"></i> <?php echo translate('adopt_a_bot_reset_btn', 'Reset'); ?>
-                    </a>
-                <?php endif; ?>
-            </form>
-            <?php if ($canCancelDraft): ?>
-                <form id="adopt-cancel-draft-form" method="post" action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>" class="hidden">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                    <?php if ($search !== ''): ?>
+                        <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="reset-btn px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                            <i class="fas fa-times"></i> <?php echo translate('adopt_a_bot_reset_btn', 'Reset'); ?>
+                        </a>
+                    <?php endif; ?>
                 </form>
-            <?php endif; ?>
+                <?php if ($canCancelAdoption): ?>
+                    <form
+                        method="post"
+                        action="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-abandon', ENT_QUOTES, 'UTF-8'); ?>"
+                        class="flex justify-center"
+                        onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_cancel_confirm', 'Cancel adoption and return to the shop? No tokens will be charged.')); ?>);"
+                    >
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($_SESSION['csrf_token'] ?? '')); ?>">
+                        <button
+                            type="submit"
+                            class="cancel-adoption-btn px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 w-full sm:w-auto"
+                        >
+                            <i class="fas fa-ban"></i> <?php echo htmlspecialchars(translate('adopt_a_bot_cancel_adoption', 'Cancel Adoption')); ?>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
 
             <div class="table-container overflow-x-auto border border-[rgba(201,162,39,0.15)] shadow-2xl">
                 <table class="w-full text-sm md:text-base text-center min-w-[640px]">
