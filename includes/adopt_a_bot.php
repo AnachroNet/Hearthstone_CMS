@@ -1530,7 +1530,6 @@ function sahtout_shop_disconnect_character_for_service(
     sahtout_soap_execute_command('.kick ' . $literal . ' ShopService');
     sahtout_adopt_a_bot_kick_character_if_online($charDb, '', $guid, $authDb);
     sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
-    usleep(700000);
 }
 
 /**
@@ -1609,7 +1608,6 @@ function sahtout_shop_character_online_blocks_purchase(
         $literal = sahtout_soap_character_name_for_command($characterName);
         sahtout_soap_execute_command('.kick ' . $literal . ' ShopService');
         sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
-        usleep(400000);
 
         return false;
     }
@@ -2033,11 +2031,57 @@ function sahtout_adopt_a_bot_adjust_realm_characters(
 }
 
 /** Apply missing customize flag for every completed adoption on this account (retroactive repair). */
+function sahtout_adopt_a_bot_is_completed_adoption_character(mysqli $siteDb, int $accountId, int $guid): bool
+{
+    if ($accountId <= 0 || $guid <= 0 || !sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return false;
+    }
+    $stmt = $siteDb->prepare(
+        'SELECT claim_id FROM adopt_a_bot_claims
+         WHERE account_id = ? AND status = ? AND bot_character_guid = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        return false;
+    }
+    $completed = 'completed';
+    $stmt->bind_param('isi', $accountId, $completed, $guid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $ok = $res && $res->num_rows > 0;
+    $stmt->close();
+
+    return $ok;
+}
+
+/** Fast DB-only prep for shop (no SOAP). Safe on every service purchase. */
+function sahtout_adopt_a_bot_fast_shop_character_prep(
+    mysqli $siteDb,
+    mysqli $charDb,
+    int $accountId,
+    int $guid
+): void {
+    if ($accountId <= 0 || $guid <= 0) {
+        return;
+    }
+    if (!sahtout_adopt_a_bot_is_completed_adoption_character($siteDb, $accountId, $guid)) {
+        return;
+    }
+    sahtout_adopt_a_bot_remove_from_playerbots_random_pool($charDb, $guid);
+    sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $guid);
+    $off = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? LIMIT 1');
+    if ($off) {
+        $off->bind_param('ii', $guid, $accountId);
+        $off->execute();
+        $off->close();
+    }
+}
+
 function sahtout_adopt_a_bot_sync_completed_adoption_characters(
     mysqli $siteDb,
     mysqli $charDb,
     int $accountId,
-    ?mysqli $authDb = null
+    ?mysqli $authDb = null,
+    bool $withRealmRepair = true
 ): void {
     if ($accountId <= 0 || !sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
         return;
@@ -2089,7 +2133,12 @@ function sahtout_adopt_a_bot_sync_completed_adoption_characters(
                 $charName = trim((string) ($nameRow['name'] ?? ''));
             }
         }
-        sahtout_adopt_a_bot_repair_adopted_character_world_state($charDb, $authDb, $guid, $accountId, $charName);
+        if ($withRealmRepair) {
+            sahtout_adopt_a_bot_repair_adopted_character_world_state($charDb, $authDb, $guid, $accountId, $charName);
+        } else {
+            sahtout_adopt_a_bot_fast_shop_character_prep($siteDb, $charDb, $accountId, $guid);
+            sahtout_adopt_a_bot_grant_customize_at_login($charDb, $guid, $accountId);
+        }
     }
     $stmt->close();
 }
