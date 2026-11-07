@@ -82,50 +82,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($error !== '') {
             // fall through to form with error
         } else {
-        $started = sahtout_adopt_a_bot_start_processing(
-            $site_db,
-            $claimId,
-            $accountId,
-            $guid,
-            (string) $bot['name']
-        );
-        if ($started) {
-            header('Location: ' . $base_path . 'adopt-a-bot-character?guid=' . $guid . '&step=processing');
-            exit;
-        }
-        if (!sahtout_adopt_a_bot_claims_extended_schema($site_db)) {
-            $result = sahtout_adopt_a_bot_complete_claim(
+            $started = sahtout_adopt_a_bot_start_processing(
                 $site_db,
-                $char_db,
-                $auth_db,
-                $accountId,
                 $claimId,
+                $accountId,
                 $guid,
-                $db_char_name,
-                $db_auth_name
+                (string) $bot['name']
             );
-            if (!empty($result['ok'])) {
-                $_SESSION['message'] = translate(
-                    'adopt_a_bot_success',
-                    'You adopted %s! Log in to the game with that character on your account.',
-                    (string) ($result['character_name'] ?? $bot['name'])
-                );
-                header('Location: ' . $base_path . 'account');
+            if ($started) {
+                header('Location: ' . $base_path . 'adopt-a-bot-character?guid=' . $guid . '&step=processing');
                 exit;
             }
-            $syncErr = (string) ($result['error'] ?? '');
-            if ($syncErr === 'bot_online') {
-                $_SESSION['error'] = translate('adopt_a_bot_error_bot_online', 'That character could not be taken offline. Wait a minute and try again, or pick another bot.');
-            } else {
-                $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
+            if (!sahtout_adopt_a_bot_claims_extended_schema($site_db)) {
+                $result = sahtout_adopt_a_bot_complete_claim(
+                    $site_db,
+                    $char_db,
+                    $auth_db,
+                    $accountId,
+                    $claimId,
+                    $guid,
+                    $db_char_name,
+                    $db_auth_name
+                );
+                if (!empty($result['ok'])) {
+                    $_SESSION['message'] = translate(
+                        'adopt_a_bot_success',
+                        'You adopted %s! Log in to the game with that character on your account.',
+                        (string) ($result['character_name'] ?? $bot['name'])
+                    );
+                    header('Location: ' . $base_path . 'account');
+                    exit;
+                }
+                $syncErr = (string) ($result['error'] ?? '');
+                if ($syncErr === 'bot_online') {
+                    $_SESSION['error'] = translate('adopt_a_bot_error_bot_online', 'That character could not be taken offline. Wait a minute and try again, or pick another bot.');
+                } else {
+                    $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
+                }
+                header('Location: ' . $base_path . 'adopt-a-bot-confirm?guid=' . $guid);
+                exit;
             }
+            $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
             header('Location: ' . $base_path . 'adopt-a-bot-confirm?guid=' . $guid);
             exit;
-        }
-        $_SESSION['error'] = translate('adopt_a_bot_error_generic', 'Adoption failed. Please try again or contact staff.');
-        header('Location: ' . $base_path . 'adopt-a-bot-confirm?guid=' . $guid);
-        exit;
-    }
         }
     }
 }
