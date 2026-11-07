@@ -1511,6 +1511,25 @@ function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid, ?mys
     return (int) ($row['online'] ?? 0) === 1;
 }
 
+/** Kick + playerbots hold so shop services can apply (adopted rndbots often stay on the buyer's onlinelist). */
+function sahtout_shop_disconnect_character_for_service(
+    mysqli $charDb,
+    ?mysqli $authDb,
+    int $guid,
+    string $characterName
+): void {
+    $characterName = trim($characterName);
+    if ($guid <= 0 || $characterName === '' || !sahtout_soap_is_configured()) {
+        return;
+    }
+    sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $guid);
+    $literal = sahtout_soap_character_name_for_command($characterName);
+    sahtout_soap_execute_command('.kick ' . $literal . ' ShopService');
+    sahtout_adopt_a_bot_kick_character_if_online($charDb, '', $guid, $authDb);
+    sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
+    usleep(700000);
+}
+
 /**
  * Shop purchases: block only when the buyer's account has this character in the world.
  * Clears stale characters.online flags and kicks orphan pool-bot sessions on the onlinelist.
@@ -1564,7 +1583,22 @@ function sahtout_shop_character_online_blocks_purchase(
         && $characterName !== ''
         && sahtout_soap_onlinelist_contains_character_for_account($listText, $buyerLogin, $characterName)
     ) {
-        return true;
+        sahtout_shop_disconnect_character_for_service($charDb, $authDb, $guid, $characterName);
+        $listText = sahtout_soap_account_onlinelist_text();
+        if (
+            $listText !== null
+            && sahtout_soap_onlinelist_contains_character_for_account($listText, $buyerLogin, $characterName)
+        ) {
+            return true;
+        }
+        $stmt = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('ii', $guid, $accountId);
+            $stmt->execute();
+            $stmt->close();
+        }
+
+        return false;
     }
 
     if ($characterName !== '' && sahtout_soap_onlinelist_contains_character($listText, $characterName)) {
@@ -1968,6 +2002,43 @@ function sahtout_adopt_a_bot_adjust_realm_characters(
     $stmt->close();
 
     return $ok;
+}
+
+/** Apply missing customize flag for every completed adoption on this account (retroactive repair). */
+function sahtout_adopt_a_bot_sync_completed_adoption_characters(mysqli $siteDb, mysqli $charDb, int $accountId): void
+{
+    if ($accountId <= 0 || !sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
+        return;
+    }
+    $stmt = $siteDb->prepare(
+        'SELECT bot_character_guid FROM adopt_a_bot_claims
+         WHERE account_id = ? AND status = ? AND bot_character_guid IS NOT NULL AND bot_character_guid > 0'
+    );
+    if (!$stmt) {
+        return;
+    }
+    $completed = 'completed';
+    $stmt->bind_param('is', $accountId, $completed);
+    if (!$stmt->execute()) {
+        $stmt->close();
+
+        return;
+    }
+    $res = $stmt->get_result();
+    while ($res && ($row = $res->fetch_assoc())) {
+        $guid = (int) ($row['bot_character_guid'] ?? 0);
+        if ($guid <= 0) {
+            continue;
+        }
+        sahtout_adopt_a_bot_grant_customize_at_login($charDb, $guid, $accountId);
+        $off = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? AND online = 1 LIMIT 1');
+        if ($off) {
+            $off->bind_param('ii', $guid, $accountId);
+            $off->execute();
+            $off->close();
+        }
+    }
+    $stmt->close();
 }
 
 /** Grant AT_LOGIN customize on the adopted character (OR into existing at_login flags). */

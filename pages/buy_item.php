@@ -145,6 +145,8 @@ try {
     $stmt->close();
     error_log("Character Details: " . print_r($character, true));
 
+    sahtout_adopt_a_bot_sync_completed_adoption_characters($site_db, $char_db, $account_id);
+
     global $auth_db;
     $authForOnline = ($auth_db instanceof mysqli) ? $auth_db : null;
     $charName = trim((string) ($character['name'] ?? ''));
