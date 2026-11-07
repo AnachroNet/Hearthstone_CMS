@@ -147,8 +147,9 @@ try {
 
     global $auth_db;
     $authForOnline = ($auth_db instanceof mysqli) ? $auth_db : null;
-    if (sahtout_adopt_a_bot_character_is_online($char_db, $character_guid, $authForOnline)) {
-        error_log("Character is online (DB and/or world): guid=$character_guid");
+    $charName = trim((string) ($character['name'] ?? ''));
+    if (sahtout_shop_character_online_blocks_purchase($char_db, $authForOnline, $character_guid, $account_id, $charName)) {
+        error_log("Character is online on buyer account: guid=$character_guid name=$charName");
         throw new Exception('character_online');
     }
 

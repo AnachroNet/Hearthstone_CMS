@@ -1511,6 +1511,82 @@ function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid, ?mys
     return (int) ($row['online'] ?? 0) === 1;
 }
 
+/**
+ * Shop purchases: block only when the buyer's account has this character in the world.
+ * Clears stale characters.online flags and kicks orphan pool-bot sessions on the onlinelist.
+ */
+function sahtout_shop_character_online_blocks_purchase(
+    mysqli $charDb,
+    ?mysqli $authDb,
+    int $guid,
+    int $accountId,
+    string $characterName
+): bool {
+    $characterName = trim($characterName);
+    if ($guid <= 0 || $accountId <= 0) {
+        return true;
+    }
+
+    $buyerLogin = '';
+    if ($authDb instanceof mysqli) {
+        $stmt = $authDb->prepare('SELECT username FROM account WHERE id = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('i', $accountId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $authRow = $res ? $res->fetch_assoc() : null;
+            $stmt->close();
+            $buyerLogin = trim((string) ($authRow['username'] ?? ''));
+        }
+    }
+
+    if (!sahtout_soap_is_configured()) {
+        $stmt = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('ii', $guid, $accountId);
+            $stmt->execute();
+            $stmt->close();
+        }
+
+        return false;
+    }
+
+    $listText = sahtout_soap_account_onlinelist_text();
+    if ($listText === null) {
+        sahtout_adopt_a_bot_kick_character_if_online($charDb, '', $guid, $authDb);
+        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
+
+        return false;
+    }
+
+    if (
+        $buyerLogin !== ''
+        && $characterName !== ''
+        && sahtout_soap_onlinelist_contains_character_for_account($listText, $buyerLogin, $characterName)
+    ) {
+        return true;
+    }
+
+    if ($characterName !== '' && sahtout_soap_onlinelist_contains_character($listText, $characterName)) {
+        sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $guid);
+        $literal = sahtout_soap_character_name_for_command($characterName);
+        sahtout_soap_execute_command('.kick ' . $literal . ' ShopService');
+        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
+        usleep(400000);
+
+        return false;
+    }
+
+    $stmt = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? LIMIT 1');
+    if ($stmt) {
+        $stmt->bind_param('ii', $guid, $accountId);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    return false;
+}
+
 function sahtout_adopt_a_bot_disconnect_retry_due(int $claimId, int $cooldownSeconds = SAHTOUT_ADOPT_A_BOT_DISCONNECT_RETRY_SECONDS): bool
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {

@@ -236,6 +236,22 @@ function sahtout_soap_onlinelist_contains_character(string $listText, string $ch
         || sahtout_soap_onlinelist_contains_name($listText, $characterName);
 }
 
+/** True when this exact account login has the character connected (AzerothCore [Account][Character]… rows). */
+function sahtout_soap_onlinelist_contains_character_for_account(
+    string $listText,
+    string $accountLogin,
+    string $characterName
+): bool {
+    $accountLogin = trim($accountLogin);
+    $characterName = trim($characterName);
+    if ($accountLogin === '' || $characterName === '' || trim($listText) === '') {
+        return false;
+    }
+    $pattern = '/\[' . preg_quote($accountLogin, '/') . '\]\[' . preg_quote($characterName, '/') . '\]/iu';
+
+    return (bool) preg_match($pattern, $listText);
+}
+
 function sahtout_soap_message_indicates_player_in_world(string $text): bool
 {
     $text = strtolower(trim($text));
@@ -259,7 +275,6 @@ function sahtout_soap_message_indicates_player_in_world(string $text): bool
  */
 function sahtout_soap_character_in_world(string $characterName, ?string $accountLogin = null): ?bool
 {
-    unset($accountLogin);
     if (!sahtout_soap_is_configured()) {
         return null;
     }
@@ -267,6 +282,7 @@ function sahtout_soap_character_in_world(string $characterName, ?string $account
     if ($characterName === '') {
         return null;
     }
+    $accountLogin = $accountLogin !== null ? trim($accountLogin) : '';
 
     $listText = sahtout_soap_account_onlinelist_text();
     if ($listText !== null) {
@@ -276,6 +292,16 @@ function sahtout_soap_character_in_world(string $characterName, ?string $account
         }
         $listLower = strtolower($trimList);
         if (preg_match('/\b(no players|nobody online|0 accounts|accounts online:\s*0)\b/', $listLower)) {
+            return false;
+        }
+        if ($accountLogin !== '') {
+            if (sahtout_soap_onlinelist_contains_character_for_account($listText, $accountLogin, $characterName)) {
+                return true;
+            }
+            if (sahtout_soap_onlinelist_contains_character($listText, $characterName)) {
+                return false;
+            }
+
             return false;
         }
         if (sahtout_soap_onlinelist_contains_character($listText, $characterName)) {
