@@ -26,6 +26,8 @@ const SAHTOUT_ADOPT_A_BOT_PICKER_PAGE_SIZE = 25;
 const SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX = 'RNDBOT';
 const SAHTOUT_ADOPT_A_BOT_SHOP_IMAGE = 'img/shopimg/services/adopt-a-bot.jpg';
 const SAHTOUT_ADOPT_A_BOT_SHOP_NAME = 'Adopt a Bot';
+/** AzerothCore AT_LOGIN flag: appearance/customize at next login (same as shop “Customize Character”). */
+const SAHTOUT_AT_LOGIN_CUSTOMIZE = 8;
 
 function sahtout_adopt_a_bot_config_override(): ?bool
 {
@@ -1892,6 +1894,26 @@ function sahtout_adopt_a_bot_adjust_realm_characters(
     return $ok;
 }
 
+/** Grant AT_LOGIN customize on the adopted character (OR into existing at_login flags). */
+function sahtout_adopt_a_bot_grant_customize_at_login(mysqli $charDb, int $characterGuid, int $accountId): bool
+{
+    if ($characterGuid <= 0 || $accountId <= 0) {
+        return false;
+    }
+    $flag = SAHTOUT_AT_LOGIN_CUSTOMIZE;
+    $stmt = $charDb->prepare(
+        'UPDATE characters SET at_login = at_login | ? WHERE guid = ? AND account = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('iii', $flag, $characterGuid, $accountId);
+    $ok = $stmt->execute() && $stmt->affected_rows === 1;
+    $stmt->close();
+
+    return $ok;
+}
+
 /**
  * @return array{ok:bool, error?:string, character_name?:string}
  */
@@ -2031,6 +2053,10 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'database'];
     }
 
+    if (!sahtout_adopt_a_bot_grant_customize_at_login($charDb, $botGuid, $accountId)) {
+        error_log('adopt_a_bot: failed to grant at_login customize for adopted guid ' . $botGuid);
+    }
+
     $realmId = sahtout_adopt_a_bot_configured_realm_id();
     if (!sahtout_adopt_a_bot_adjust_realm_characters($authDb, $authDbName, $realmId, $poolAccountId, -1)) {
         error_log('adopt_a_bot: failed to decrement pool realmcharacters');
@@ -2052,7 +2078,7 @@ function sahtout_adopt_a_bot_complete_claim(
         $siteDb,
         $accountId,
         'Adopt a Bot',
-        'Adopted character GUID ' . $botGuid . ' from pool account.',
+        'Adopted character GUID ' . $botGuid . ' from pool account; at_login customize enabled.',
         $charName
     );
 
