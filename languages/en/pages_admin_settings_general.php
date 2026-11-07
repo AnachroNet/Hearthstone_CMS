@@ -11,6 +11,11 @@ return [
     // Section titles
     'settings_general' => 'General Settings',
 
+    'label_cms_version' => 'CMS Version',
+    'label_cms_release' => 'CMS Release',
+    'help_cms_build_db' => 'Stored in site_settings when you import the version base install or apply release update SQL.',
+    'help_cms_build_code' => 'This codebase ships',
+
     // Website Title
     'label_website_title' => 'Website Title',
     'placeholder_site_title' => 'e.g. My Awesome Site',
@@ -60,7 +65,7 @@ return [
     'label_registration_signup_tokens_enabled' => 'Grant shop tokens to new accounts at registration',
     'label_registration_signup_tokens_amount' => 'Token amount',
     'help_registration_signup_tokens' => 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.',
-    'error_shared_email_index' => 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.',
+    'error_shared_email_index' => 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.',
 
     'label_site_breaking_news' => 'In-game breaking news',
     'label_site_breaking_news_enabled' => 'Show breaking news on the home page and enable the in-game editor (Admin → News)',

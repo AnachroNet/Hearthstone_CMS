@@ -244,7 +244,7 @@ function sahtout_adopt_a_bot_claims_upgrade_draft_schema(mysqli $siteDb): bool
         );
     } catch (mysqli_sql_exception $e) {
         error_log(
-            'adopt_a_bot: draft schema upgrade skipped — run SQL/Hearthstone_UPDATE/2026110701_adopt-a-bot.sql as DBA: '
+            'adopt_a_bot: draft schema upgrade skipped — run SQL/Hearthstone_DATABASE/UPDATES/2026110701-adopt-a-bot.sql as DBA: '
             . $e->getMessage()
         );
     }
@@ -307,7 +307,7 @@ function sahtout_adopt_a_bot_claims_upgrade_schema(mysqli $siteDb): bool
         }
     } catch (mysqli_sql_exception $e) {
         error_log(
-            'adopt_a_bot: schema upgrade skipped — grant ALTER or run SQL/Hearthstone_UPDATE/2026110701_adopt-a-bot.sql as DBA: '
+            'adopt_a_bot: schema upgrade skipped — grant ALTER or run SQL/Hearthstone_DATABASE/UPDATES/2026110701-adopt-a-bot.sql as DBA: '
             . $e->getMessage()
         );
     }

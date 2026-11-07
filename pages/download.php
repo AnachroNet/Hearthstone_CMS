@@ -193,7 +193,7 @@ include_once $project_root . 'includes/header.php';
 
                 <?php if (!$tableReady): ?>
                     <div class="panel p-8 info-box rounded-sm download-list-block">
-                        <p><?php echo translate('download_table_missing', 'Download links are not available—the site_downloads table is missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database. After that, add links in Admin → Downloads.'); ?></p>
+                        <p><?php echo translate('download_table_missing', 'Download links are not available—the site_downloads table is missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database. After that, add links in Admin → Downloads.'); ?></p>
                     </div>
                 <?php elseif (empty($downloads)): ?>
                     <div class="panel p-8 download-list-block">

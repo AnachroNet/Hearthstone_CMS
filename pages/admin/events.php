@@ -194,13 +194,13 @@ function sahtout_admin_format_event_dates(array $row): string
 
             <?php if (!$tableReady): ?>
                 <div class="panel p-6 text-amber-300 border border-amber-500/30">
-                    <?php echo translate('admin_events_table_missing', 'The site_calendar_events table is missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.'); ?>
+                    <?php echo translate('admin_events_table_missing', 'The site_calendar_events table is missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.'); ?>
                 </div>
             <?php else: ?>
 
             <?php if (!$recurrenceSchemaReady): ?>
                 <div class="panel p-4 text-amber-300 border border-amber-500/30 mb-4">
-                    <?php echo translate('admin_events_recurrence_migration', 'The site_calendar_events table is missing columns needed for recurring events. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.'); ?>
+                    <?php echo translate('admin_events_recurrence_migration', 'The site_calendar_events table is missing columns needed for recurring events. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.'); ?>
                 </div>
             <?php endif; ?>
 

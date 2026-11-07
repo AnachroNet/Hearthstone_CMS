@@ -1,4 +1,4 @@
--- Hearthstone CMS release 2026110701 (2026-11-07, update 01) — Adopt a Bot
+-- Hearthstone CMS v1.0 release 2026110701 (2026-11-07, update 01) — Adopt a Bot
 -- Run against your site database (hearthstone_site) as a user with CREATE/ALTER privilege.
 -- Idempotent: safe whether the table is missing, legacy (pending-only), or partially upgraded.
 
@@ -62,9 +62,9 @@ ALTER TABLE `adopt_a_bot_claims`
 
 INSERT INTO `site_settings` (
   `setting_key`, `setting_value`, `value_type`, `category`, `label`, `is_public`, `updated_by`
-) VALUES (
-  'site.release', '2026110701', 'int', 'general', 'Applied CMS release', 0, NULL
-)
+) VALUES
+  ('site.version', '1.0', 'string', 'general', 'CMS version', 0, NULL),
+  ('site.release', '2026110701', 'int', 'general', 'Applied CMS release', 0, NULL)
 ON DUPLICATE KEY UPDATE
   `setting_value` = VALUES(`setting_value`),
   `value_type` = VALUES(`value_type`),

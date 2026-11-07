@@ -143,7 +143,7 @@ if ($flash !== '') {
 
             <?php if (!$tableReady): ?>
                 <div class="panel p-6 text-amber-300 border border-amber-500/30">
-                    <?php echo translate('admin_teleport_locations_table_missing', 'The admin teleport locations table is missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.'); ?>
+                    <?php echo translate('admin_teleport_locations_table_missing', 'The admin teleport locations table is missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.'); ?>
                 </div>
             <?php else: ?>
 

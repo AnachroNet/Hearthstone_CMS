@@ -1,18 +1,21 @@
 Hearthstone CMS SQL layout
 ==========================
 
-Hearthstone_DATABASE/
-  FULL_UPDATE/           — import hearthstone_site_install_demo.sql for a new site (complete schema + demo data)
-  generated/             — output from tools (e.g. achievement catalog import); gitignored except .gitkeep
-  adopt_a_bot_claims.sql — reference CREATE for adopt_a_bot_claims (updates ship in Hearthstone_UPDATE/)
+Each game/CMS database has its own folder under SQL/, with BASE_INSTALL and UPDATES as needed.
 
-Hearthstone_UPDATE/
-  YYYYMMDDNN_short-name.sql — ordered patches for existing site DBs; sets site_settings.site.release
-  README.md              — release numbering and apply instructions
+Hearthstone_DATABASE/          (hearthstone_site)
+  BASE_INSTALL/
+    2026110601-hearthstone_site_install_v1.0.sql  — v1.0 full schema + demo seed
+  UPDATES/
+    2026110701-adopt-a-bot.sql  — release patches (see README.md)
+  generated/                   — maintainer tool output (see generated/README.md); gitignored *.sql
 
 acore_world_DATABASE/
-  token_gift_quest_addon_fix.sql  — optional world patch for token gift letters (see README.md Database section)
+  BASE_INSTALL/
+    2026110601-token_gift_quest_addon_fix.sql
+  UPDATES/                     — future world release SQL
 
-Shop accounts: no acore_auth trigger SQL is required. See DATABASE_PRIVILEGES.md.
+Code version / release: VERSION and RELEASE at project root (includes/release.php).
+Database: site_settings.site.version and site_settings.site.release.
 
-Code release id: RELEASE at the project root (see includes/release.php).
+See DATABASE_PRIVILEGES.md for MySQL grants.

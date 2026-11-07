@@ -157,7 +157,7 @@ return [
     'admin_breaking_news_header' => 'In-game breaking news',
     'admin_breaking_news_help' => 'Shown on the character select screen when BreakingNews.Enable and BreakingNews.Source (db or auto) are set on worldserver. Use blank lines for new paragraphs. Color buttons wrap selected text with WoW |c…|r codes.',
     'admin_breaking_news_world_db' => 'World database connection is not available.',
-    'admin_breaking_news_table_missing' => 'The mod_breaking_news table was not found on the world database (acore_world). Install or enable the AzerothCore breaking-news module so this table exists—the site full seed (SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql) only covers the site database.',
+    'admin_breaking_news_table_missing' => 'The mod_breaking_news table was not found on the world database (acore_world). Install or enable the AzerothCore breaking-news module so this table exists—the site full seed (SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql) only covers the site database.',
     'admin_breaking_news_save_success' => 'In-game breaking news saved.',
     'admin_breaking_news_save_failed' => 'Could not save breaking news.',
     'admin_breaking_news_error_invalid_title' => 'Enter a title (max 128 characters).',

@@ -182,7 +182,7 @@ if (empty($errors)) {
         if ($ok && $registration_allow_shared_email_new) {
             if (!sahtout_pending_accounts_drop_unique_email($site_db)
                 || !sahtout_password_resets_ensure_username_column($site_db)) {
-                $errors[] = translate('error_shared_email_index', 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.');
+                $errors[] = translate('error_shared_email_index', 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.');
                 $ok = false;
             }
         }

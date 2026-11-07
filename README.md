@@ -72,12 +72,12 @@ Import and run the standard AzerothCore **auth**, **characters**, and **world** 
 Create an empty database for the site, then import the maintained full seed:
 
 ```text
-SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql
+SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql
 ```
 
 That file targets the **`hearthstone_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
-For **upgrades** after install, apply scripts under **`SQL/Hearthstone_UPDATE/`** in release order (see **`SQL/Hearthstone_UPDATE/README.md`**). The repo root **`RELEASE`** file is the codebase release id; the database stores the last applied id in **`site_settings.site.release`** (`YYYYMMDD` + daily counter, e.g. `2026110701`).
+For **upgrades** after install, apply scripts under **`SQL/Hearthstone_DATABASE/UPDATES/`** in release order (see **`SQL/Hearthstone_DATABASE/UPDATES/README.md`**). The repo root **`VERSION`** and **`RELEASE`** files are the shipped CMS version (e.g. **1.0**) and release id; the database stores them in **`site_settings.site.version`** and **`site_settings.site.release`** (`YYYYMMDD` + daily counter, e.g. **Version 1.0 — Release 2026110701**).
 
 ### 3. AzerothCore optional SQL (only for specific features)
 
@@ -85,9 +85,9 @@ Core **auth / characters / world** still come from your **AzerothCore revision**
 
 | File | Database | Feature / note |
 |------|----------|----------------|
-| **`SQL/acore_world_DATABASE/token_gift_quest_addon_fix.sql`** | `acore_world` | Token gift letters use in-game mail; this aligns quest / locale bits for that flow. Apply **before** publishing token gifts if your world DB does not already match. |
+| **`SQL/acore_world_DATABASE/BASE_INSTALL/2026110601-token_gift_quest_addon_fix.sql`** | `acore_world` | Token gift letters use in-game mail; this aligns quest / locale bits for that flow. Apply **before** publishing token gifts if your world DB does not already match. |
 
-**In-game breaking news** (Admin → News → In-game, when enabled under Admin → General) requires a **`mod_breaking_news`** table on **`acore_world`**. Install the **Breaking News** module on your core—for example [**AnachroNet/mod-breaking-news-override**](https://github.com/AnachroNet/mod-breaking-news-override) (or another compatible implementation that provides that table). It is **not** part of `hearthstone_site_install_demo.sql`. You can turn the whole feature off under **Admin → General** (`site.breaking_news_enabled`) so the site does not read the world DB for it.
+**In-game breaking news** (Admin → News → In-game, when enabled under Admin → General) requires a **`mod_breaking_news`** table on **`acore_world`**. Install the **Breaking News** module on your core—for example [**AnachroNet/mod-breaking-news-override**](https://github.com/AnachroNet/mod-breaking-news-override) (or another compatible implementation that provides that table). It is **not** part of the site base install SQL. You can turn the whole feature off under **Admin → General** (`site.breaking_news_enabled`) so the site does not read the world DB for it.
 
 **Token gift letters** (sealed-letter shop promos, Admin → A-Shop → Rewards → Token Gifts) can be turned off entirely under **Admin → General** (`shop.token_gifts_enabled`). When disabled, that sub-tab is hidden for everyone (including administrators), login sync skips granting tokens for those promos, and the optional world SQL above is irrelevant. For recovery without the UI, you can set **`features.shop_token_gifts_enabled`** to `true` or `false` in **`includes/config.local.php`** (see `config.local.example.php`); the value overrides the database until removed or set back to `null`.
 
@@ -140,10 +140,11 @@ Core **auth / characters / world** still come from your **AzerothCore revision**
 ## SQL layout in this repo
 
 ```text
-SQL/Hearthstone_DATABASE/FULL_UPDATE/        — full site DB for new installs (hearthstone_site_install_demo.sql)
+SQL/Hearthstone_DATABASE/BASE_INSTALL/       — full site DB for a major version (v1.0 base at release 2026110601)
+SQL/Hearthstone_DATABASE/UPDATES/            — per-release SQL for existing installs (site.version / site.release)
 SQL/Hearthstone_DATABASE/generated/          — tooling output (e.g. achievement catalog import)
-SQL/Hearthstone_UPDATE/                      — numbered release SQL for existing site DBs (site.release)
-SQL/acore_world_DATABASE/                    — optional world SQL bundled with the CMS
+SQL/acore_world_DATABASE/BASE_INSTALL/       — optional world SQL bundled with the CMS
+SQL/acore_world_DATABASE/UPDATES/            — future world release patches
 ```
 
 **Legacy SahtoutCMS upgrade SQL** that used to live under `migrations_archive/` is **not** shipped in this branch—see **`README_sahtoutcms_legacy.md`** if you need historical upgrade paths.
@@ -157,7 +158,7 @@ These are optional tools for development and diagnostics (not part of normal ins
 | Script | Purpose |
 |--------|---------|
 | **`tools/import_achievement_catalog.php`** | Build achievement catalog SQL from WotLK DBC files under `data/dbc/`. See the header in that script for usage. |
-| **`tools/build_hearthstone_site_install_demo.py`** | Rebuild `SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql` from a full `hearthstone_site` mysqldump (scrubs volatile tables and injects demo `site_settings` / news / calendar / downloads). Run: `python tools/build_hearthstone_site_install_demo.py [path/to/dump.sql] [path/to/output.sql]` |
+| **`tools/build_hearthstone_site_install_demo.py`** | Rebuild `SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql` from a full `hearthstone_site` mysqldump (scrubs volatile tables and injects demo `site_settings` / news / calendar / downloads). Run: `python tools/build_hearthstone_site_install_demo.py [path/to/dump.sql] [path/to/output.sql]` |
 
 ---
 

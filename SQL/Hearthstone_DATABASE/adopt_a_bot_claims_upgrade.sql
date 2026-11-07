@@ -1,2 +1,0 @@
--- Deprecated: merged into SQL/Hearthstone_UPDATE/2026110701_adopt-a-bot.sql
--- Apply release updates from SQL/Hearthstone_UPDATE/ instead.

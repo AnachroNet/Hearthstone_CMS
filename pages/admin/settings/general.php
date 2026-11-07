@@ -7,8 +7,23 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/token_gift_settings.php';
 require_once $project_root . 'includes/token_gift_world.php';
 require_once $project_root . 'includes/adopt_a_bot.php';
+require_once $project_root . 'includes/site_release.php';
 
 global $world_db, $site_db;
+$cmsVersionDisplay = '';
+$cmsReleaseDisplay = 0;
+$cmsCodebuildLabel = '';
+if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+    $cmsVersionDisplay = sahtout_site_version_applied($site_db);
+    $cmsReleaseDisplay = sahtout_site_release_applied($site_db);
+    if ($cmsVersionDisplay === '') {
+        $cmsVersionDisplay = SAHTOUT_CODE_VERSION;
+    }
+    if ($cmsReleaseDisplay === 0) {
+        $cmsReleaseDisplay = SAHTOUT_CODE_RELEASE;
+    }
+    $cmsCodebuildLabel = sahtout_site_release_label(SAHTOUT_CODE_VERSION, SAHTOUT_CODE_RELEASE);
+}
 $tokenGiftWorldIdSlots = [];
 $tokenGiftsFeatureEnabled = sahtout_site_token_gifts_enabled();
 if ($tokenGiftsFeatureEnabled
@@ -147,6 +162,34 @@ include $project_root . 'includes/header.php';
                             
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="MAX_FILE_SIZE" value="3145728">
+
+                            <!-- CMS version / release (read-only) -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                                <div>
+                                    <span class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2 drop-shadow-[0_0_12px_rgba(201,162,39,.15),0_2px_4px_rgba(0,0,0,.8)]">
+                                        <?php echo translate('label_cms_version', 'CMS Version'); ?>
+                                    </span>
+                                    <div class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm">
+                                        <?php echo htmlspecialchars($cmsVersionDisplay !== '' ? $cmsVersionDisplay : '—'); ?>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2 drop-shadow-[0_0_12px_rgba(201,162,39,.15),0_2px_4px_rgba(0,0,0,.8)]">
+                                        <?php echo translate('label_cms_release', 'CMS Release'); ?>
+                                    </span>
+                                    <div class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm font-mono tabular-nums">
+                                        <?php echo $cmsReleaseDisplay > 0 ? htmlspecialchars((string) $cmsReleaseDisplay) : '—'; ?>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-[#6a7a8a] text-xs -mt-2 md:-mt-4">
+                                <?php echo translate('help_cms_build_db', 'Stored in site_settings when you import the version base install or apply release update SQL.'); ?>
+                                <?php if ($cmsCodebuildLabel !== ''): ?>
+                                    <?php echo ' '; ?>
+                                    <?php echo translate('help_cms_build_code', 'This codebase ships'); ?>
+                                    <span class="text-[#c9a227]/90"><?php echo htmlspecialchars($cmsCodebuildLabel); ?></span>.
+                                <?php endif; ?>
+                            </div>
 
                             <!-- Website Title -->
                             <div>

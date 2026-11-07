@@ -6,7 +6,7 @@ return [
     'admin_teleport_subtab_list' => 'Locations',
     'admin_teleport_subtab_add' => 'Add Location',
     'admin_teleport_locations_help' => 'These destinations appear in Admin → Character Management → Teleport Directly and on the Account Dashboard → Characters tab. Lower sort order appears first in dropdowns.',
-    'admin_teleport_locations_table_missing' => 'The admin teleport locations table is missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.',
+    'admin_teleport_locations_table_missing' => 'The admin teleport locations table is missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.',
     'admin_teleport_locations_add' => 'Add location',
     'admin_teleport_locations_edit' => 'Edit location',
     'admin_teleport_locations_list' => 'All locations',
