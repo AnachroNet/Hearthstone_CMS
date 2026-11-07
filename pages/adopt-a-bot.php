@@ -4,9 +4,10 @@ require_once __DIR__ . '/../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/page_backgrounds.php';
 require_once $project_root . 'includes/adopt_a_bot.php';
 
-global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name;
+global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name, $base_path;
 
 $page_class = 'adopt-a-bot';
 
@@ -25,9 +26,9 @@ if (!$claim) {
     exit;
 }
 
-$message = '';
 $error = '';
 $search = trim((string) ($_GET['q'] ?? ''));
+$search = substr($search, 0, 12);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['csrf_token']) || !hash_equals((string) $_SESSION['csrf_token'], (string) $_POST['csrf_token'])) {
@@ -75,6 +76,44 @@ $bots = $poolConfigured
     ? sahtout_adopt_a_bot_list_pool_characters($char_db, $poolAccountIds, $search, 80, $maxBotLevel)
     : [];
 
+function sahtout_adopt_a_bot_faction_icon(int $race): string
+{
+    global $base_path;
+    $alliance = [1, 3, 4, 7, 11, 22, 25, 29];
+    $faction = in_array($race, $alliance, true) ? 'alliance' : 'horde';
+
+    return $base_path . 'img/accountimg/faction/' . $faction . '.png';
+}
+
+function sahtout_adopt_a_bot_race_icon(int $race, int $gender): string
+{
+    global $base_path;
+    $genderFolder = ($gender === 0) ? 'male' : 'female';
+    $raceMap = [
+        1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
+        5 => 'undead', 6 => 'tauren', 7 => 'gnome', 8 => 'troll',
+        9 => 'goblin', 10 => 'bloodelf', 11 => 'draenei',
+        22 => 'worgen', 25 => 'pandaren_alliance', 26 => 'pandaren_horde',
+        29 => 'voidelf',
+    ];
+    $raceName = $raceMap[$race] ?? 'unknown';
+
+    return $base_path . "img/accountimg/race/{$genderFolder}/{$raceName}.png";
+}
+
+function sahtout_adopt_a_bot_class_icon(int $class): string
+{
+    global $base_path;
+    $classMap = [
+        1 => 'warrior', 2 => 'paladin', 3 => 'hunter', 4 => 'rogue',
+        5 => 'priest', 6 => 'deathknight', 7 => 'shaman', 8 => 'mage',
+        9 => 'warlock', 10 => 'monk', 11 => 'druid', 12 => 'demonhunter',
+    ];
+    $className = $classMap[$class] ?? 'unknown';
+
+    return $base_path . "img/accountimg/class/{$className}.webp";
+}
+
 $page_title = $site_title_name . ' — ' . translate('adopt_a_bot_page_title', 'Adopt a Bot');
 $page_meta_description = translate('adopt_a_bot_meta', 'Choose a bot character to add to your account.');
 $page_meta_robots = 'noindex';
@@ -82,61 +121,257 @@ $page_meta_robots = 'noindex';
 ob_start();
 ?>
 <style>
-    body {
-        background: url('<?php echo sahtout_page_background_url('shop'); ?>') no-repeat center center fixed;
-        background-size: cover;
-    }
+        body {
+            background: url('<?php echo htmlspecialchars(sahtout_page_background_url('armory'), ENT_QUOTES, 'UTF-8'); ?>') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            padding-top: 112px;
+            margin: 0;
+            position: relative;
+        }
+
+        .adopt-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .glass-container {
+            background: rgba(5, 7, 11, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(201,162,39,.22);
+            border-radius: 0;
+            padding: 2.5rem 2.5rem;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(0,0,0,.25);
+            position: relative;
+        }
+
+        .glass-container::before {
+            content: ''; position: absolute; inset: 5px;
+            border: 1px solid rgba(201,162,39,.14);
+            pointer-events: none;
+        }
+
+        .glass-container::after {
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background:
+                linear-gradient(#e8c552,#e8c552) left top / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) left top / 2px 18px,
+                linear-gradient(#e8c552,#e8c552) right top / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) right top / 2px 18px,
+                linear-gradient(#e8c552,#e8c552) left bottom / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) left bottom / 2px 18px,
+                linear-gradient(#e8c552,#e8c552) right bottom / 18px 2px,
+                linear-gradient(#e8c552,#e8c552) right bottom / 2px 18px;
+            background-repeat: no-repeat;
+        }
+
+        .table-container {
+            scrollbar-width: thin;
+            scrollbar-color: #f2cf5b #1f2937;
+            font-family: 'Arial', sans-serif;
+            border-radius: 0;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            display: block;
+            width: 100%;
+        }
+
+        .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb { background: #f2cf5b; border-radius: 4px; }
+        .table-container table { min-width: 640px; width: 100%; border-collapse: collapse; }
+
+        .table-container th, .table-container td { padding: 12px 8px; white-space: nowrap; }
+
+        @media (max-width: 640px) {
+            .table-container th, .table-container td { padding: 10px 6px; font-size: 0.75rem; }
+        }
+
+        .player-row:hover {
+            background: rgba(242, 207, 82, 0.15) !important;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .player-row { background: rgba(0, 0, 0, 0.4); transition: all 0.2s ease-in-out; }
+
+        #search-btn, .adopt-btn {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #f2cf5b, #c9a227);
+            border: 2px solid #f2cf5b;
+            color: #1a1200;
+            font-weight: 700;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        #search-btn:hover, .adopt-btn:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, #f6d478, #d4b040);
+            box-shadow: 0 0 30px rgba(242, 207, 82, 0.5);
+            border-color: #f6d478;
+        }
+
+        #search-btn i { color: #1a1200; }
+
+        .adopt-btn {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.75rem;
+        }
+
+        .reset-btn {
+            background: rgba(10, 14, 22, 0.6);
+            border: 2px solid rgba(201, 162, 39, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .reset-btn:hover {
+            transform: scale(1.05);
+            border-color: #f2cf5b;
+            background: rgba(242, 207, 82, 0.1);
+            color: #f2cf5b;
+            box-shadow: 0 0 20px rgba(242, 207, 82, 0.15);
+        }
+
+        .player-link { color: #ffffff; text-decoration: none; transition: all 0.2s ease; }
+        .player-link:hover { text-decoration: underline; color: #f2cf5b; }
+
+        .wow-title {
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            background: linear-gradient(180deg, #fff7d6 0%, #f2cf5b 35%, #c9a227 62%, #8a6a14 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,.9));
+            letter-spacing: .02em;
+        }
+
+        @media (max-width: 767px) {
+            body { padding-top: 96px; }
+            .glass-container { padding: 1.5rem 0.75rem; }
+        }
 </style>
 <?php
 $page_head = ob_get_clean();
 include_once $project_root . 'includes/header.php';
 ?>
 
-<div class="relative z-10 max-w-4xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-['Cinzel'] text-[#f2cf5b] mb-2"><?php echo translate('adopt_a_bot_heading', 'Adopt a Bot'); ?></h1>
-    <p class="text-gray-300 mb-6"><?php echo translate(
-        'adopt_a_bot_intro',
-        'Select a character from the bot pool (level %d or below; your highest character is level %d). Adoption is permanent.',
-        $maxBotLevel,
-        $buyerHighest
-    ); ?></p>
+<div class="adopt-content min-h-screen flex items-start justify-center px-4 md:px-8 py-8">
+    <div class="container mx-auto max-w-7xl px-2 sm:px-4">
+        <div class="glass-container relative z-[1]">
+            <h1 class="wow-title text-3xl md:text-5xl font-bold text-center mb-4">
+                <?php echo translate('adopt_a_bot_heading', 'Adopt a Bot'); ?>
+            </h1>
+            <p class="text-gray-300 mb-6 text-center text-sm md:text-base max-w-3xl mx-auto">
+                <?php echo translate(
+                    'adopt_a_bot_intro',
+                    'Select a character from the bot pool (level %d or below; your highest character is level %d). Adoption is permanent.',
+                    $maxBotLevel,
+                    $buyerHighest
+                ); ?>
+            </p>
 
-    <?php if ($error !== ''): ?>
-        <div class="mb-4 p-4 border border-red-600/40 bg-red-900/30 text-red-100"><?php echo htmlspecialchars($error); ?></div>
-    <?php endif; ?>
+            <?php if ($error !== ''): ?>
+                <div class="mb-4 text-center text-red-400 font-semibold text-sm"><?php echo htmlspecialchars($error); ?></div>
+            <?php endif; ?>
 
-    <form method="get" class="mb-6 flex gap-2">
-        <input type="search" name="q" value="<?php echo htmlspecialchars($search); ?>" placeholder="<?php echo translate('adopt_a_bot_search_placeholder', 'Search by name…'); ?>"
-               class="flex-1 px-4 py-2 bg-black/40 border border-[#c9a227]/30 text-gray-200 rounded-sm focus:border-[#f2cf5b] outline-none">
-        <button type="submit" class="px-4 py-2 border border-[#c9a227]/40 text-[#f2cf5b] hover:bg-[#f2cf5b]/10"><?php echo translate('adopt_a_bot_search', 'Search'); ?></button>
-    </form>
+            <form method="get" class="mb-8 flex flex-col sm:flex-row justify-center items-center gap-3">
+                <input
+                    type="text"
+                    name="q"
+                    value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>"
+                    placeholder="<?php echo translate('adopt_a_bot_search_placeholder', 'Search by name…'); ?>"
+                    maxlength="12"
+                    class="w-full sm:w-80 px-4 py-2.5 rounded-lg bg-black/60 text-white border-2 border-[rgba(201,162,39,0.4)] focus:outline-none focus:border-[#f2cf5b] focus:shadow-[0_0_15px_rgba(242,207,82,0.2)] transition-all duration-300 placeholder:text-gray-400 text-sm"
+                >
+                <button
+                    type="submit"
+                    id="search-btn"
+                    class="px-6 py-2.5 rounded-lg transition-all duration-300 shadow-lg shadow-[rgba(242,207,82,0.3)] flex items-center gap-2"
+                >
+                    <i class="fas fa-search"></i> <?php echo translate('adopt_a_bot_search', 'Search'); ?>
+                </button>
+                <?php if ($search !== ''): ?>
+                    <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8'); ?>" class="reset-btn px-5 py-2.5 rounded-lg transition-all duration-300 flex items-center gap-2">
+                        <i class="fas fa-times"></i> <?php echo translate('adopt_a_bot_reset_btn', 'Reset'); ?>
+                    </a>
+                <?php endif; ?>
+            </form>
 
-    <?php if (!$poolConfigured): ?>
-        <p class="text-amber-200"><?php echo translate('adopt_a_bot_error_pool', 'Bot pool account is missing.'); ?></p>
-    <?php elseif (empty($bots)): ?>
-        <p class="text-gray-400"><?php echo translate('adopt_a_bot_empty', 'No matching characters in the bot pool at level %d or below.', $maxBotLevel); ?></p>
-    <?php else: ?>
-        <div class="space-y-2">
-            <?php foreach ($bots as $bot): ?>
-                <form method="post" class="flex flex-wrap items-center justify-between gap-3 p-4 bg-black/40 border border-[#c9a227]/20">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $_SESSION['csrf_token']); ?>">
-                    <input type="hidden" name="character_guid" value="<?php echo (int) $bot['guid']; ?>">
-                    <div>
-                        <span class="text-[#f2cf5b] font-semibold"><?php echo htmlspecialchars($bot['name']); ?></span>
-                        <span class="text-gray-400 text-sm ml-2"><?php echo translate('adopt_a_bot_level', 'Level'); ?> <?php echo (int) $bot['level']; ?></span>
-                    </div>
-                    <button type="submit" class="px-4 py-2 text-sm border border-emerald-600/40 text-emerald-200 hover:bg-emerald-900/30"
-                            onclick="return confirm(<?php echo json_encode(translate('adopt_a_bot_confirm', 'Adopt this character? This cannot be undone.')); ?>);">
-                        <?php echo translate('adopt_a_bot_adopt_button', 'Adopt'); ?>
-                    </button>
-                </form>
-            <?php endforeach; ?>
+            <div class="table-container overflow-x-auto border border-[rgba(201,162,39,0.15)] shadow-2xl">
+                <table class="w-full text-sm md:text-base text-center min-w-[640px]">
+                    <thead class="bg-gradient-to-r from-[rgba(201,162,39,0.9)] to-[rgba(160,130,30,0.9)] text-amber-100 uppercase text-xs md:text-sm">
+                        <tr>
+                            <th class="py-4 px-3 md:px-6 font-bold text-left whitespace-nowrap"><?php echo translate('solo_pvp_name', 'Name'); ?></th>
+                            <th class="py-4 px-3 md:px-6 font-bold whitespace-nowrap"><?php echo translate('solo_pvp_faction', 'Faction'); ?></th>
+                            <th class="py-4 px-3 md:px-6 font-bold hidden md:table-cell whitespace-nowrap"><?php echo translate('solo_pvp_race', 'Race'); ?></th>
+                            <th class="py-4 px-3 md:px-6 font-bold hidden md:table-cell whitespace-nowrap"><?php echo translate('solo_pvp_class', 'Class'); ?></th>
+                            <th class="py-4 px-3 md:px-6 font-bold whitespace-nowrap"><?php echo translate('solo_pvp_level', 'Level'); ?></th>
+                            <th class="py-4 px-3 md:px-6 font-bold whitespace-nowrap"><?php echo translate('adopt_a_bot_col_action', 'Adopt'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!$poolConfigured): ?>
+                            <tr>
+                                <td colspan="6" class="py-8 px-4 text-lg text-amber-200 font-bold text-center">
+                                    <?php echo translate('adopt_a_bot_error_pool', 'No bot pool accounts are configured for adoption.'); ?>
+                                </td>
+                            </tr>
+                        <?php elseif (empty($bots)): ?>
+                            <tr>
+                                <td colspan="6" class="py-8 px-4 text-lg text-[#f2cf5b] font-bold text-center">
+                                    <i class="fas fa-robot text-3xl block mb-3 text-[rgba(201,162,39,0.3)]"></i>
+                                    <?php echo translate('adopt_a_bot_empty', 'No matching characters in the bot pool at level %d or below.', $maxBotLevel); ?>
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($bots as $bot):
+                                $guid = (int) $bot['guid'];
+                                $charUrl = htmlspecialchars($base_path . 'character?guid=' . $guid, ENT_QUOTES, 'UTF-8');
+                                $botName = htmlspecialchars($bot['name'], ENT_QUOTES, 'UTF-8');
+                                ?>
+                                <tr class="player-row border-b border-gray-700/30 last:border-0">
+                                    <td class="py-3.5 px-3 md:px-6 text-left whitespace-nowrap">
+                                        <a href="<?php echo $charUrl; ?>" class="player-link font-semibold"><?php echo $botName; ?></a>
+                                    </td>
+                                    <td class="py-3.5 px-3 md:px-6 whitespace-nowrap">
+                                        <img src="<?php echo htmlspecialchars(sahtout_adopt_a_bot_faction_icon((int) $bot['race']), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="inline-block w-6 h-6 rounded-full shadow-md">
+                                    </td>
+                                    <td class="py-3.5 px-3 md:px-6 hidden md:table-cell whitespace-nowrap">
+                                        <img src="<?php echo htmlspecialchars(sahtout_adopt_a_bot_race_icon((int) $bot['race'], (int) $bot['gender']), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="inline-block w-6 h-6 rounded-full shadow-md">
+                                    </td>
+                                    <td class="py-3.5 px-3 md:px-6 hidden md:table-cell whitespace-nowrap">
+                                        <img src="<?php echo htmlspecialchars(sahtout_adopt_a_bot_class_icon((int) $bot['class']), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="inline-block w-6 h-6 rounded-full shadow-md">
+                                    </td>
+                                    <td class="py-3.5 px-3 md:px-6 font-bold text-[#f2cf5b] whitespace-nowrap"><?php echo (int) $bot['level']; ?></td>
+                                    <td class="py-3.5 px-3 md:px-6 whitespace-nowrap">
+                                        <form method="post" class="inline-block" onsubmit="return confirm(<?php echo json_encode(translate('adopt_a_bot_confirm', 'Adopt this character? This cannot be undone.')); ?>);">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $_SESSION['csrf_token']); ?>">
+                                            <input type="hidden" name="character_guid" value="<?php echo $guid; ?>">
+                                            <button type="submit" class="adopt-btn rounded-lg shadow-md">
+                                                <?php echo translate('adopt_a_bot_adopt_button', 'Adopt'); ?>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-6 text-center text-gray-400 text-xs md:text-sm">
+                <i class="fas fa-user-plus mr-2 text-[rgba(201,162,39,0.4)]"></i>
+                <?php echo translate('adopt_a_bot_table_footer', 'Open a name to preview the character, then click Adopt to add it to your account.'); ?>
+            </div>
+
+            <p class="mt-6 text-center text-sm">
+                <a href="<?php echo $base_path; ?>account" class="text-[#f2cf5b] hover:underline font-semibold"><?php echo translate('adopt_a_bot_back_account', 'Back to account'); ?></a>
+            </p>
         </div>
-    <?php endif; ?>
-
-    <p class="mt-8 text-sm text-gray-500">
-        <a href="<?php echo $base_path; ?>account" class="text-[#f2cf5b] hover:underline"><?php echo translate('adopt_a_bot_back_account', 'Back to account'); ?></a>
-    </p>
+    </div>
 </div>
 
 <?php include_once $project_root . 'includes/footer.php'; ?>

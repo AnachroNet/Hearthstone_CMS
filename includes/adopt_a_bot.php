@@ -374,7 +374,7 @@ function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): 
 
 /**
  * @param list<int> $poolAccountIds
- * @return list<array{guid:int,name:string,level:int,race:int,class:int}>
+ * @return list<array{guid:int,name:string,level:int,race:int,class:int,gender:int}>
  */
 function sahtout_adopt_a_bot_list_pool_characters(
     mysqli $charDb,
@@ -393,14 +393,14 @@ function sahtout_adopt_a_bot_list_pool_characters(
     if ($search !== '') {
         $like = '%' . $search . '%';
         if ($maxBotLevel !== null) {
-            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? AND level <= ? ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? AND level <= ? ORDER BY name ASC LIMIT ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
             $stmt->bind_param('sii', $like, $maxBotLevel, $limit);
         } else {
-            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? ORDER BY name ASC LIMIT ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
@@ -409,14 +409,14 @@ function sahtout_adopt_a_bot_list_pool_characters(
         }
     } else {
         if ($maxBotLevel !== null) {
-            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') AND level <= ? ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND level <= ? ORDER BY name ASC LIMIT ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
             }
             $stmt->bind_param('ii', $maxBotLevel, $limit);
         } else {
-            $sql = 'SELECT guid, name, level, race, class FROM characters WHERE account IN (' . $inList . ') ORDER BY name ASC LIMIT ?';
+            $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') ORDER BY name ASC LIMIT ?';
             $stmt = $charDb->prepare($sql);
             if (!$stmt) {
                 return [];
@@ -434,6 +434,7 @@ function sahtout_adopt_a_bot_list_pool_characters(
             'level' => (int) $row['level'],
             'race' => (int) $row['race'],
             'class' => (int) $row['class'],
+            'gender' => (int) ($row['gender'] ?? 0),
         ];
     }
     $stmt->close();
