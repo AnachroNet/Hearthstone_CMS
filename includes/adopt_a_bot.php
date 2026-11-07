@@ -1644,6 +1644,31 @@ function sahtout_adopt_a_bot_mark_disconnect_attempt(int $claimId): void
 }
 
 /**
+ * Remove this character from the random-bot event queue permanently (adopted bots are player-owned).
+ * Requires DELETE on {playerbots}.playerbots_random_bots for the site DB user.
+ */
+function sahtout_adopt_a_bot_remove_from_playerbots_random_pool(mysqli $charDb, int $botGuid): bool
+{
+    if ($botGuid <= 0 || !sahtout_playerbots_db_configured()) {
+        return false;
+    }
+    if (!armory_playerbots_table_exists($charDb, null, 'playerbots_random_bots')) {
+        return false;
+    }
+    $table = sahtout_sql_quoted_identifier(sahtout_playerbots_db_name()) . '.'
+        . sahtout_sql_quoted_identifier('playerbots_random_bots');
+    $botGuid = (int) $botGuid;
+
+    try {
+        return (bool) $charDb->query("DELETE FROM {$table} WHERE bot = {$botGuid}");
+    } catch (mysqli_sql_exception $e) {
+        error_log('adopt_a_bot playerbots pool remove: ' . $e->getMessage());
+
+        return false;
+    }
+}
+
+/**
  * Tell RandomPlayerbotMgr not to re-login this guid for a while (needs UPDATE on playerbots DB).
  */
 function sahtout_adopt_a_bot_playerbots_hold_offline(mysqli $charDb, int $botGuid, int $holdSeconds = SAHTOUT_ADOPT_A_BOT_PLAYERBOT_OFFLINE_HOLD_SECONDS): bool
@@ -2030,6 +2055,8 @@ function sahtout_adopt_a_bot_sync_completed_adoption_characters(mysqli $siteDb, 
         if ($guid <= 0) {
             continue;
         }
+        sahtout_adopt_a_bot_remove_from_playerbots_random_pool($charDb, $guid);
+        sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $guid);
         sahtout_adopt_a_bot_grant_customize_at_login($charDb, $guid, $accountId);
         $off = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND account = ? AND online = 1 LIMIT 1');
         if ($off) {
@@ -2207,6 +2234,11 @@ function sahtout_adopt_a_bot_complete_claim(
         $clearOnline->close();
     }
     sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
+
+    if (!sahtout_adopt_a_bot_remove_from_playerbots_random_pool($charDb, $botGuid)) {
+        error_log('adopt_a_bot: could not remove guid ' . $botGuid . ' from playerbots_random_bots (check DB grants)');
+    }
+    sahtout_adopt_a_bot_playerbots_hold_offline($charDb, $botGuid);
 
     if (!sahtout_adopt_a_bot_grant_customize_at_login($charDb, $botGuid, $accountId)) {
         error_log('adopt_a_bot: failed to grant at_login customize for adopted guid ' . $botGuid);

@@ -39,8 +39,11 @@ Configured as `database.playerbots.name` in `includes/config.local.php` (default
 | Privilege | Purpose |
 |-----------|---------|
 | **SELECT** on `playerbots_account_type` (typical) | Realm bot/human counts, armory “humans only” filters |
+| **SELECT, INSERT, DELETE** on `playerbots_random_bots` | Adopt a Bot: disconnect holds and remove adopted guids from the random-bot queue |
 
 RNDBOT username filtering in admin does **not** require this database.
+
+When a pool bot is **adopted**, the CMS updates `characters.account` only. The Playerbots mod still schedules that **character guid** in `playerbots_random_bots` until those rows are deleted—otherwise it may stay `online`, appear on `.account onlinelist`, and block shop services. New adoptions delete `playerbots_random_bots` rows for the guid automatically if DELETE is granted.
 
 ## `acore_world` (read-heavy)
 
