@@ -596,6 +596,53 @@ function sahtout_adopt_a_bot_progress_log_lines(?array $claim): array
     return $lines;
 }
 
+/**
+ * @return list<string>
+ */
+function sahtout_adopt_a_bot_session_progress_lines(int $claimId, int $accountId): array
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return [];
+    }
+    if (!isset($_SESSION['adopt_a_bot_progress']) || !is_array($_SESSION['adopt_a_bot_progress'])) {
+        return [];
+    }
+    $key = $claimId . ':' . $accountId;
+    $blob = $_SESSION['adopt_a_bot_progress'][$key] ?? null;
+    if (!is_array($blob)) {
+        return [];
+    }
+    $lines = $blob['lines'] ?? [];
+    if (!is_array($lines)) {
+        return [];
+    }
+    $out = [];
+    foreach ($lines as $line) {
+        if (is_string($line) && trim($line) !== '') {
+            $out[] = trim($line);
+        }
+    }
+
+    return $out;
+}
+
+function sahtout_adopt_a_bot_session_progress_message(int $claimId, int $accountId): string
+{
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return '';
+    }
+    if (!isset($_SESSION['adopt_a_bot_progress']) || !is_array($_SESSION['adopt_a_bot_progress'])) {
+        return '';
+    }
+    $key = $claimId . ':' . $accountId;
+    $blob = $_SESSION['adopt_a_bot_progress'][$key] ?? null;
+    if (!is_array($blob)) {
+        return '';
+    }
+
+    return trim((string) ($blob['message'] ?? ''));
+}
+
 function sahtout_adopt_a_bot_last_progress_line(mysqli $siteDb, int $claimId, int $accountId): string
 {
     if (!sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
@@ -625,6 +672,25 @@ function sahtout_adopt_a_bot_set_progress(mysqli $siteDb, int $claimId, int $acc
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
     if (!sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
         error_log('adopt_a_bot progress (claim ' . $claimId . '): ' . $message);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            if (!isset($_SESSION['adopt_a_bot_progress']) || !is_array($_SESSION['adopt_a_bot_progress'])) {
+                $_SESSION['adopt_a_bot_progress'] = [];
+            }
+            $key = $claimId . ':' . $accountId;
+            $prev = $_SESSION['adopt_a_bot_progress'][$key] ?? ['lines' => [], 'message' => ''];
+            $prevLines = is_array($prev['lines'] ?? null) ? $prev['lines'] : [];
+            if ($appendLog && ($prevLines === [] || end($prevLines) !== $message)) {
+                $prevLines[] = $message;
+                if (count($prevLines) > 40) {
+                    $prevLines = array_slice($prevLines, -40);
+                }
+            }
+            $_SESSION['adopt_a_bot_progress'][$key] = [
+                'message' => $message,
+                'lines' => $prevLines,
+                'at' => time(),
+            ];
+        }
 
         return;
     }
@@ -728,6 +794,16 @@ function sahtout_adopt_a_bot_process_open_claim(
         return ['ok' => false, 'error' => 'not_started'];
     }
 
+    if (sahtout_adopt_a_bot_last_progress_line($siteDb, $claimId, $accountId) === ''
+        && trim((string) ($open['progress_message'] ?? '')) === '') {
+        sahtout_adopt_a_bot_set_progress(
+            $siteDb,
+            $claimId,
+            $accountId,
+            'Checking pool character and realm onlinelist…'
+        );
+    }
+
     $result = sahtout_adopt_a_bot_complete_claim(
         $siteDb,
         $charDb,
@@ -768,14 +844,60 @@ function sahtout_adopt_a_bot_process_open_claim(
         ];
     }
 
-    sahtout_adopt_a_bot_set_progress(
-        $siteDb,
-        $claimId,
-        $accountId,
-        'Adoption could not be completed: ' . $err
-    );
+    $failLine = 'Adoption could not be completed: ' . $err;
+    $dbgExtra = trim((string) ($result['debug'] ?? ''));
+    if ($dbgExtra !== '') {
+        $failLine .= ' — ' . $dbgExtra;
+    }
+    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $failLine);
 
-    return ['ok' => false, 'error' => $err, 'done' => false];
+    return ['ok' => false, 'error' => $err, 'done' => false, 'debug' => $dbgExtra !== '' ? $dbgExtra : $failLine];
+}
+
+/**
+ * Build JSON-ready progress state after one adoption tick (used by poll endpoint and processing page).
+ *
+ * @return array<string, mixed>
+ */
+function sahtout_adopt_a_bot_build_progress_payload(
+    mysqli $siteDb,
+    int $accountId,
+    array $result,
+    ?array $openClaim,
+    string $accountUrl
+): array {
+    $claimId = (int) ($openClaim['claim_id'] ?? 0);
+    $lines = sahtout_adopt_a_bot_progress_log_lines($openClaim);
+    if ($claimId > 0) {
+        $sessionLines = sahtout_adopt_a_bot_session_progress_lines($claimId, $accountId);
+        foreach ($sessionLines as $line) {
+            if (!in_array($line, $lines, true)) {
+                $lines[] = $line;
+            }
+        }
+    }
+    $message = trim((string) ($openClaim['progress_message'] ?? ''));
+    if ($message === '' && $claimId > 0) {
+        $message = sahtout_adopt_a_bot_session_progress_message($claimId, $accountId);
+    }
+    $debug = (string) ($result['debug'] ?? '');
+    if ($debug === '' && $message !== '') {
+        $debug = $message;
+    }
+
+    return [
+        'ok' => !empty($result['ok']),
+        'done' => !empty($result['done']),
+        'error' => $result['error'] ?? null,
+        'message' => $message !== '' ? $message : $debug,
+        'lines' => $lines,
+        'debug' => $debug !== '' ? $debug : null,
+        'on_onlinelist' => $result['on_onlinelist'] ?? null,
+        'character_name' => $result['character_name'] ?? null,
+        'account_url' => $accountUrl,
+        'progress_schema' => sahtout_adopt_a_bot_claims_extended_schema($siteDb),
+        'polled_at' => time(),
+    ];
 }
 
 /**
@@ -1104,6 +1226,15 @@ function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
     }
 
     if ($lastLine === $waitAfterKickMsg) {
+        $listCheck = sahtout_soap_account_onlinelist_text();
+        if ($listCheck !== null && !sahtout_soap_onlinelist_contains_character($listCheck, $botName)) {
+            sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
+            $debug = $botName . ' left the onlinelist; continuing adoption.';
+            sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+
+            return ['ready' => true, 'on_onlinelist' => false, 'debug' => $debug];
+        }
+
         return ['ready' => false, 'on_onlinelist' => true, 'debug' => $waitAfterKickMsg];
     }
 

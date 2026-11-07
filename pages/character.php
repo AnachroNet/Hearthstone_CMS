@@ -19,6 +19,7 @@ $adoptProcessingView = $adoptBotCharacterPage === 'processing';
 $adoptOpenClaim = null;
 $adoptShowForCharacter = false;
 $adoptProgressLines = [];
+$adoptProgressSummary = '';
 
 if ($adoptBotCharacterPage === '' && isset($_GET['adopt'])) {
     $legacyGuid = (int) ($_GET['guid'] ?? 0);
@@ -31,7 +32,24 @@ if ($adoptBotCharacterPage === '' && isset($_GET['adopt'])) {
 
 if ($adoptBotCharacterPage !== '' && !empty($_SESSION['user_id'])) {
     require_once $project_root . 'includes/adopt_a_bot.php';
+    sahtout_adopt_a_bot_claims_upgrade_schema($site_db);
     $adoptOpenClaim = sahtout_adopt_a_bot_get_open_claim($site_db, (int) $_SESSION['user_id']);
+    if ($adoptProcessingView && is_array($adoptOpenClaim)) {
+        $adoptClaimId = (int) ($adoptOpenClaim['claim_id'] ?? 0);
+        $adoptAcct = (int) $_SESSION['user_id'];
+        $dbLines = sahtout_adopt_a_bot_progress_log_lines($adoptOpenClaim);
+        $sessLines = $adoptClaimId > 0 ? sahtout_adopt_a_bot_session_progress_lines($adoptClaimId, $adoptAcct) : [];
+        $adoptProgressLines = $dbLines;
+        foreach ($sessLines as $line) {
+            if (!in_array($line, $adoptProgressLines, true)) {
+                $adoptProgressLines[] = $line;
+            }
+        }
+        $adoptProgressSummary = trim((string) ($adoptOpenClaim['progress_message'] ?? ''));
+        if ($adoptProgressSummary === '' && $adoptClaimId > 0) {
+            $adoptProgressSummary = sahtout_adopt_a_bot_session_progress_message($adoptClaimId, $adoptAcct);
+        }
+    }
 }
 
 $page_title = $site_title_name . ' ' . translate('page_title', 'Character Equipment');
@@ -648,7 +666,6 @@ if ($ilvl > 0) {
                 $avatarFallback = "{$base_path}img/accountimg/race/{$genderDir}/{$raceIcon}.png";
 
                 $adoptShowForCharacter = false;
-                $adoptProgressLines = [];
                 if ($adoptBotCharacterPage !== '' && $adoptOpenClaim) {
                     $charGuid = (int) ($character['guid'] ?? 0);
                     $requestGuid = (int) ($_GET['guid'] ?? 0);
@@ -662,7 +679,9 @@ if ($ilvl > 0) {
                         && (int) ($adoptOpenClaim['bot_character_guid'] ?? 0) === $charGuid
                     ) {
                         $adoptShowForCharacter = true;
-                        $adoptProgressLines = sahtout_adopt_a_bot_progress_log_lines($adoptOpenClaim);
+                        if ($adoptProgressLines === []) {
+                            $adoptProgressLines = sahtout_adopt_a_bot_progress_log_lines($adoptOpenClaim);
+                        }
                     }
                 }
             ?>
@@ -712,8 +731,10 @@ if ($ilvl > 0) {
                     <div class="adopt-progress-panel" id="adopt-progress-panel">
                         <h2><?= htmlspecialchars(translate('adopt_progress_heading', 'Adoption in progress')) ?></h2>
                         <p class="text-sm text-gray-300" id="adopt-progress-summary"><?= htmlspecialchars(
-                            trim((string) ($adoptOpenClaim['progress_message'] ?? ''))
-                                ?: translate('adopt_progress_queued', 'Your adoption will be completed as soon as possible.')
+                            $adoptProgressSummary !== ''
+                                ? $adoptProgressSummary
+                                : (trim((string) ($adoptOpenClaim['progress_message'] ?? ''))
+                                    ?: translate('adopt_progress_queued', 'Your adoption will be completed as soon as possible.'))
                         ) ?></p>
                         <ul class="adopt-progress-log" id="adopt-progress-log">
                             <?php foreach ($adoptProgressLines as $line): ?>
@@ -1230,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-<?php if ($adoptShowForCharacter && $adoptProcessingView): ?>
+<?php if ($adoptProcessingView): ?>
 <script>
 (function () {
     const pollUrl = <?= json_encode($base_path . 'adopt-a-bot-progress') ?>;
@@ -1242,6 +1263,20 @@ document.addEventListener('DOMContentLoaded', () => {
         d.textContent = s;
         return d.innerHTML;
     }
+    function renderProgress(data) {
+        if (!data || typeof data !== 'object') return;
+        const summaryText = data.message || data.debug || '';
+        if (summaryText && summary) summary.textContent = summaryText;
+        if (Array.isArray(data.lines) && log) {
+            let lines = data.lines.slice();
+            if (data.debug && lines.indexOf(data.debug) === -1) {
+                lines.push(data.debug);
+            }
+            log.innerHTML = lines.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('');
+        } else if (data.debug && log) {
+            log.innerHTML = '<li>' + escapeHtml(data.debug) + '</li>';
+        }
+    }
     function pausePolling() {
         if (timer) {
             clearInterval(timer);
@@ -1251,25 +1286,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function resumePolling() {
         if (timer) return;
         tick();
-        timer = window.setInterval(tick, 5000);
+        timer = window.setInterval(tick, 4000);
     }
     async function tick() {
         if (document.hidden) return;
         try {
             const r = await fetch(pollUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-            const data = await r.json();
-            if (!data || typeof data !== 'object') return;
-            const summaryText = data.message || data.debug || '';
-            if (summaryText && summary) summary.textContent = summaryText;
-            if (Array.isArray(data.lines) && log) {
-                let lines = data.lines.slice();
-                if (data.debug && lines.indexOf(data.debug) === -1) {
-                    lines.push(data.debug);
+            const raw = await r.text();
+            let data = null;
+            try {
+                data = JSON.parse(raw);
+            } catch (parseErr) {
+                if (summary) {
+                    summary.textContent = 'Progress poll returned non-JSON (HTTP ' + r.status + '). Is the site up to date?';
                 }
-                log.innerHTML = lines.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('');
-            } else if (data.debug && log) {
-                log.innerHTML = '<li>' + escapeHtml(data.debug) + '</li>';
+                return;
             }
+            renderProgress(data);
             if (data.done) {
                 pausePolling();
                 if (data.account_url && !document.hidden) {
@@ -1277,10 +1310,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 return;
             }
-            if (data.error === 'not_processing' || data.error === 'auth') {
+            if (data.error === 'auth') {
                 pausePolling();
+                if (summary) summary.textContent = 'Session expired — refresh and sign in again.';
+            } else if (data.error === 'not_processing' || data.error === 'server') {
+                if (summary && (data.message || data.debug)) {
+                    summary.textContent = data.message || data.debug;
+                }
             }
-        } catch (e) { /* retry on next interval */ }
+        } catch (e) {
+            if (summary) summary.textContent = 'Could not reach progress endpoint. Retrying…';
+        }
     }
     document.addEventListener('visibilitychange', function () {
         if (document.hidden) {

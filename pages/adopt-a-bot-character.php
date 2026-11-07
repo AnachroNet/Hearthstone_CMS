@@ -5,7 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/adopt_a_bot.php';
 
-global $site_db, $char_db, $auth_db, $base_path;
+global $site_db, $char_db, $auth_db, $db_char_name, $db_auth_name, $base_path;
 
 if (empty($_SESSION['user_id'])) {
     header('Location: ' . $base_path . 'login?return=' . rawurlencode('adopt-a-bot'));
@@ -36,6 +36,26 @@ if ($step === 'processing') {
         exit;
     }
     define('SAHTOUT_ADOPT_A_BOT_CHARACTER_PAGE', 'processing');
+    sahtout_adopt_a_bot_claims_upgrade_schema($site_db);
+    @set_time_limit(25);
+    $tick = sahtout_adopt_a_bot_process_open_claim(
+        $site_db,
+        $char_db,
+        $auth_db,
+        $accountId,
+        $db_char_name,
+        $db_auth_name
+    );
+    if (!empty($tick['done'])) {
+        $_SESSION['success'] = translate(
+            'adopt_a_bot_success',
+            'You adopted %s! Log in to the game with that character on your account.',
+            (string) ($tick['character_name'] ?? ($openClaim['bot_character_name'] ?? ''))
+        );
+        header('Location: ' . $base_path . 'account');
+        exit;
+    }
+    $openClaim = sahtout_adopt_a_bot_get_open_claim($site_db, $accountId) ?? $openClaim;
 } else {
     if ($status === 'processing') {
         header('Location: ' . sahtout_adopt_a_bot_resume_url($openClaim, $base_path));
