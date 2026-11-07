@@ -600,6 +600,8 @@ function sahtout_adopt_a_bot_set_progress(mysqli $siteDb, int $claimId, int $acc
 {
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
     if (!sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        error_log('adopt_a_bot progress (claim ' . $claimId . '): ' . $message);
+
         return;
     }
     $message = mb_substr(trim($message), 0, 500);
@@ -621,6 +623,9 @@ function sahtout_adopt_a_bot_set_progress(mysqli $siteDb, int $claimId, int $acc
 
     $lines = sahtout_adopt_a_bot_progress_log_lines($claim);
     if ($appendLog) {
+        if ($lines !== [] && end($lines) === $message) {
+            return;
+        }
         $lines[] = $message;
         if (count($lines) > 40) {
             $lines = array_slice($lines, -40);
@@ -699,8 +704,6 @@ function sahtout_adopt_a_bot_process_open_claim(
         return ['ok' => false, 'error' => 'not_started'];
     }
 
-    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, 'Checking character and disconnecting from the world if needed…');
-
     $result = sahtout_adopt_a_bot_complete_claim(
         $siteDb,
         $charDb,
@@ -711,7 +714,7 @@ function sahtout_adopt_a_bot_process_open_claim(
         $charDbName,
         $authDbName,
         SAHTOUT_ADOPT_A_BOT_OFFLINE_POLL_WAIT_SECONDS,
-        true
+        false
     );
 
     if (!empty($result['ok'])) {
@@ -727,23 +730,18 @@ function sahtout_adopt_a_bot_process_open_claim(
 
     $err = (string) ($result['error'] ?? 'error');
     if ($err === 'bot_online') {
-        if (sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb)) {
-            sahtout_adopt_a_bot_set_progress(
-                $siteDb,
-                $claimId,
-                $accountId,
-                'Character is not in the world; cleared stale online flag — retrying on the next tick…'
-            );
-        } else {
-            sahtout_adopt_a_bot_set_progress(
-                $siteDb,
-                $claimId,
-                $accountId,
-                'Waiting for the character to leave the world (kick sent; playerbots may take a moment)…'
-            );
+        $dbg = (string) ($result['debug'] ?? '');
+        if ($dbg !== '') {
+            sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $dbg);
         }
 
-        return ['ok' => false, 'error' => 'bot_online', 'done' => false];
+        return [
+            'ok' => false,
+            'error' => 'bot_online',
+            'done' => false,
+            'debug' => $dbg,
+            'on_onlinelist' => $result['on_onlinelist'] ?? null,
+        ];
     }
 
     sahtout_adopt_a_bot_set_progress(
@@ -1027,6 +1025,71 @@ function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid, ?mys
     return (int) ($row['online'] ?? 0) === 1;
 }
 
+/**
+ * Pool-bot offline: trust .account onlinelist for this character name only (not sibling chars on same account).
+ *
+ * @return array{ready:bool, on_onlinelist:bool|null, debug:string}
+ */
+function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
+    mysqli $siteDb,
+    mysqli $charDb,
+    ?mysqli $authDb,
+    int $claimId,
+    int $accountId,
+    int $botGuid,
+    string $botName,
+    string $charDbName
+): array {
+    $botName = trim($botName);
+    $debug = '';
+    $onList = null;
+
+    $row = sahtout_adopt_a_bot_character_online_row($charDb, $botGuid);
+    $dbOnline = $row !== null && (int) ($row['online'] ?? 0) === 1;
+
+    if (!sahtout_soap_is_configured()) {
+        $ready = !$dbOnline;
+        $debug = $ready ? 'SOAP not configured; character offline in DB.' : 'SOAP not configured; characters.online=1.';
+
+        return ['ready' => $ready, 'on_onlinelist' => null, 'debug' => $debug];
+    }
+
+    $listText = sahtout_soap_account_onlinelist_text();
+    if ($listText === null) {
+        sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $botGuid, $authDb);
+        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
+        $debug = 'Onlinelist unavailable; issued kick and cleared DB online flag.';
+        sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+
+        return ['ready' => true, 'on_onlinelist' => null, 'debug' => $debug];
+    }
+
+    $onList = sahtout_soap_onlinelist_contains_character($listText, $botName);
+    if (!$onList) {
+        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
+        $debug = $botName . ' is not on .account onlinelist (other pool bots may be online). Proceeding.';
+        sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+
+        return ['ready' => true, 'on_onlinelist' => false, 'debug' => $debug];
+    }
+
+    sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $botGuid, $authDb);
+    $listAfter = sahtout_soap_account_onlinelist_text();
+    $stillOn = $listAfter !== null && sahtout_soap_onlinelist_contains_character($listAfter, $botName);
+    if (!$stillOn) {
+        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
+        $debug = $botName . ' was on onlinelist; kick sent and they are offline now.';
+        sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+
+        return ['ready' => true, 'on_onlinelist' => true, 'debug' => $debug];
+    }
+
+    $debug = $botName . ' is still on .account onlinelist after kick (playerbot may be relogging).';
+    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+
+    return ['ready' => false, 'on_onlinelist' => true, 'debug' => $debug];
+}
+
 function sahtout_adopt_a_bot_progress_note_soap(
     mysqli $siteDb,
     int $claimId,
@@ -1219,45 +1282,24 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'bot_not_found'];
     }
 
-    sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, 'Preparing transfer (offline check)…');
-    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
-
-    if (!sahtout_adopt_a_bot_prepare_character_offline($charDb, $charDbName, $botGuid, $offlineWaitSeconds, $authDb)) {
-        sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
-        if (sahtout_adopt_a_bot_character_is_online($charDb, $botGuid, $authDb)) {
-            $row = sahtout_adopt_a_bot_character_online_row($charDb, $botGuid);
-            $botName = trim((string) ($row['name'] ?? ''));
-            if ($logSoapToProgress && $botName !== '' && sahtout_soap_is_configured()) {
-                $listText = sahtout_soap_account_onlinelist_text();
-                $onList = $listText !== null && sahtout_soap_onlinelist_contains_character($listText, $botName);
-                sahtout_adopt_a_bot_set_progress(
-                    $siteDb,
-                    $claimId,
-                    $accountId,
-                    $onList
-                        ? $botName . ' is still on the onlinelist; waiting for disconnect…'
-                        : $botName . ' is not on the onlinelist but still flagged online in DB — clearing stale flag…'
-                );
-                if (!$onList) {
-                    sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
-
-                    return sahtout_adopt_a_bot_complete_claim(
-                        $siteDb,
-                        $charDb,
-                        $authDb,
-                        $accountId,
-                        $claimId,
-                        $botGuid,
-                        $charDbName,
-                        $authDbName,
-                        $offlineWaitSeconds,
-                        false
-                    );
-                }
-            }
-
-            return ['ok' => false, 'error' => 'bot_online'];
-        }
+    $charNameForOffline = trim((string) ($eligible['name'] ?? ''));
+    $offline = sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
+        $siteDb,
+        $charDb,
+        $authDb,
+        $claimId,
+        $accountId,
+        $botGuid,
+        $charNameForOffline,
+        $charDbName
+    );
+    if (!$offline['ready']) {
+        return [
+            'ok' => false,
+            'error' => 'bot_online',
+            'debug' => (string) ($offline['debug'] ?? ''),
+            'on_onlinelist' => $offline['on_onlinelist'] ?? null,
+        ];
     }
 
     if (!$charDb->begin_transaction()) {
@@ -1292,27 +1334,19 @@ function sahtout_adopt_a_bot_complete_claim(
 
         return ['ok' => false, 'error' => 'level_too_high'];
     }
-    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
-    $onlineNow = (int) ($bot['online'] ?? 0);
-    $stmtOnline = $charDb->prepare('SELECT online FROM characters WHERE guid = ? LIMIT 1');
-    if ($stmtOnline) {
-        $stmtOnline->bind_param('i', $botGuid);
-        $stmtOnline->execute();
-        $onlineRes = $stmtOnline->get_result();
-        $fresh = $onlineRes ? $onlineRes->fetch_assoc() : null;
-        $stmtOnline->close();
-        if ($fresh) {
-            $onlineNow = (int) ($fresh['online'] ?? 0);
-        }
-    }
-    if ($onlineNow === 1 && sahtout_adopt_a_bot_character_is_online($charDb, $botGuid, $authDb)) {
+    $charName = (string) $bot['name'];
+    $listText = sahtout_soap_is_configured() ? sahtout_soap_account_onlinelist_text() : null;
+    if ($listText !== null && sahtout_soap_onlinelist_contains_character($listText, $charName)) {
         $charDb->rollback();
 
-        return ['ok' => false, 'error' => 'bot_online'];
+        return [
+            'ok' => false,
+            'error' => 'bot_online',
+            'debug' => $charName . ' is on .account onlinelist; cannot transfer while in world.',
+            'on_onlinelist' => true,
+        ];
     }
-    if ($onlineNow === 1) {
-        sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
-    }
+    sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
 
     $poolAccountId = (int) ($bot['account'] ?? 0);
     if ($poolAccountId <= 0) {
@@ -1321,7 +1355,6 @@ function sahtout_adopt_a_bot_complete_claim(
         return ['ok' => false, 'error' => 'bot_not_found'];
     }
 
-    $charName = (string) $bot['name'];
     $upd = $charDb->prepare('UPDATE characters SET account = ? WHERE guid = ? AND account = ?');
     if (!$upd) {
         $charDb->rollback();

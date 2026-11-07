@@ -1259,9 +1259,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const r = await fetch(pollUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
             const data = await r.json();
             if (!data || typeof data !== 'object') return;
-            if (data.message && summary) summary.textContent = data.message;
+            const summaryText = data.message || data.debug || '';
+            if (summaryText && summary) summary.textContent = summaryText;
             if (Array.isArray(data.lines) && log) {
-                log.innerHTML = data.lines.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('');
+                let lines = data.lines.slice();
+                if (data.debug && lines.indexOf(data.debug) === -1) {
+                    lines.push(data.debug);
+                }
+                log.innerHTML = lines.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('');
+            } else if (data.debug && log) {
+                log.innerHTML = '<li>' + escapeHtml(data.debug) + '</li>';
             }
             if (data.done) {
                 pausePolling();

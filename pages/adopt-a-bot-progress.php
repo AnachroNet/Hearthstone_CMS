@@ -44,8 +44,10 @@ $payload = [
     'ok' => !empty($result['ok']),
     'done' => !empty($result['done']),
     'error' => $result['error'] ?? null,
-    'message' => $message,
+    'message' => $message !== '' ? $message : (string) ($result['debug'] ?? ''),
     'lines' => $lines,
+    'debug' => $result['debug'] ?? null,
+    'on_onlinelist' => $result['on_onlinelist'] ?? null,
     'character_name' => $result['character_name'] ?? null,
     'account_url' => $base_path . 'account',
 ];
