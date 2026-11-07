@@ -223,6 +223,19 @@ function sahtout_soap_onlinelist_contains_name(string $listText, string $name): 
     return (bool) preg_match($pattern, $listText);
 }
 
+/** Match AzerothCore onlinelist table rows: [Account][Character][IP]… */
+function sahtout_soap_onlinelist_contains_character(string $listText, string $characterName): bool
+{
+    $characterName = trim($characterName);
+    if ($characterName === '' || trim($listText) === '') {
+        return false;
+    }
+    $pattern = '/\]\[' . preg_quote($characterName, '/') . '\]\[/iu';
+
+    return (bool) preg_match($pattern, $listText)
+        || sahtout_soap_onlinelist_contains_name($listText, $characterName);
+}
+
 function sahtout_soap_message_indicates_player_in_world(string $text): bool
 {
     $text = strtolower(trim($text));
@@ -241,11 +254,12 @@ function sahtout_soap_message_indicates_player_in_world(string $text): bool
 
 /**
  * Whether the character is connected to the worldserver right now.
- * Uses .account onlinelist when the SOAP user can run it; falls back to .pinfo parse.
+ * Uses .account onlinelist when the SOAP user can run it (matches character name only, not pool account).
  * Null = could not determine (no SOAP or ambiguous pinfo).
  */
 function sahtout_soap_character_in_world(string $characterName, ?string $accountLogin = null): ?bool
 {
+    unset($accountLogin);
     if (!sahtout_soap_is_configured()) {
         return null;
     }
@@ -264,10 +278,7 @@ function sahtout_soap_character_in_world(string $characterName, ?string $account
         if (preg_match('/\b(no players|nobody online|0 accounts|accounts online:\s*0)\b/', $listLower)) {
             return false;
         }
-        if (sahtout_soap_onlinelist_contains_name($listText, $characterName)) {
-            return true;
-        }
-        if ($accountLogin !== null && $accountLogin !== '' && sahtout_soap_onlinelist_contains_name($listText, $accountLogin)) {
+        if (sahtout_soap_onlinelist_contains_character($listText, $characterName)) {
             return true;
         }
 

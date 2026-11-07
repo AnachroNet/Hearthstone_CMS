@@ -1225,15 +1225,34 @@ function sahtout_adopt_a_bot_complete_claim(
     if (!sahtout_adopt_a_bot_prepare_character_offline($charDb, $charDbName, $botGuid, $offlineWaitSeconds, $authDb)) {
         sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
         if (sahtout_adopt_a_bot_character_is_online($charDb, $botGuid, $authDb)) {
-            if ($logSoapToProgress && sahtout_soap_is_configured()) {
-                $row = sahtout_adopt_a_bot_character_online_row($charDb, $botGuid);
-                $botName = $row['name'] ?? '';
-                if ($botName !== '') {
-                    $listResult = sahtout_soap_execute_command('.account onlinelist');
-                    sahtout_adopt_a_bot_progress_note_soap($siteDb, $claimId, $accountId, '.account onlinelist', $listResult);
-                    $literal = sahtout_soap_character_name_for_command($botName);
-                    $kickResult = sahtout_soap_execute_command('.kick ' . $literal . ' Adoption');
-                    sahtout_adopt_a_bot_progress_note_soap($siteDb, $claimId, $accountId, '.kick', $kickResult);
+            $row = sahtout_adopt_a_bot_character_online_row($charDb, $botGuid);
+            $botName = trim((string) ($row['name'] ?? ''));
+            if ($logSoapToProgress && $botName !== '' && sahtout_soap_is_configured()) {
+                $listText = sahtout_soap_account_onlinelist_text();
+                $onList = $listText !== null && sahtout_soap_onlinelist_contains_character($listText, $botName);
+                sahtout_adopt_a_bot_set_progress(
+                    $siteDb,
+                    $claimId,
+                    $accountId,
+                    $onList
+                        ? $botName . ' is still on the onlinelist; waiting for disconnect…'
+                        : $botName . ' is not on the onlinelist but still flagged online in DB — clearing stale flag…'
+                );
+                if (!$onList) {
+                    sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
+
+                    return sahtout_adopt_a_bot_complete_claim(
+                        $siteDb,
+                        $charDb,
+                        $authDb,
+                        $accountId,
+                        $claimId,
+                        $botGuid,
+                        $charDbName,
+                        $authDbName,
+                        $offlineWaitSeconds,
+                        false
+                    );
                 }
             }
 
