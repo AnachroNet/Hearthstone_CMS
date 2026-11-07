@@ -669,7 +669,7 @@ include_once $project_root . 'includes/header.php';
                                             <div class="mt-3">
                                                 <p class="text-gray-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_no_upfront_charge', 'Tokens are charged only when you confirm adoption on the final step.'); ?></p>
                                                 <a href="<?php echo htmlspecialchars($base_path . 'adopt-a-bot-start', ENT_QUOTES, 'UTF-8'); ?>" class="buy-button block w-full text-center py-2.5 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold text-sm">
-                                                    <?php echo translate('shop_adopt_a_bot_choose', 'Choose a bot'); ?>
+                                                    <?php echo translate('shop_adopt_a_bot_choose', 'Choose a Bot'); ?>
                                                 </a>
                                             </div>
                                         <?php elseif ($isAdoptABotItem): ?>
@@ -688,7 +688,7 @@ include_once $project_root . 'includes/header.php';
                                                         <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_unavailable', 'You are not eligible (character slots full or no matching bots in the pool).'); ?></p>
                                                     <?php endif; ?>
                                                 <?php endif; ?>
-                                                <span class="buy-button block w-full text-center py-2.5 opacity-50 cursor-not-allowed border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] font-semibold text-sm"><?php echo translate('shop_adopt_a_bot_choose', 'Choose a bot'); ?></span>
+                                                <span class="buy-button block w-full text-center py-2.5 opacity-50 cursor-not-allowed border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] font-semibold text-sm"><?php echo translate('shop_adopt_a_bot_choose', 'Choose a Bot'); ?></span>
                                             </div>
                                         <?php else: ?>
                                         <form action="<?php echo $base_path; ?>buy_item" method="POST" class="mt-3 purchase-form">

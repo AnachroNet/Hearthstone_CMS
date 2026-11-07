@@ -69,7 +69,7 @@ return [
     'shop_adopt_a_bot_processing_resume' => 'Adoption running. View progress on the character page.',
     'shop_adopt_a_bot_pending_resume' => 'Your tokens are paid. Pick a bot to complete adoption.',
     'shop_adopt_a_bot_continue' => 'Continue adoption',
-    'shop_adopt_a_bot_choose' => 'Choose a bot',
+    'shop_adopt_a_bot_choose' => 'Choose a Bot',
     'shop_adopt_a_bot_no_upfront_charge' => 'Tokens are charged only when you confirm adoption on the final step.',
     'shop_adopt_a_bot_draft_resume' => 'You are choosing a bot. Tokens are not charged until the final confirmation.',
     'shop_status_adopt_draft_resume' => 'You are browsing bots. Continue adoption or cancel before starting another.',
