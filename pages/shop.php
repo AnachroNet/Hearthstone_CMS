@@ -638,7 +638,7 @@ include_once $project_root . 'includes/header.php';
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                             <?php endif; ?>
                                             <?php if ($isAdoptABotItem): ?>
-                                                <p class="text-emerald-300/90 text-xs text-center mb-2 force-wrap"><?php echo translate(
+                                                <p class="text-gray-300 text-xs text-center mb-2 force-wrap"><?php echo translate(
                                                     'shop_adopt_a_bot_hint',
                                                     'Requires a free character slot. You may adopt bots up to level %d (your highest: %d, max +%d).',
                                                     $adoptABotMaxBotLevel,
