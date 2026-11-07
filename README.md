@@ -85,7 +85,7 @@ Use **`BASE_INSTALL`** only (see path above). That dump already seeds **1.0** / 
 
 #### Upgrading an existing `hearthstone_site`
 
-If you already had a site database **before** version tracking was added, you may have no `site.version` or `site.release` rows even though `site_settings` exists. The CMS assumes **Version 1.0 — Release 2026110601** in that case (same as the v1.0 base install) when deciding which update scripts are still pending. Applying release SQL writes the real keys to the database. **Admin → Settings → General** shows version/release and notes when values are assumed.
+If you already had a site database **before** version tracking was added, you may have no `site.version` or `site.release` rows even though `site_settings` exists. The CMS assumes **Version 1.0 — Release 2026110601** in that case (same as the v1.0 base install) when deciding which update scripts are still pending. Applying release SQL writes the real keys to the database. **Admin → Settings → General** shows the recorded (or assumed) version and release.
 
 **Recommended (Linux or Windows):** after you deploy new code and have run the web installer so **`includes/config.local.php`** exists:
 
@@ -98,6 +98,28 @@ python3 tools/apply_site_db_updates.py --apply   # confirm at prompt
 On Windows, use `python` if `python3` is not on your PATH. Requires the **`mysql`** client on PATH (or pass **`--mysql`**). Use **`--yes`** to skip the confirmation prompt.
 
 You can still apply **`SQL/Hearthstone_DATABASE/UPDATES/*.sql`** manually with the `mysql` client if you prefer; run files in ascending release order.
+
+### Database updates not applied (admin warning)
+
+After you deploy newer PHP/code, **Admin → Settings → General** compares the repo **`RELEASE`** file to **`site_settings.site.release`** (and to scripts still pending under **`SQL/Hearthstone_DATABASE/UPDATES/`**). If the database is behind the codebase, you will see:
+
+> **Warning: There are database updates that have not been applied. See documentation.**
+
+That means you pulled or copied code for a newer release (for example **2026110701**) but have not run the matching update SQL yet. The site may misbehave or miss features until you apply it.
+
+**What to do:**
+
+1. From the project root (with **`includes/config.local.php`** in place), list pending scripts:
+   ```bash
+   python tools/apply_site_db_updates.py --list
+   ```
+2. Apply them:
+   ```bash
+   python tools/apply_site_db_updates.py --apply
+   ```
+3. Confirm **CMS Release** on the General settings page matches the root **`RELEASE`** file, and the warning is gone.
+
+If the warning persists after a successful apply, check that **`site.release`** was updated (see **`SQL/Hearthstone_DATABASE/UPDATES/README.md`**). Do not only update the PHP files without running release SQL when **`UPDATES`** contains new files.
 
 ### 3. AzerothCore optional SQL (only for specific features)
 

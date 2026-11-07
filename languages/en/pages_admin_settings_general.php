@@ -13,6 +13,8 @@ return [
 
     'label_cms_version' => 'CMS Version',
     'label_cms_release' => 'CMS Release',
+    'warn_cms_db_updates_pending' => 'Warning: There are database updates that have not been applied. See documentation.',
+
     // Website Title
     'label_website_title' => 'Website Title',
     'placeholder_site_title' => 'e.g. My Awesome Site',

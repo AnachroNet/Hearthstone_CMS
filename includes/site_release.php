@@ -147,6 +147,19 @@ function sahtout_site_release_pending(mysqli $siteDb): array
     return $pending;
 }
 
+/** True when this codebase expects newer site DB release SQL than the database has recorded. */
+function sahtout_site_database_release_behind_code(mysqli $siteDb): bool
+{
+    if (SAHTOUT_CODE_RELEASE <= 0) {
+        return false;
+    }
+    if (sahtout_site_release_pending($siteDb) !== []) {
+        return true;
+    }
+
+    return sahtout_site_release_applied($siteDb) < SAHTOUT_CODE_RELEASE;
+}
+
 function sahtout_site_release_mark_applied(mysqli $siteDb, int $releaseId, ?int $updatedBy = null): bool
 {
     return sahtout_site_setting_set($siteDb, SAHTOUT_SITE_RELEASE_SETTING, (string) $releaseId, 'int', $updatedBy);

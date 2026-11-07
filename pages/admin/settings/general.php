@@ -12,9 +12,11 @@ require_once $project_root . 'includes/site_release.php';
 global $world_db, $site_db;
 $cmsVersionDisplay = '';
 $cmsReleaseDisplay = 0;
+$cmsDbReleaseBehindCode = false;
 if (isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
     $cmsVersionDisplay = sahtout_site_version_applied($site_db);
     $cmsReleaseDisplay = sahtout_site_release_applied($site_db);
+    $cmsDbReleaseBehindCode = sahtout_site_database_release_behind_code($site_db);
     if ($cmsVersionDisplay === '') {
         $cmsVersionDisplay = SAHTOUT_CODE_VERSION;
     }
@@ -180,6 +182,17 @@ include $project_root . 'includes/header.php';
                                     </div>
                                 </div>
                             </div>
+                            <?php if ($cmsDbReleaseBehindCode): ?>
+                                <div class="bg-wow-error/15 border border-wow-error/40 text-wow-error p-4 rounded-sm flex items-start gap-3 -mt-2">
+                                    <i class="fas fa-exclamation-triangle text-xl mt-0.5 shrink-0"></i>
+                                    <p class="text-sm leading-relaxed">
+                                        <?php echo translate(
+                                            'warn_cms_db_updates_pending',
+                                            'Warning: There are database updates that have not been applied. See documentation.'
+                                        ); ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
 
                             <!-- Website Title -->
                             <div>
