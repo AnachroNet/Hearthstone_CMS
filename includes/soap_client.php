@@ -152,6 +152,76 @@ function sahtout_soap_character_name_for_command(string $name): string
     return sahtout_soap_quote_command_arg($name);
 }
 
+function sahtout_soap_message_indicates_player_not_in_world(string $text): bool
+{
+    $text = strtolower(trim($text));
+    if ($text === '') {
+        return false;
+    }
+    $phrases = [
+        'is not online',
+        'not online',
+        'no player named',
+        'player not found',
+        'couldn\'t find',
+        'could not find',
+        'doesn\'t exist',
+        'does not exist',
+        'not found',
+        'not currently online',
+        'is offline',
+        'not in world',
+        'no such player',
+        'there is no such',
+    ];
+    foreach ($phrases as $phrase) {
+        if (str_contains($text, $phrase)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Whether the character is connected to the worldserver right now (null = SOAP unavailable or ambiguous).
+ */
+function sahtout_soap_character_in_world(string $characterName): ?bool
+{
+    if (!sahtout_soap_is_configured()) {
+        return null;
+    }
+    $characterName = trim($characterName);
+    if ($characterName === '') {
+        return null;
+    }
+
+    $literal = sahtout_soap_character_name_for_command($characterName);
+    $result = sahtout_soap_execute_command('.pinfo ' . $literal);
+    if (!$result['ok']) {
+        $body = strtolower(sahtout_soap_extract_command_message($result['output'] . ' ' . (string) ($result['error'] ?? ''), false));
+        if (sahtout_soap_message_indicates_player_not_in_world($body)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    $text = sahtout_soap_extract_command_message($result['output'], true);
+    $lower = strtolower($text);
+    if (sahtout_soap_message_indicates_player_not_in_world($lower)) {
+        return false;
+    }
+    if (preg_match('/online\s+for:/i', $text)) {
+        return true;
+    }
+    if (preg_match('/latency:\s*\d+/i', $text) && preg_match('/\bmap:/i', $text)) {
+        return true;
+    }
+
+    return null;
+}
+
 const SAHTOUT_MOTD_LOCALE = 'enUS';
 
 function sahtout_motd_build_set_command(string $motd): string
