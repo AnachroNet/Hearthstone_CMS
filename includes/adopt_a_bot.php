@@ -596,6 +596,30 @@ function sahtout_adopt_a_bot_progress_log_lines(?array $claim): array
     return $lines;
 }
 
+function sahtout_adopt_a_bot_last_progress_line(mysqli $siteDb, int $claimId, int $accountId): string
+{
+    if (!sahtout_adopt_a_bot_claims_extended_schema($siteDb)) {
+        return '';
+    }
+    $stmt = $siteDb->prepare(
+        'SELECT progress_log FROM adopt_a_bot_claims WHERE claim_id = ? AND account_id = ? LIMIT 1'
+    );
+    if (!$stmt) {
+        return '';
+    }
+    $stmt->bind_param('ii', $claimId, $accountId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    $lines = sahtout_adopt_a_bot_progress_log_lines($row);
+    if ($lines === []) {
+        return '';
+    }
+
+    return (string) end($lines);
+}
+
 function sahtout_adopt_a_bot_set_progress(mysqli $siteDb, int $claimId, int $accountId, string $message, bool $appendLog = true): void
 {
     sahtout_adopt_a_bot_claims_upgrade_schema($siteDb);
@@ -1065,12 +1089,22 @@ function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
     }
 
     $onList = sahtout_soap_onlinelist_contains_character($listText, $botName);
+    $proceedingMsg = $botName . ' is not on .account onlinelist (other pool bots may be online). Proceeding.';
+    $waitAfterKickMsg = $botName . ' is still on .account onlinelist after kick (playerbot may be relogging).';
+    $lastLine = sahtout_adopt_a_bot_last_progress_line($siteDb, $claimId, $accountId);
+
     if (!$onList) {
         sahtout_adopt_a_bot_force_character_offline_flag($charDb, $botGuid);
-        $debug = $botName . ' is not on .account onlinelist (other pool bots may be online). Proceeding.';
-        sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+        $debug = $proceedingMsg;
+        if ($lastLine !== $proceedingMsg) {
+            sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
+        }
 
         return ['ready' => true, 'on_onlinelist' => false, 'debug' => $debug];
+    }
+
+    if ($lastLine === $waitAfterKickMsg) {
+        return ['ready' => false, 'on_onlinelist' => true, 'debug' => $waitAfterKickMsg];
     }
 
     sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $botGuid, $authDb);
@@ -1084,7 +1118,7 @@ function sahtout_adopt_a_bot_ensure_pool_bot_offline_for_transfer(
         return ['ready' => true, 'on_onlinelist' => true, 'debug' => $debug];
     }
 
-    $debug = $botName . ' is still on .account onlinelist after kick (playerbot may be relogging).';
+    $debug = $waitAfterKickMsg;
     sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, $debug);
 
     return ['ready' => false, 'on_onlinelist' => true, 'debug' => $debug];
