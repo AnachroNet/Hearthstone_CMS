@@ -109,6 +109,19 @@ try {
         if (!sahtout_adopt_a_bot_has_character_slot($char_db, $account_id)) {
             throw new Exception('adopt_no_slot');
         }
+        $existingPending = sahtout_adopt_a_bot_get_pending_claim($site_db, $account_id);
+        if ($existingPending !== null) {
+            if ($char_transaction_started) {
+                $char_db->rollback();
+                $char_transaction_started = false;
+            }
+            if ($site_transaction_started) {
+                $site_db->rollback();
+                $site_transaction_started = false;
+            }
+            header("Location: {$base_path}adopt-a-bot");
+            exit;
+        }
         if (!sahtout_adopt_a_bot_account_may_purchase($site_db, $account_id)) {
             throw new Exception('adopt_already_claimed');
         }

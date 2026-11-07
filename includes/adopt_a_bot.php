@@ -332,13 +332,13 @@ function sahtout_adopt_a_bot_pool_has_eligible_bot(
     return $ok;
 }
 
-function sahtout_adopt_a_bot_account_may_purchase(mysqli $siteDb, int $accountId): bool
+function sahtout_adopt_a_bot_has_completed_claim(mysqli $siteDb, int $accountId): bool
 {
     if (!sahtout_adopt_a_bot_claims_table_exists($siteDb)) {
-        return true;
+        return false;
     }
     $stmt = $siteDb->prepare(
-        "SELECT claim_id FROM adopt_a_bot_claims WHERE account_id = ? AND status IN ('pending', 'completed') LIMIT 1"
+        "SELECT claim_id FROM adopt_a_bot_claims WHERE account_id = ? AND status = 'completed' LIMIT 1"
     );
     if (!$stmt) {
         return false;
@@ -346,10 +346,16 @@ function sahtout_adopt_a_bot_account_may_purchase(mysqli $siteDb, int $accountId
     $stmt->bind_param('i', $accountId);
     $stmt->execute();
     $res = $stmt->get_result();
-    $blocked = $res && $res->num_rows > 0;
+    $has = $res && $res->num_rows > 0;
     $stmt->close();
 
-    return !$blocked;
+    return $has;
+}
+
+/** False when the account already finished Adopt a Bot (completed claim). Pending claims are resumed, not rebought. */
+function sahtout_adopt_a_bot_account_may_purchase(mysqli $siteDb, int $accountId): bool
+{
+    return !sahtout_adopt_a_bot_has_completed_claim($siteDb, $accountId);
 }
 
 function sahtout_adopt_a_bot_get_pending_claim(mysqli $siteDb, int $accountId): ?array

@@ -15,12 +15,14 @@ $adoptABotShopItemId = sahtout_adopt_a_bot_resolve_shop_item_id($site_db);
 $adoptABotBuyerHighest = 0;
 $adoptABotMaxBotLevel = SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP;
 $adoptABotHasEligiblePool = false;
+$adoptABotPendingClaim = null;
 if (!empty($_SESSION['user_id'])) {
     global $auth_db;
     $adoptUid = (int) $_SESSION['user_id'];
     $adoptABotBuyerHighest = sahtout_adopt_a_bot_highest_character_level($char_db, $adoptUid);
     $adoptABotMaxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $adoptUid);
     $adoptABotHasEligiblePool = sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $auth_db, $site_db, $adoptUid);
+    $adoptABotPendingClaim = sahtout_adopt_a_bot_get_pending_claim($site_db, $adoptUid);
 }
 
 $page_class = 'shop';
@@ -183,6 +185,15 @@ if (isset($_GET['status'])) {
             $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_no_eligible_bots', 'No bot in the pool is within 5 levels of your highest character. Level up or try again when new bots are added.') . '</span></div>';
             break;
     }
+}
+
+if ($status_message === '' && !empty($adoptABotPendingClaim)) {
+    $adoptResumeUrl = htmlspecialchars($base_path . 'adopt-a-bot', ENT_QUOTES, 'UTF-8');
+    $status_message = '<div class="bg-[rgba(242,207,82,0.12)] border border-[#c9a227]/40 text-gray-200 px-5 py-3 flex flex-wrap items-center gap-3 mb-4 force-wrap">'
+        . '<i class="fas fa-robot text-[#f2cf5b] text-lg"></i>'
+        . '<span class="flex-1">' . translate('shop_status_adopt_pending_resume', 'You have an Adopt a Bot purchase in progress. Choose your character to finish.') . '</span>'
+        . '<a href="' . $adoptResumeUrl . '" class="px-4 py-2 border border-[#c9a227]/50 text-[#f2cf5b] hover:bg-[#f2cf5b]/10 font-semibold text-sm whitespace-nowrap">'
+        . translate('shop_adopt_a_bot_continue', 'Continue adoption') . '</a></div>';
 }
 
 $cooldown_active = false;
@@ -622,16 +633,26 @@ include_once $project_root . 'includes/header.php';
                                     <?php if (!empty($_SESSION['user_id'])): ?>
                                         <?php
                                         $isAdoptABotItem = $adoptABotShopItemId > 0 && (int) $item['item_id'] === $adoptABotShopItemId;
-                                        $canBuyAdopt = $isAdoptABotItem && sahtout_adopt_a_bot_has_character_slot($char_db, (int) $_SESSION['user_id'])
-                                            && sahtout_adopt_a_bot_account_may_purchase($site_db, (int) $_SESSION['user_id'])
+                                        $adoptUidShop = (int) $_SESSION['user_id'];
+                                        $adoptHasPending = $isAdoptABotItem && !empty($adoptABotPendingClaim);
+                                        $adoptHasCompleted = $isAdoptABotItem && sahtout_adopt_a_bot_has_completed_claim($site_db, $adoptUidShop);
+                                        $canBuyAdopt = $isAdoptABotItem && !$adoptHasPending && !$adoptHasCompleted
+                                            && sahtout_adopt_a_bot_has_character_slot($char_db, $adoptUidShop)
                                             && $adoptABotHasEligiblePool;
-                                        $adoptBaseEligible = $isAdoptABotItem
-                                            && sahtout_adopt_a_bot_has_character_slot($char_db, (int) $_SESSION['user_id'])
-                                            && sahtout_adopt_a_bot_account_may_purchase($site_db, (int) $_SESSION['user_id']);
+                                        $adoptBaseEligible = $isAdoptABotItem && !$adoptHasPending && !$adoptHasCompleted
+                                            && sahtout_adopt_a_bot_has_character_slot($char_db, $adoptUidShop);
                                         $purchaseBlockedNoChars = !$isAdoptABotItem && empty($characters);
                                         $purchaseDisabled = $is_out_of_stock || $purchaseBlockedNoChars || $cooldown_active
-                                            || ($isAdoptABotItem && !$canBuyAdopt);
+                                            || ($isAdoptABotItem && !$canBuyAdopt && !$adoptHasPending);
                                         ?>
+                                        <?php if ($adoptHasPending): ?>
+                                            <div class="mt-3">
+                                                <p class="text-amber-200/90 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_pending_resume', 'Your tokens are paid. Pick a bot to complete adoption.'); ?></p>
+                                                <a href="<?php echo $base_path; ?>adopt-a-bot" class="buy-button block w-full text-center py-2.5 bg-[rgba(242,207,82,0.25)] border border-[#f2cf5b]/50 text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.35)] transition-all duration-300 font-semibold text-sm">
+                                                    <?php echo translate('shop_adopt_a_bot_continue', 'Continue adoption'); ?>
+                                                </a>
+                                            </div>
+                                        <?php else: ?>
                                         <form action="<?php echo $base_path; ?>buy_item" method="POST" class="mt-3 purchase-form<?php echo $isAdoptABotItem ? ' purchase-form-adopt-a-bot' : ''; ?>">
                                             <input type="hidden" name="item_id" value="<?php echo (int)$item['item_id']; ?>">
                                             <?php if (!empty($_SESSION['csrf_token'])): ?>
@@ -645,7 +666,9 @@ include_once $project_root . 'includes/header.php';
                                                     $adoptABotBuyerHighest,
                                                     SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP
                                                 ); ?></p>
-                                                <?php if (!$canBuyAdopt && !$is_out_of_stock): ?>
+                                                <?php if ($adoptHasCompleted): ?>
+                                                    <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_completed', 'You have already completed Adopt a Bot on this account.'); ?></p>
+                                                <?php elseif (!$canBuyAdopt && !$is_out_of_stock): ?>
                                                     <?php if ($adoptBaseEligible && !$adoptABotHasEligiblePool): ?>
                                                         <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_no_level_match', 'No bot is available at or below level %d.', $adoptABotMaxBotLevel); ?></p>
                                                     <?php else: ?>
@@ -680,6 +703,7 @@ include_once $project_root . 'includes/header.php';
                                                 ?>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <a href="<?php echo $base_path; ?>login" class="login-to-buy-button block w-full text-center py-2.5 bg-[rgba(52,152,219,0.2)] border border-[rgba(52,152,219,0.3)] text-[#3498db] hover:bg-[rgba(52,152,219,0.3)] transition-all duration-300 font-semibold text-sm mt-3 force-wrap"><?php echo translate('shop_login_to_buy', 'Log in to Buy'); ?></a>
                                     <?php endif; ?>
@@ -812,6 +836,13 @@ include_once $project_root . 'includes/header.php';
                     if (isPurchaseBlocked) {
                         e.preventDefault();
                         showCustomAlert('<?php echo translate('shop_js_cooldown_active', 'Please wait {seconds} seconds before making another purchase.'); ?>'.replace('{seconds}', remainingCooldown), 'warning');
+                        return;
+                    }
+                    if (!confirm(<?php echo json_encode(translate(
+                        'shop_js_adopt_a_bot_confirm',
+                        'Spend tokens for Adopt a Bot? You will choose your character on the next page. Adoption is not finished until you confirm a bot.'
+                    )); ?>)) {
+                        e.preventDefault();
                     }
                     return;
                 }
