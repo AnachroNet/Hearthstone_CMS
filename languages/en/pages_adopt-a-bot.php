@@ -5,7 +5,7 @@ return [
     'adopt_a_bot_heading' => 'Adopt a Bot',
     'adopt_a_bot_reset_btn' => 'Reset',
     'adopt_a_bot_col_action' => 'Adopt',
-    'adopt_a_bot_table_footer' => 'Open a name to preview the character, then click Select to continue.',
+    'adopt_a_bot_table_footer' => 'Click Select to preview the character and continue adoption.',
     'adopt_a_bot_intro' => 'Select a character from the bot pool (level %d or below; your highest character is level %d). Adoption is permanent.',
     'adopt_a_bot_search_placeholder' => 'Search by name…',
     'adopt_a_bot_search' => 'Search',

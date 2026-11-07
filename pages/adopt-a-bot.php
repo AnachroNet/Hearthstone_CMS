@@ -289,12 +289,11 @@ include_once $project_root . 'includes/header.php';
                         <?php else: ?>
                             <?php foreach ($bots as $bot):
                                 $guid = (int) $bot['guid'];
-                                $charUrl = htmlspecialchars($base_path . 'character?guid=' . $guid, ENT_QUOTES, 'UTF-8');
                                 $botName = htmlspecialchars($bot['name'], ENT_QUOTES, 'UTF-8');
                                 ?>
                                 <tr class="player-row border-b border-gray-700/30 last:border-0">
                                     <td class="py-3.5 px-3 md:px-6 text-left whitespace-nowrap">
-                                        <a href="<?php echo $charUrl; ?>" class="player-link font-semibold"><?php echo $botName; ?></a>
+                                        <span class="player-link font-semibold"><?php echo $botName; ?></span>
                                     </td>
                                     <td class="py-3.5 px-3 md:px-6 whitespace-nowrap">
                                         <img src="<?php echo htmlspecialchars(sahtout_adopt_a_bot_faction_icon((int) $bot['race']), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="inline-block w-6 h-6 rounded-full shadow-md">

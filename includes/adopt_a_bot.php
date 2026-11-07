@@ -726,7 +726,7 @@ function sahtout_adopt_a_bot_process_open_claim(
 
     $err = (string) ($result['error'] ?? 'error');
     if ($err === 'bot_online') {
-        if (sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid)) {
+        if (sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb)) {
             sahtout_adopt_a_bot_set_progress(
                 $siteDb,
                 $claimId,
@@ -933,6 +933,34 @@ function sahtout_adopt_a_bot_character_online_row(mysqli $charDb, int $guid): ?a
     ];
 }
 
+function sahtout_adopt_a_bot_auth_login_for_character(mysqli $charDb, mysqli $authDb, int $guid): string
+{
+    $stmt = $charDb->prepare('SELECT account FROM characters WHERE guid = ? LIMIT 1');
+    if (!$stmt) {
+        return '';
+    }
+    $stmt->bind_param('i', $guid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    $acctId = (int) ($row['account'] ?? 0);
+    if ($acctId <= 0) {
+        return '';
+    }
+    $stmt = $authDb->prepare('SELECT username FROM account WHERE id = ? LIMIT 1');
+    if (!$stmt) {
+        return '';
+    }
+    $stmt->bind_param('i', $acctId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $auth = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    return trim((string) ($auth['username'] ?? ''));
+}
+
 function sahtout_adopt_a_bot_force_character_offline_flag(mysqli $charDb, int $guid): void
 {
     $stmt = $charDb->prepare('UPDATE characters SET online = 0 WHERE guid = ? AND online = 1');
@@ -945,7 +973,7 @@ function sahtout_adopt_a_bot_force_character_offline_flag(mysqli $charDb, int $g
 }
 
 /** Clear a stuck characters.online=1 when SOAP shows the player is not in the world (common for playerbots). */
-function sahtout_adopt_a_bot_reconcile_online_state(mysqli $charDb, int $guid): bool
+function sahtout_adopt_a_bot_reconcile_online_state(mysqli $charDb, int $guid, ?mysqli $authDb = null): bool
 {
     $row = sahtout_adopt_a_bot_character_online_row($charDb, $guid);
     if ($row === null || (int) $row['online'] !== 1) {
@@ -955,7 +983,8 @@ function sahtout_adopt_a_bot_reconcile_online_state(mysqli $charDb, int $guid): 
     if ($name === '' || !sahtout_soap_is_configured()) {
         return false;
     }
-    $inWorld = sahtout_soap_character_in_world($name);
+    $accountLogin = ($authDb instanceof mysqli) ? sahtout_adopt_a_bot_auth_login_for_character($charDb, $authDb, $guid) : '';
+    $inWorld = sahtout_soap_character_in_world($name, $accountLogin !== '' ? $accountLogin : null);
     if ($inWorld === false) {
         sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
 
@@ -966,9 +995,9 @@ function sahtout_adopt_a_bot_reconcile_online_state(mysqli $charDb, int $guid): 
 }
 
 /** True when transfer must wait for disconnect (DB and/or live world). */
-function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid): bool
+function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid, ?mysqli $authDb = null): bool
 {
-    sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid);
+    sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid, $authDb);
 
     $row = sahtout_adopt_a_bot_character_online_row($charDb, $guid);
     if ($row === null) {
@@ -979,7 +1008,8 @@ function sahtout_adopt_a_bot_character_is_online(mysqli $charDb, int $guid): boo
     }
     $name = $row['name'];
     if ($name !== '' && sahtout_soap_is_configured()) {
-        $inWorld = sahtout_soap_character_in_world($name);
+        $accountLogin = ($authDb instanceof mysqli) ? sahtout_adopt_a_bot_auth_login_for_character($charDb, $authDb, $guid) : '';
+        $inWorld = sahtout_soap_character_in_world($name, $accountLogin !== '' ? $accountLogin : null);
         if ($inWorld === false) {
             sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
 
@@ -998,40 +1028,41 @@ function sahtout_adopt_a_bot_prepare_character_offline(
     mysqli $charDb,
     string $charDbName,
     int $guid,
-    int $maxWaitSeconds = SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS
+    int $maxWaitSeconds = SAHTOUT_ADOPT_A_BOT_OFFLINE_WAIT_SECONDS,
+    ?mysqli $authDb = null
 ): bool {
-    if (!sahtout_adopt_a_bot_character_is_online($charDb, $guid)) {
+    if (!sahtout_adopt_a_bot_character_is_online($charDb, $guid, $authDb)) {
         return true;
     }
-    sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid);
-    sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid);
+    sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid, $authDb);
+    sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid, $authDb);
     if ($maxWaitSeconds <= 0) {
-        return !sahtout_adopt_a_bot_character_is_online($charDb, $guid);
+        return !sahtout_adopt_a_bot_character_is_online($charDb, $guid, $authDb);
     }
     $deadline = time() + max(1, $maxWaitSeconds);
     $lastKickAt = time();
     while (time() < $deadline) {
         usleep(800000);
-        if (!sahtout_adopt_a_bot_character_is_online($charDb, $guid)) {
+        if (!sahtout_adopt_a_bot_character_is_online($charDb, $guid, $authDb)) {
             return true;
         }
         if (time() - $lastKickAt >= 3) {
-            sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid);
+            sahtout_adopt_a_bot_kick_character_if_online($charDb, $charDbName, $guid, $authDb);
             $lastKickAt = time();
         }
     }
 
-    return !sahtout_adopt_a_bot_character_is_online($charDb, $guid);
+    return !sahtout_adopt_a_bot_character_is_online($charDb, $guid, $authDb);
 }
 
-function sahtout_adopt_a_bot_kick_character_if_online(mysqli $charDb, string $charDbName, int $guid): void
+function sahtout_adopt_a_bot_kick_character_if_online(mysqli $charDb, string $charDbName, int $guid, ?mysqli $authDb = null): void
 {
     if (!sahtout_soap_is_configured()) {
         return;
     }
     $row = sahtout_adopt_a_bot_character_online_row($charDb, $guid);
     if ($row === null || (int) $row['online'] !== 1) {
-        sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid);
+        sahtout_adopt_a_bot_reconcile_online_state($charDb, $guid, $authDb);
 
         return;
     }
@@ -1039,6 +1070,7 @@ function sahtout_adopt_a_bot_kick_character_if_online(mysqli $charDb, string $ch
     if ($name === '') {
         return;
     }
+    $accountLogin = ($authDb instanceof mysqli) ? sahtout_adopt_a_bot_auth_login_for_character($charDb, $authDb, $guid) : '';
     $literal = sahtout_soap_character_name_for_command($name);
     $kick = sahtout_soap_execute_command('.kick ' . $literal . ' Adoption');
     if (!$kick['ok']) {
@@ -1050,7 +1082,7 @@ function sahtout_adopt_a_bot_kick_character_if_online(mysqli $charDb, string $ch
         return;
     }
     usleep(400000);
-    $inWorld = sahtout_soap_character_in_world($name);
+    $inWorld = sahtout_soap_character_in_world($name, $accountLogin !== '' ? $accountLogin : null);
     if ($inWorld !== true) {
         sahtout_adopt_a_bot_force_character_offline_flag($charDb, $guid);
     }
@@ -1161,11 +1193,11 @@ function sahtout_adopt_a_bot_complete_claim(
     }
 
     sahtout_adopt_a_bot_set_progress($siteDb, $claimId, $accountId, 'Preparing transfer (offline check)…');
-    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid);
+    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
 
-    if (!sahtout_adopt_a_bot_prepare_character_offline($charDb, $charDbName, $botGuid, $offlineWaitSeconds)) {
-        sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid);
-        if (sahtout_adopt_a_bot_character_is_online($charDb, $botGuid)) {
+    if (!sahtout_adopt_a_bot_prepare_character_offline($charDb, $charDbName, $botGuid, $offlineWaitSeconds, $authDb)) {
+        sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
+        if (sahtout_adopt_a_bot_character_is_online($charDb, $botGuid, $authDb)) {
             return ['ok' => false, 'error' => 'bot_online'];
         }
     }
@@ -1202,7 +1234,7 @@ function sahtout_adopt_a_bot_complete_claim(
 
         return ['ok' => false, 'error' => 'level_too_high'];
     }
-    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid);
+    sahtout_adopt_a_bot_reconcile_online_state($charDb, $botGuid, $authDb);
     $onlineNow = (int) ($bot['online'] ?? 0);
     $stmtOnline = $charDb->prepare('SELECT online FROM characters WHERE guid = ? LIMIT 1');
     if ($stmtOnline) {
@@ -1215,7 +1247,7 @@ function sahtout_adopt_a_bot_complete_claim(
             $onlineNow = (int) ($fresh['online'] ?? 0);
         }
     }
-    if ($onlineNow === 1 && sahtout_adopt_a_bot_character_is_online($charDb, $botGuid)) {
+    if ($onlineNow === 1 && sahtout_adopt_a_bot_character_is_online($charDb, $botGuid, $authDb)) {
         $charDb->rollback();
 
         return ['ok' => false, 'error' => 'bot_online'];

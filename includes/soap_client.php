@@ -184,9 +184,67 @@ function sahtout_soap_message_indicates_player_not_in_world(string $text): bool
 }
 
 /**
- * Whether the character is connected to the worldserver right now (null = SOAP unavailable or ambiguous).
+ * @return null|string Null when no onlinelist command succeeded (permissions / SOAP error).
  */
-function sahtout_soap_character_in_world(string $characterName): ?bool
+function sahtout_soap_account_onlinelist_text(): ?string
+{
+    if (!sahtout_soap_is_configured()) {
+        return null;
+    }
+    foreach (['.account onlinelist', '.account online'] as $command) {
+        $result = sahtout_soap_execute_command($command);
+        if (!$result['ok']) {
+            $body = strtolower(sahtout_soap_extract_command_message($result['output'] . ' ' . (string) ($result['error'] ?? ''), false));
+            if (str_contains($body, 'insufficient permissions') || str_contains($body, 'permission denied')) {
+                continue;
+            }
+            if (str_contains($body, 'there is no such command') || str_contains($body, 'unknown command')) {
+                continue;
+            }
+            continue;
+        }
+        $text = sahtout_soap_extract_command_message($result['output'], true);
+        if ($text !== '') {
+            return $text;
+        }
+    }
+
+    return null;
+}
+
+function sahtout_soap_onlinelist_contains_name(string $listText, string $name): bool
+{
+    $name = trim($name);
+    if ($name === '' || trim($listText) === '') {
+        return false;
+    }
+    $pattern = '/\b' . preg_quote($name, '/') . '\b/i';
+
+    return (bool) preg_match($pattern, $listText);
+}
+
+function sahtout_soap_message_indicates_player_in_world(string $text): bool
+{
+    $text = strtolower(trim($text));
+    if ($text === '') {
+        return false;
+    }
+    if (preg_match('/online\s+for:/i', $text)) {
+        return true;
+    }
+    if (preg_match('/latency:\s*\d+\s*ms/i', $text) && preg_match('/\b(map|zone|area)\s*:/i', $text)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Whether the character is connected to the worldserver right now.
+ * Uses .account onlinelist when the SOAP user can run it; falls back to .pinfo parse.
+ * Null = could not determine (no SOAP or ambiguous pinfo).
+ */
+function sahtout_soap_character_in_world(string $characterName, ?string $accountLogin = null): ?bool
 {
     if (!sahtout_soap_is_configured()) {
         return null;
@@ -194,6 +252,18 @@ function sahtout_soap_character_in_world(string $characterName): ?bool
     $characterName = trim($characterName);
     if ($characterName === '') {
         return null;
+    }
+
+    $listText = sahtout_soap_account_onlinelist_text();
+    if ($listText !== null) {
+        if (sahtout_soap_onlinelist_contains_name($listText, $characterName)) {
+            return true;
+        }
+        if ($accountLogin !== null && $accountLogin !== '' && sahtout_soap_onlinelist_contains_name($listText, $accountLogin)) {
+            return true;
+        }
+
+        return false;
     }
 
     $literal = sahtout_soap_character_name_for_command($characterName);
@@ -212,10 +282,7 @@ function sahtout_soap_character_in_world(string $characterName): ?bool
     if (sahtout_soap_message_indicates_player_not_in_world($lower)) {
         return false;
     }
-    if (preg_match('/online\s+for:/i', $text)) {
-        return true;
-    }
-    if (preg_match('/latency:\s*\d+/i', $text) && preg_match('/\bmap:/i', $text)) {
+    if (sahtout_soap_message_indicates_player_in_world($text)) {
         return true;
     }
 
