@@ -1264,7 +1264,7 @@ function sahtout_adopt_a_bot_list_pool_characters(
             if (!$stmt) {
                 return [];
             }
-            $stmt->bind_param('siiii', $like, $maxBotLevel, $limit, $offset);
+            $stmt->bind_param('siii', $like, $maxBotLevel, $limit, $offset);
         } else {
             $sql = 'SELECT guid, name, level, race, class, gender FROM characters WHERE account IN (' . $inList . ') AND name LIKE ? ORDER BY name ASC LIMIT ? OFFSET ?';
             $stmt = $charDb->prepare($sql);
