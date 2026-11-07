@@ -86,5 +86,7 @@ return [
      */
     'features' => [
         'shop_token_gifts_enabled' => null,
+        /** Force Adopt a Bot on/off regardless of Admin → General (null = use database). */
+        'adopt_a_bot_enabled' => null,
     ],
 ];

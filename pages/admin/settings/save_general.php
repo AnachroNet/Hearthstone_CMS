@@ -19,6 +19,7 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST
 
 require_once $project_root . 'includes/site_settings.php';
 require_once $project_root . 'includes/token_gift_settings.php';
+require_once $project_root . 'includes/adopt_a_bot.php';
 
 // ==================== NEW: Handle Website Title ====================
 $site_title_name_new = trim($_POST['site_title_name'] ?? '');
@@ -111,6 +112,10 @@ $registration_signup_tokens_enabled_new = isset($_POST['registration_signup_toke
 $registration_signup_tokens_amount_new = max(0, min(9999999, (int) ($_POST['registration_signup_tokens_amount'] ?? 0)));
 
 $shop_token_gifts_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_POST['shop_token_gifts_enabled']) : null;
+$shop_adopt_a_bot_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_POST['shop_adopt_a_bot_enabled']) : null;
+$shop_adopt_a_bot_pool_username_new = ($_SESSION['role'] ?? '') === 'admin'
+    ? trim((string) ($_POST['shop_adopt_a_bot_pool_username'] ?? SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME))
+    : null;
 
 $shop_token_gift_loot_ids_raw = trim((string) ($_POST['shop_token_gift_loot_ids'] ?? ''));
 $shop_token_gift_loot_ids_new = preg_replace('/[^0-9,\s;]+/', '', $shop_token_gift_loot_ids_raw) ?? '';
@@ -144,6 +149,12 @@ if (empty($errors)) {
         if ($shop_token_gifts_enabled_new !== null) {
             $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gifts_enabled', $shop_token_gifts_enabled_new, 'bool', $editorId);
         }
+        if ($shop_adopt_a_bot_enabled_new !== null) {
+            $ok = $ok && sahtout_site_setting_set($site_db, 'shop.adopt_a_bot_enabled', $shop_adopt_a_bot_enabled_new, 'bool', $editorId);
+        }
+        if ($shop_adopt_a_bot_pool_username_new !== null && $shop_adopt_a_bot_pool_username_new !== '') {
+            $ok = $ok && sahtout_site_setting_set($site_db, 'shop.adopt_a_bot_pool_username', $shop_adopt_a_bot_pool_username_new, 'string', $editorId);
+        }
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_loot_ids', $shop_token_gift_loot_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_world_ids', $shop_token_gift_world_ids_new, 'string', $editorId);
         $ok = $ok && sahtout_site_setting_set($site_db, 'shop.token_gift_item_template_ref', $shop_token_gift_item_template_ref_new, 'int', $editorId);
@@ -168,6 +179,10 @@ if (empty($errors)) {
                 $errors[] = translate('error_shared_email_index', 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/FULL_UPDATE/hearthstone_site_install_demo.sql into your site database.');
                 $ok = false;
             }
+        }
+
+        if ($ok && $shop_adopt_a_bot_enabled_new !== null) {
+            $ok = sahtout_adopt_a_bot_sync_shop_item($site_db, (bool) $shop_adopt_a_bot_enabled_new, $editorId);
         }
 
         if ($ok) {

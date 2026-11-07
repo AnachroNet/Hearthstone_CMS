@@ -58,6 +58,14 @@ return [
     'shop_js_select_character' => 'Please select a character to purchase this item.',
     'shop_js_cooldown_active' => 'Please wait {seconds} seconds before making another purchase.',
     'shop_js_login_required' => 'Please log in to purchase items.',
-    'shop_js_no_characters' => 'You have no characters available. Please create a character first.'
+    'shop_js_no_characters' => 'You have no characters available. Please create a character first.',
+    'shop_adopt_a_bot_hint' => 'Requires a free character slot. You may adopt bots up to level %d (your highest: %d, max +5 levels).',
+    'shop_adopt_a_bot_unavailable' => 'You are not eligible (character slots full or adoption already used).',
+    'shop_adopt_a_bot_no_level_match' => 'No bot is available at or below level %d.',
+    'shop_status_adopt_no_slot' => 'You need an open character slot (fewer than 10 characters) to purchase Adopt a Bot.',
+    'shop_status_adopt_already_claimed' => 'You already have an Adopt a Bot purchase in progress or completed.',
+    'shop_status_adopt_pool_missing' => 'The bot pool account is not configured. Contact staff.',
+    'shop_status_adopt_disabled' => 'Adopt a Bot is not available right now.',
+    'shop_status_adopt_no_eligible_bots' => 'No bot in the pool is within 5 levels of your highest character. Level up or try again when new bots are added.',
 ];
 ?>

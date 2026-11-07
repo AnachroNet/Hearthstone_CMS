@@ -2,6 +2,7 @@
 define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/adopt_a_bot.php';
 
 // Ensure user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -29,14 +30,16 @@ if (isset($_SESSION['last_purchase_time']) && (time() - $_SESSION['last_purchase
 }
 
 // Validate POST data
-if (!isset($_POST['item_id'], $_POST['character_id']) || !is_numeric($_POST['item_id']) || !is_numeric($_POST['character_id'])) {
+if (!isset($_POST['item_id']) || !is_numeric($_POST['item_id'])) {
     error_log("Invalid POST data");
     header("Location: {$base_path}shop?category=All&status=error");
     exit;
 }
 
 $item_id = (int)$_POST['item_id'];
-$character_guid = (int)$_POST['character_id'];
+$character_guid = (isset($_POST['character_id']) && $_POST['character_id'] !== '' && is_numeric($_POST['character_id']))
+    ? (int)$_POST['character_id']
+    : 0;
 $account_id = (int)$_SESSION['user_id'];
 
 error_log("Buy Item Form Submitted: Item ID: $item_id, Character GUID: $character_guid, User ID: $account_id");
@@ -91,6 +94,107 @@ try {
     $item = $result->fetch_assoc();
     $stmt->close();
     error_log("Item Details: " . print_r($item, true));
+
+    if (sahtout_adopt_a_bot_is_shop_item_id($site_db, $item_id)) {
+        if ($char_transaction_started) {
+            $char_db->rollback();
+            $char_transaction_started = false;
+        }
+        if (!sahtout_adopt_a_bot_enabled($site_db)) {
+            throw new Exception('adopt_a_bot_disabled');
+        }
+        if (!sahtout_adopt_a_bot_claims_ensure_schema($site_db)) {
+            throw new Exception('Database query error');
+        }
+        if (!sahtout_adopt_a_bot_has_character_slot($char_db, $account_id)) {
+            throw new Exception('adopt_no_slot');
+        }
+        if (!sahtout_adopt_a_bot_account_may_purchase($site_db, $account_id)) {
+            throw new Exception('adopt_already_claimed');
+        }
+        $poolAccountId = sahtout_adopt_a_bot_pool_account_id($auth_db, $site_db);
+        if ($poolAccountId <= 0) {
+            throw new Exception('adopt_pool_missing');
+        }
+        if (!sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $poolAccountId, $account_id)) {
+            throw new Exception('adopt_no_eligible_bots');
+        }
+
+        $stmt = $site_db->prepare('
+            UPDATE user_currencies
+            SET tokens = tokens - ?,
+                last_updated = NOW()
+            WHERE account_id = ?
+              AND tokens >= ?
+        ');
+        if (!$stmt) {
+            throw new Exception('Database query error');
+        }
+        $stmt->bind_param('iii', $item['token_cost'], $account_id, $item['token_cost']);
+        if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+            $stmt->close();
+            throw new Exception('insufficient_funds');
+        }
+        $stmt->close();
+
+        if ($item['stock'] !== null) {
+            $stmt = $site_db->prepare('
+                UPDATE shop_items
+                SET stock = stock - 1,
+                    last_updated = NOW()
+                WHERE item_id = ?
+                  AND stock IS NOT NULL
+                  AND stock > 0
+            ');
+            if (!$stmt) {
+                throw new Exception('Database query error');
+            }
+            $stmt->bind_param('i', $item_id);
+            if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+                $stmt->close();
+                throw new Exception('out_of_stock');
+            }
+            $stmt->close();
+        }
+
+        $stmt = $site_db->prepare('INSERT INTO purchases (account_id, item_id) VALUES (?, ?)');
+        if (!$stmt) {
+            throw new Exception('Database query error');
+        }
+        $stmt->bind_param('ii', $account_id, $item_id);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            throw new Exception('Database query error');
+        }
+        $purchase_id = (int) $site_db->insert_id;
+        $stmt->close();
+
+        $stmt = $site_db->prepare(
+            "INSERT INTO adopt_a_bot_claims (account_id, purchase_id, status) VALUES (?, ?, 'pending')"
+        );
+        if (!$stmt) {
+            throw new Exception('Database query error');
+        }
+        $stmt->bind_param('ii', $account_id, $purchase_id);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            throw new Exception('Database query error');
+        }
+        $stmt->close();
+
+        if (!$site_db->commit()) {
+            throw new Exception('Database query error');
+        }
+        $site_transaction_started = false;
+
+        $_SESSION['last_purchase_time'] = time();
+        header("Location: {$base_path}adopt-a-bot");
+        exit;
+    }
+
+    if ($character_guid <= 0) {
+        throw new Exception('character_not_found');
+    }
 
     // Check for excessive gold_amount to prevent overflow
     $max_copper = 4294967295; // Max for INT UNSIGNED
@@ -441,7 +545,11 @@ try {
     
     $error = $e->getMessage();
     error_log("Purchase Error: $error, Item ID: $item_id, Character GUID: $character_guid, User ID: $account_id");
-    $status = in_array($error, ['out_of_stock', 'insufficient_funds', 'character_not_found', 'Database query error', 'Gold amount too large', 'Total money exceeds limit', 'character_online', 'level_too_high', 'invalid_item_configuration']) ? $error : 'error';
+    $status = in_array($error, [
+        'out_of_stock', 'insufficient_funds', 'character_not_found', 'Database query error', 'Gold amount too large',
+        'Total money exceeds limit', 'character_online', 'level_too_high', 'invalid_item_configuration',
+        'adopt_no_slot', 'adopt_already_claimed', 'adopt_pool_missing', 'adopt_no_eligible_bots', 'adopt_a_bot_disabled',
+    ], true) ? $error : 'error';
     error_log("Redirecting to shop with status: $status");
     header("Location: {$base_path}shop?category=All&status=$status");
     exit;

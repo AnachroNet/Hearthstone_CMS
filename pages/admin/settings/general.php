@@ -6,6 +6,7 @@ require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/token_gift_settings.php';
 require_once $project_root . 'includes/token_gift_world.php';
+require_once $project_root . 'includes/adopt_a_bot.php';
 
 global $world_db, $site_db;
 $tokenGiftWorldIdSlots = [];
@@ -338,6 +339,32 @@ include $project_root . 'includes/header.php';
                                     <?php echo translate('help_registration_signup_tokens', 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.'); ?>
                                 </div>
                             </div>
+
+                            <!-- Adopt a Bot -->
+                            <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+                            <div class="pt-2 border-t border-[rgba(201,162,39,.08)] mb-4">
+                                <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
+                                    <?php echo translate('label_shop_adopt_a_bot', 'Adopt a Bot (shop)'); ?>
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mb-3">
+                                    <input type="checkbox" name="shop_adopt_a_bot_enabled" value="1" class="rounded border-[#c9a227]/40"
+                                        <?php echo sahtout_adopt_a_bot_enabled($site_db) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_shop_adopt_a_bot_enabled', 'Enable Adopt a Bot shop service'); ?>
+                                </label>
+                                <p class="text-[#6a7a8a] text-xs mb-3 max-w-3xl">
+                                    <?php echo translate(
+                                        'help_shop_adopt_a_bot_enabled',
+                                        'When enabled, adds the Adopt a Bot item (default 100 tokens; change price in A-Shop). When disabled, removes the shop row. Requires auth account RNDBOT (or name below) with pool characters.'
+                                    ); ?>
+                                </p>
+                                <label for="shop_adopt_a_bot_pool_username" class="text-sm text-gray-300 block mb-1">
+                                    <?php echo translate('label_shop_adopt_a_bot_pool', 'Bot pool account username'); ?>
+                                </label>
+                                <input type="text" name="shop_adopt_a_bot_pool_username" id="shop_adopt_a_bot_pool_username" maxlength="32"
+                                       class="w-full max-w-xs px-4 py-3 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none"
+                                       value="<?php echo htmlspecialchars(sahtout_adopt_a_bot_pool_username($site_db)); ?>">
+                            </div>
+                            <?php endif; ?>
 
                             <!-- Shop / token gifts -->
                             <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">

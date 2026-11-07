@@ -12,6 +12,7 @@ require_once $project_root . 'includes/user_inquiries.php';
 require_once $project_root . 'includes/achievement_reward_sync.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
 require_once $project_root . 'includes/character_lifetime_stats.php';
+require_once $project_root . 'includes/adopt_a_bot.php';
 
 // Early session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
@@ -36,6 +37,7 @@ $user_inquiries_view = ['available' => false, 'inquiries' => [], 'pending_count'
 $gmlevel = $_SESSION['gmlevel'] ?? 0;
 $role = $_SESSION['role'] ?? 'player';
 $debug_errors = $_SESSION['debug_errors'] ?? [];
+$adoptABotPendingClaim = sahtout_adopt_a_bot_get_pending_claim($site_db, (int) $_SESSION['user_id']);
 
 // Retrieve and clear session messages
 if (isset($_SESSION['message'])) {
@@ -1338,6 +1340,14 @@ include_once $project_root . 'includes/header.php';
                 <div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4">
                     <i class="fa-solid fa-circle-exclamation text-red-400 text-lg"></i>
                     <span><?php echo htmlspecialchars($error); ?></span>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($adoptABotPendingClaim)): ?>
+                <div class="bg-[rgba(242,207,82,0.12)] border border-[#c9a227]/40 text-[#f2cf5b] px-5 py-3 flex flex-wrap items-center gap-3 mb-4">
+                    <i class="fa-solid fa-robot text-lg"></i>
+                    <span class="flex-1 text-gray-200"><?php echo translate('account_adopt_a_bot_pending', 'You have an Adopt a Bot purchase ready. Choose your character on the adoption page.'); ?></span>
+                    <a href="<?php echo $base_path; ?>adopt-a-bot" class="px-4 py-2 border border-[#c9a227]/50 hover:bg-[#f2cf5b]/10 font-semibold text-sm"><?php echo translate('account_adopt_a_bot_cta', 'Adopt now'); ?></a>
                 </div>
             <?php endif; ?>
             

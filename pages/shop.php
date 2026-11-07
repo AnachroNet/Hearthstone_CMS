@@ -6,8 +6,23 @@ require_once $project_root . 'includes/item_tooltip.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php'; // Site title used in $page_title
 require_once $project_root . 'includes/itemset_dbc.php';
+require_once $project_root . 'includes/adopt_a_bot.php';
 
 global $site_db, $world_db;
+
+$adoptABotShopItemId = sahtout_adopt_a_bot_resolve_shop_item_id($site_db);
+
+$adoptABotBuyerHighest = 0;
+$adoptABotMaxBotLevel = SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP;
+$adoptABotHasEligiblePool = false;
+if (!empty($_SESSION['user_id'])) {
+    global $auth_db;
+    $adoptUid = (int) $_SESSION['user_id'];
+    $adoptABotBuyerHighest = sahtout_adopt_a_bot_highest_character_level($char_db, $adoptUid);
+    $adoptABotMaxBotLevel = sahtout_adopt_a_bot_max_adoptable_bot_level($char_db, $adoptUid);
+    $adoptPoolIdForShop = sahtout_adopt_a_bot_pool_account_id($auth_db, $site_db);
+    $adoptABotHasEligiblePool = sahtout_adopt_a_bot_pool_has_eligible_bot($char_db, $adoptPoolIdForShop, $adoptUid);
+}
 
 $page_class = 'shop';
 
@@ -152,6 +167,21 @@ if (isset($_GET['status'])) {
             break;
         case 'cooldown_active':
             $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_cooldown_active', 'Please wait 5 seconds before making another purchase.') . '</span></div>';
+            break;
+        case 'adopt_no_slot':
+            $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_no_slot', 'You need an open character slot (fewer than 10 characters) to purchase Adopt a Bot.') . '</span></div>';
+            break;
+        case 'adopt_already_claimed':
+            $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_already_claimed', 'You already have an Adopt a Bot purchase in progress or completed.') . '</span></div>';
+            break;
+        case 'adopt_pool_missing':
+            $status_message = '<div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-circle text-red-400 text-lg"></i><span>' . translate('shop_status_adopt_pool_missing', 'The bot pool account is not configured. Contact staff.') . '</span></div>';
+            break;
+        case 'adopt_a_bot_disabled':
+            $status_message = '<div class="bg-red-900/40 border border-red-600/40 text-red-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-circle text-red-400 text-lg"></i><span>' . translate('shop_status_adopt_disabled', 'Adopt a Bot is not available right now.') . '</span></div>';
+            break;
+        case 'adopt_no_eligible_bots':
+            $status_message = '<div class="bg-yellow-900/40 border border-yellow-600/40 text-yellow-200 px-5 py-3 flex items-center gap-3 mb-4 force-wrap"><i class="fas fa-exclamation-triangle text-yellow-400 text-lg"></i><span>' . translate('shop_status_adopt_no_eligible_bots', 'No bot in the pool is within 5 levels of your highest character. Level up or try again when new bots are added.') . '</span></div>';
             break;
     }
 }
@@ -591,12 +621,39 @@ include_once $project_root . 'includes/header.php';
                                     
                                     <!-- Purchase -->
                                     <?php if (!empty($_SESSION['user_id'])): ?>
-                                        <form action="<?php echo $base_path; ?>buy_item" method="POST" class="mt-3 purchase-form">
+                                        <?php
+                                        $isAdoptABotItem = $adoptABotShopItemId > 0 && (int) $item['item_id'] === $adoptABotShopItemId;
+                                        $canBuyAdopt = $isAdoptABotItem && sahtout_adopt_a_bot_has_character_slot($char_db, (int) $_SESSION['user_id'])
+                                            && sahtout_adopt_a_bot_account_may_purchase($site_db, (int) $_SESSION['user_id'])
+                                            && $adoptABotHasEligiblePool;
+                                        $adoptBaseEligible = $isAdoptABotItem
+                                            && sahtout_adopt_a_bot_has_character_slot($char_db, (int) $_SESSION['user_id'])
+                                            && sahtout_adopt_a_bot_account_may_purchase($site_db, (int) $_SESSION['user_id']);
+                                        $purchaseBlockedNoChars = !$isAdoptABotItem && empty($characters);
+                                        $purchaseDisabled = $is_out_of_stock || $purchaseBlockedNoChars || $cooldown_active
+                                            || ($isAdoptABotItem && !$canBuyAdopt);
+                                        ?>
+                                        <form action="<?php echo $base_path; ?>buy_item" method="POST" class="mt-3 purchase-form<?php echo $isAdoptABotItem ? ' purchase-form-adopt-a-bot' : ''; ?>">
                                             <input type="hidden" name="item_id" value="<?php echo (int)$item['item_id']; ?>">
                                             <?php if (!empty($_SESSION['csrf_token'])): ?>
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                             <?php endif; ?>
-                                            <?php if (!empty($characters)): ?>
+                                            <?php if ($isAdoptABotItem): ?>
+                                                <p class="text-emerald-300/90 text-xs text-center mb-2 force-wrap"><?php echo translate(
+                                                    'shop_adopt_a_bot_hint',
+                                                    'Requires a free character slot. You may adopt bots up to level %d (your highest: %d, max +%d).',
+                                                    $adoptABotMaxBotLevel,
+                                                    $adoptABotBuyerHighest,
+                                                    SAHTOUT_ADOPT_A_BOT_LEVEL_ABOVE_CAP
+                                                ); ?></p>
+                                                <?php if (!$canBuyAdopt && !$is_out_of_stock): ?>
+                                                    <?php if ($adoptBaseEligible && !$adoptABotHasEligiblePool): ?>
+                                                        <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_no_level_match', 'No bot is available at or below level %d.', $adoptABotMaxBotLevel); ?></p>
+                                                    <?php else: ?>
+                                                        <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_adopt_a_bot_unavailable', 'You are not eligible (character slots full or adoption already used).'); ?></p>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+                                            <?php elseif (!empty($characters)): ?>
                                                 <select name="character_id" class="character-select w-full mb-2 px-3 py-2 bg-[rgba(0,0,0,0.4)] border border-[rgba(201,162,39,0.2)] text-gray-200 text-sm focus:border-[#f2cf5b] focus:outline-none transition-colors" required>
                                                     <option value=""><?php echo translate('shop_select_character', 'Select a Character'); ?></option>
                                                     <?php foreach ($characters as $char): ?>
@@ -608,12 +665,20 @@ include_once $project_root . 'includes/header.php';
                                             <?php else: ?>
                                                 <p class="text-red-400 text-xs text-center mb-2 force-wrap"><?php echo translate('shop_no_characters', 'No characters available.'); ?></p>
                                             <?php endif; ?>
-                                            <button type="submit" class="buy-button w-full py-2.5 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold text-sm <?php echo $is_out_of_stock || empty($characters) || $cooldown_active ? 'opacity-50 cursor-not-allowed hover:bg-[rgba(242,207,82,0.15)]' : ''; ?>" 
-                                                    <?php echo $is_out_of_stock || empty($characters) || $cooldown_active ? 'disabled' : ''; ?>
+                                            <button type="submit" class="buy-button w-full py-2.5 bg-[rgba(242,207,82,0.15)] border border-[rgba(201,162,39,0.3)] text-[#f2cf5b] hover:bg-[rgba(242,207,82,0.25)] transition-all duration-300 font-semibold text-sm <?php echo $purchaseDisabled ? 'opacity-50 cursor-not-allowed hover:bg-[rgba(242,207,82,0.15)]' : ''; ?>" 
+                                                    <?php echo $purchaseDisabled ? 'disabled' : ''; ?>
                                                     <?php echo $is_out_of_stock ? 'data-out-of-stock="1"' : ''; ?>
                                                     <?php echo $cooldown_active ? 'data-cooldown="1" data-original-label="' . htmlspecialchars(translate('shop_buy_now', 'Buy Now')) . '"' : ''; ?>
                                                     data-item-id="<?php echo (int)$item['item_id']; ?>">
-                                                <?php echo $is_out_of_stock ? translate('shop_out_of_stock', 'Out of Stock') : ($cooldown_active && !empty($characters) ? str_replace('{seconds}', $remaining_cooldown, translate('shop_wait_cooldown', 'Wait {seconds}s')) : translate('shop_buy_now', 'Buy Now')); ?>
+                                                <?php
+                                                if ($is_out_of_stock) {
+                                                    echo translate('shop_out_of_stock', 'Out of Stock');
+                                                } elseif ($cooldown_active && (!$purchaseBlockedNoChars || $isAdoptABotItem)) {
+                                                    echo str_replace('{seconds}', (string) $remaining_cooldown, translate('shop_wait_cooldown', 'Wait {seconds}s'));
+                                                } else {
+                                                    echo translate('shop_buy_now', 'Buy Now');
+                                                }
+                                                ?>
                                             </button>
                                         </form>
                                     <?php else: ?>
@@ -744,6 +809,13 @@ include_once $project_root . 'includes/header.php';
         // Purchase form validation
         document.querySelectorAll('.purchase-form').forEach(form => {
             form.addEventListener('submit', function(e) {
+                if (this.classList.contains('purchase-form-adopt-a-bot')) {
+                    if (isPurchaseBlocked) {
+                        e.preventDefault();
+                        showCustomAlert('<?php echo translate('shop_js_cooldown_active', 'Please wait {seconds} seconds before making another purchase.'); ?>'.replace('{seconds}', remainingCooldown), 'warning');
+                    }
+                    return;
+                }
                 const characterSelect = this.querySelector('.character-select');
                 if (characterSelect && !characterSelect.value) {
                     e.preventDefault();
@@ -842,6 +914,10 @@ include_once $project_root . 'includes/header.php';
 
         // No characters alert
         document.querySelectorAll('.buy-button:not([href])').forEach(button => {
+            const form = button.closest('.purchase-form');
+            if (form && form.classList.contains('purchase-form-adopt-a-bot')) {
+                return;
+            }
             if (<?php echo json_encode(empty($characters)); ?>) {
                 button.addEventListener('click', function(e) {
                     e.preventDefault();

@@ -66,6 +66,11 @@ return [
     'label_site_breaking_news_enabled' => 'Show breaking news on the home page and enable the in-game editor (Admin → News)',
     'help_site_breaking_news' => 'When enabled, the site reads and writes the mod_breaking_news table on acore_world. That table comes from the AzerothCore Breaking News module—install it on your core if you use this feature. Turn this off if you do not use breaking news so the site skips world DB lookups for it.',
 
+    'label_shop_adopt_a_bot' => 'Adopt a Bot (shop)',
+    'label_shop_adopt_a_bot_enabled' => 'Enable Adopt a Bot shop service',
+    'help_shop_adopt_a_bot_enabled' => 'When enabled, adds the Adopt a Bot item (default 100 tokens; change price in A-Shop). When disabled, removes the shop row. Buyers may only adopt pool bots up to 5 levels above their highest character. Requires an auth account with bot characters (default username RNDBOT).',
+    'label_shop_adopt_a_bot_pool' => 'Bot pool account username',
+
     'label_shop_token_gifts' => 'Token gift letters (shop)',
     'label_shop_token_gifts_enabled' => 'Enable token gift letter promos (A-Shop Rewards)',
     'help_shop_token_gifts_enabled' => 'When disabled, the Token Gifts sub-tab is hidden for everyone (including administrators), login-time granting for sealed-letter promos is skipped, and these fields are not used. If you need to recover without the UI, set features.shop_token_gifts_enabled to true or false in config.local.php (overrides the database until removed).',
