@@ -147,9 +147,6 @@ try {
 
     global $auth_db;
     $authForOnline = ($auth_db instanceof mysqli) ? $auth_db : null;
-    if (strtolower((string) $item['category']) === 'service' && (int) ($item['at_login_flags'] ?? 0) > 0) {
-        sahtout_adopt_a_bot_fast_shop_character_prep($site_db, $char_db, $account_id, $character_guid);
-    }
     $charName = trim((string) ($character['name'] ?? ''));
     if (sahtout_shop_character_online_blocks_purchase($char_db, $authForOnline, $character_guid, $account_id, $charName)) {
         error_log("Character is online on buyer account: guid=$character_guid name=$charName");

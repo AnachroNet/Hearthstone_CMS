@@ -43,7 +43,7 @@ Configured as `database.playerbots.name` in `includes/config.local.php` (default
 
 RNDBOT username filtering in admin does **not** require this database.
 
-When a pool bot is **adopted**, the CMS updates `characters.account` only. The Playerbots mod still schedules that **character guid** in `playerbots_random_bots` until those rows are deleted—otherwise it may stay `online`, appear on `.account onlinelist`, and block shop services. New adoptions delete `playerbots_random_bots` rows for the guid automatically if DELETE is granted.
+When a pool bot is **adopted**, the CMS moves `characters.account`, deletes that guid from `playerbots_random_bots`, applies a short playerbots offline hold, clears `online`, and grants `at_login` customize. No ongoing batch repair runs on account or shop page loads.
 
 ## `acore_world` (read-heavy)
 
