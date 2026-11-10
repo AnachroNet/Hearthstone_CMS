@@ -476,6 +476,9 @@ function get_player_position(x,y,m)
  where_530 = 0;
  x = Math.round(x);
  y = Math.round(y);
+ m = parseInt(m, 10);
+ if(isNaN(m))
+   m = 0;
  if(m == 530) {
    if(y < -1000 && y > -10000 && x > 5000) { //BE
      x=x-10349; y=y+6357; where_530 = 1;
@@ -503,7 +506,7 @@ function get_player_position(x,y,m)
    ypos = Math.round(y * 0.025140);
    }
  switch (m) {
-   case '530':
+   case 530:
     if(where_530 == 1) {
       pos.x = 858 - ypos; pos.y = 84 - xpos;
       }
@@ -514,19 +517,19 @@ function get_player_position(x,y,m)
       pos.x = 684 - ypos; pos.y = 229 - xpos;
       }
     break;
-   case '571':
+   case 571:
     pos.x = 505 - ypos;
     pos.y = 642 - xpos;
     break;
-   case '609':
+   case 609:
     pos.x = 896 - ypos;
     pos.y = 232 - xpos;
     break;
-   case '1':
+   case 1:
     pos.x = 194 - ypos;
     pos.y = 398 - xpos;
     break;
-   case '0':
+   case 0:
     pos.x = 752 - ypos;
     pos.y = 291 - xpos;
     break;
