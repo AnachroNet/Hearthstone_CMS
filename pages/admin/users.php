@@ -496,7 +496,7 @@ function admin_users_render_activity_modal(int $accountId, string $username, arr
 {
     ?>
     <div id="activityModal-<?php echo $accountId; ?>" class="modal-backdrop">
-        <div class="panel w-full max-w-4xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+        <div class="panel w-full max-w-2xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
             <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl close-modal-btn" data-modal="activityModal-<?php echo $accountId; ?>">&times;</button>
             <h3 class="wow-title text-2xl mb-2 flex items-center gap-3">
                 <i class="fas fa-history text-[#f2cf5b]"></i>
@@ -508,23 +508,23 @@ function admin_users_render_activity_modal(int $accountId, string $username, arr
                     translate('admin_users_activity_shown_limit', 'Showing the latest %d entries.'),
                     $limitShown
                 )); ?></p>
-                <div class="overflow-x-auto border border-[rgba(201,162,39,0.15)] rounded-sm">
-                    <table class="w-full text-sm table-dark">
+                <div class="border border-[rgba(201,162,39,0.15)] rounded-sm">
+                    <table class="w-full text-sm table-dark admin-users-activity-table">
                         <thead>
                             <tr>
-                                <th class="text-left py-2 px-3"><?php echo translate('admin_users_activity_col_action', 'Action'); ?></th>
-                                <th class="text-left py-2 px-3"><?php echo translate('admin_users_activity_col_character', 'Character'); ?></th>
-                                <th class="text-left py-2 px-3 whitespace-nowrap"><?php echo translate('admin_users_activity_col_timestamp', 'Timestamp'); ?></th>
-                                <th class="text-left py-2 px-3"><?php echo translate('admin_users_activity_col_details', 'Details'); ?></th>
+                                <th class="col-action text-left py-2 px-3"><?php echo translate('admin_users_activity_col_action', 'Action'); ?></th>
+                                <th class="col-character text-left py-2 px-3"><?php echo translate('admin_users_activity_col_character', 'Character'); ?></th>
+                                <th class="col-timestamp text-left py-2 px-3 whitespace-nowrap"><?php echo translate('admin_users_activity_col_timestamp', 'Timestamp'); ?></th>
+                                <th class="col-details text-left py-2 px-3"><?php echo translate('admin_users_activity_col_details', 'Details'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($activityLog as $log): ?>
                                 <tr>
-                                    <td class="py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['action']); ?></td>
-                                    <td class="py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['character_name'] !== null && $log['character_name'] !== '' ? $log['character_name'] : translate('admin_users_na', 'N/A')); ?></td>
-                                    <td class="py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo $log['timestamp'] > 0 ? htmlspecialchars(date('Y-m-d H:i:s', $log['timestamp'])) : translate('admin_users_na', 'N/A'); ?></td>
-                                    <td class="py-2 px-3 text-gray-300"><?php echo htmlspecialchars($log['details'] !== null && $log['details'] !== '' ? $log['details'] : translate('admin_users_activity_no_details', '—')); ?></td>
+                                    <td class="col-action py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['action']); ?></td>
+                                    <td class="col-character py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['character_name'] !== null && $log['character_name'] !== '' ? $log['character_name'] : translate('admin_users_na', 'N/A')); ?></td>
+                                    <td class="col-timestamp py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo $log['timestamp'] > 0 ? htmlspecialchars(date('Y-m-d H:i:s', $log['timestamp'])) : translate('admin_users_na', 'N/A'); ?></td>
+                                    <td class="col-details py-2 px-3 text-gray-300"><?php echo htmlspecialchars($log['details'] !== null && $log['details'] !== '' ? $log['details'] : translate('admin_users_activity_no_details', '—')); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -746,6 +746,28 @@ ob_start();
         .modal-backdrop .panel {
             max-height: 90vh;
             overflow-y: auto;
+        }
+
+        .admin-users-activity-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        .admin-users-activity-table .col-action {
+            width: 22%;
+        }
+        .admin-users-activity-table .col-character {
+            width: 18%;
+        }
+        .admin-users-activity-table .col-timestamp {
+            width: 26%;
+        }
+        .admin-users-activity-table .col-details {
+            width: 34%;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: normal;
+            vertical-align: top;
         }
 
         .avatar-img {
