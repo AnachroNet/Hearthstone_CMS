@@ -100,11 +100,11 @@ body.sahtout-playermap {
     z-index: 98;
 }
 #realm-status-indicator {
-    position: absolute;
+    position: fixed;
     z-index: 120;
     top: 44px;
-    left: max(8px, calc(50% - 483px));
-    padding: 8px;
+    left: 8px;
+    padding: 0;
     line-height: 0;
 }
 #realm-status-indicator img {
