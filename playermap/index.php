@@ -42,7 +42,7 @@ body.sahtout-playermap {
 #sahtout-playermap-stage {
     position: relative;
     width: 966px;
-    height: 772px;
+    height: 732px;
     transform-origin: 0 0;
 }
 #sahtout-playermap-chrome {
@@ -54,13 +54,36 @@ body.sahtout-playermap {
     z-index: 5000;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     padding: 0 14px;
     font-family: verdana, arial, sans-serif;
     font-size: 12px;
     background: #0a0e16;
     border-bottom: 1px solid rgba(201, 162, 39, 0.35);
     color: #eaba28;
+    cursor: default;
+}
+.sahtout-playermap-chrome__side {
+    flex: 0 0 auto;
+    min-width: 88px;
+    max-width: 30%;
+}
+.sahtout-playermap-chrome__side--end {
+    text-align: right;
+}
+#sahtout-playermap-server-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: bold;
+    color: #FFFF99;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 #sahtout-playermap-chrome a {
     color: #f2cf5b;
@@ -180,16 +203,6 @@ body.sahtout-playermap {
     z-index: 102;
     text-align: center;
 }
-#info_bottom {
-    position: absolute;
-    height: 20px;
-    width: 966px;
-    left: 50%;
-    margin-top: 711px;
-    margin-left: -483px;
-    z-index: 101;
-    text-align: center;
-}
 #timer {
     font-family: arial;
     font-size: 12px;
@@ -199,23 +212,14 @@ body.sahtout-playermap {
     color: #E7CF07;
     filter: Glow(Color=#000099, Strength=3);
 }
-#server_info {
-    font-family: Georgia, "Times New Roman", Times, serif;
-    font-size: 20px;
-    font-style: italic;
-    text-align: center;
-    font-weight: bold;
-    color: #FFFF99;
-    filter: Glow(Color=0, Strength=3);
-    padding-top: 30px;
-}
 #tip {
     border: 0px solid #aaaaaa;
     left: -1000px;
     padding: 0px;
-    position: absolute;
+    position: fixed;
     top: -1000px;
-    z-index: 150;
+    z-index: 6000;
+    pointer-events: none;
 }
 .statustext {
     font-weight: normal;
@@ -366,35 +370,54 @@ function getBodyScrollLeft()
   return self.pageXOffset || (document.documentElement && document.documentElement.scrollLeft) || (document.body && document.body.scrollLeft);
 }
 
+function get_viewport_size()
+{
+  return {
+    w: window.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0,
+    h: window.innerHeight || (document.documentElement && document.documentElement.clientHeight) || 0
+  };
+}
+
 function get_tipxy(tip_width, tip_height, x1, y1)
 {
   tipxy = new _coord();
-  tipxy.x = 5;
-  tipxy.y = 5;
-  if(document.layers)
-  {
-    wd = innerWidth;
-    ht = innerHeight;
-  }
-  else
-  {
-    wd = document.body.clientWidth;
-    ht = document.body.clientHeight;
-  }
+  var vp = get_viewport_size();
+  var wd = vp.w;
+  var ht = vp.h;
   if(x1+tip_width+15 < wd)
     tipxy.x = x1+15;
   else if(x1-tip_width-15 > 0)
     tipxy.x = x1-tip_width-15;
   else
-    tipxy.x = wd/2-tip_width/2;
-  if(y1+tip_height-5 < ht)
-    tipxy.y = y1-5;
+    tipxy.x = Math.max(5, wd/2-tip_width/2);
+  if(y1+tip_height+10 < ht)
+    tipxy.y = y1+10;
+  else if(y1-tip_height-10 > 0)
+    tipxy.y = y1-tip_height-10;
   else if(ht-tip_height-5 > 0)
     tipxy.y = ht-tip_height-5;
   else
     tipxy.y = 5;
-  //tipxy.x += getBodyScrollLeft();
-  //tipxy.y += getBodyScrollTop();
+  return tipxy;
+}
+
+function get_tipxy_chrome_below(tip_width, tip_height, x1)
+{
+  tipxy = new _coord();
+  var vp = get_viewport_size();
+  var wd = vp.w;
+  var chrome = document.getElementById('sahtout-playermap-chrome');
+  var baseY = sahtoutPlayermapChromeH;
+  if(chrome)
+    baseY = chrome.getBoundingClientRect().bottom;
+  tipxy.y = baseY + 6;
+  tipxy.x = x1 - tip_width / 2;
+  if(tipxy.x < 8)
+    tipxy.x = 8;
+  if(tipxy.x + tip_width > wd - 8)
+    tipxy.x = Math.max(8, wd - 8 - tip_width);
+  if(tipxy.y + tip_height > vp.h - 8)
+    tipxy.y = Math.max(baseY + 6, vp.h - tip_height - 8);
   return tipxy;
 }
 
@@ -453,16 +476,14 @@ function tip(object, type, onClick)
   }
   else if(navigator.appName != "Netscape")
   {
-    pointx = window.event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
-    pointy = window.event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
+    pointx = window.event.clientX;
+    pointy = window.event.clientY;
   }
   switch(type)
   {
     case 2:
-      tipxy = new _coord();
-      tipxy.x = pointx+15;
-      tipxy.y = pointy-60;
       t.innerHTML='<table width="120" border="0" cellspacing="0" cellpadding="0" class=\'tip_worldinfo\'\>'+object+'</table\>';
+      tipxy = get_tipxy_chrome_below(t.offsetWidth, t.offsetHeight, pointx);
       break;
     case 1:
       if(onClick || t.innerHTML == '')
@@ -924,10 +945,10 @@ function show(data)
     obj.innerHTML += highlightNameTagHtml(tagX, tagY, mpoints[n].name, mpointLocationSubtitle(mpoints[n]), mpoints[n].tagId);
   }
 
-  document.getElementById("server_info").innerHTML='<?php echo $lang_defs['online_label']; ?>: <b style="color: rgb(100,100,100);" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+total_players_count[1]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+total_players_count[0]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();"><?php echo $lang_defs['total']; ?></b> '+eval(total_players_count[0]+total_players_count[1])+'';
+  document.getElementById("sahtout-playermap-server-info").innerHTML='<?php echo $lang_defs['online_label']; ?>: <b style="color: rgb(100,100,100);" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+total_players_count[1]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+total_players_count[0]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();"><?php echo $lang_defs['total']; ?></b> '+eval(total_players_count[0]+total_players_count[1])+'';
   for(i = 0; i < maps_count; i++)
   {
-    document.getElementById("server_info").innerHTML += '&nbsp;<b style="color: rgb(160,160,20); cursor:pointer;" onClick="switchworld('+i+');" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+horde_count[i]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+alliance_count[i]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();">'+maps_name_array[i]+'</b\> '+players_count[i]+'';
+    document.getElementById("sahtout-playermap-server-info").innerHTML += '&nbsp;<b style="color: rgb(160,160,20); cursor:pointer;" onClick="switchworld('+i+');" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+horde_count[i]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+alliance_count[i]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();">'+maps_name_array[i]+'</b\> '+players_count[i]+'';
   }
 
   applyPlayerHighlightView();
@@ -1163,11 +1184,11 @@ function display()
 
 var sahtoutPlayermapChromeH = 36;
 var sahtoutPlayermapMapW = 966;
-var sahtoutPlayermapMapH = 772;
+var sahtoutPlayermapMapH = 732;
 var sahtoutPlayermapPanX = 0;
 var sahtoutPlayermapPanY = 0;
 var sahtoutPlayermapScale = 1;
-var sahtoutPlayermapMinScale = 0.25;
+var sahtoutPlayermapFitScale = 1;
 var sahtoutPlayermapMaxScale = 2.5;
 var sahtoutPlayermapUserAdjusted = false;
 var sahtoutPlayermapPanActive = false;
@@ -1227,15 +1248,25 @@ function sahtoutPlayermapClampPan()
   }
 }
 
+function sahtoutPlayermapRecalcFitScale()
+{
+  var size = sahtoutPlayermapViewportSize();
+  var availW = size.w;
+  var availH = size.h;
+  if(availW <= 0 || availH <= 0) return sahtoutPlayermapFitScale;
+  var fitScale = Math.min(availW / sahtoutPlayermapMapW, availH / sahtoutPlayermapMapH);
+  if(fitScale > sahtoutPlayermapMaxScale) fitScale = sahtoutPlayermapMaxScale;
+  sahtoutPlayermapFitScale = fitScale;
+  return fitScale;
+}
+
 function sahtoutPlayermapFitToViewport()
 {
   var size = sahtoutPlayermapViewportSize();
   var availW = size.w;
   var availH = size.h;
   if(availW <= 0 || availH <= 0) return;
-  var fitScale = Math.min(availW / sahtoutPlayermapMapW, availH / sahtoutPlayermapMapH);
-  if(fitScale > sahtoutPlayermapMaxScale) fitScale = sahtoutPlayermapMaxScale;
-  if(fitScale < sahtoutPlayermapMinScale) fitScale = sahtoutPlayermapMinScale;
+  var fitScale = sahtoutPlayermapRecalcFitScale();
   sahtoutPlayermapScale = fitScale;
   sahtoutPlayermapPanX = (availW - sahtoutPlayermapMapW * fitScale) / 2;
   sahtoutPlayermapPanY = (availH - sahtoutPlayermapMapH * fitScale) / 2;
@@ -1254,7 +1285,7 @@ function sahtoutPlayermapOnWheel(e)
   var my = e.clientY - rect.top;
   var factor = (e.deltaY > 0) ? 0.9 : 1.1;
   var newScale = sahtoutPlayermapScale * factor;
-  if(newScale < sahtoutPlayermapMinScale) newScale = sahtoutPlayermapMinScale;
+  if(newScale < sahtoutPlayermapFitScale) newScale = sahtoutPlayermapFitScale;
   if(newScale > sahtoutPlayermapMaxScale) newScale = sahtoutPlayermapMaxScale;
   var mapX = (mx - sahtoutPlayermapPanX) / sahtoutPlayermapScale;
   var mapY = (my - sahtoutPlayermapPanY) / sahtoutPlayermapScale;
@@ -1299,10 +1330,13 @@ function sahtoutPlayermapEndPan()
 
 function sahtoutPlayermapOnResize()
 {
+  sahtoutPlayermapRecalcFitScale();
   if(!sahtoutPlayermapUserAdjusted)
     sahtoutPlayermapFitToViewport();
   else
   {
+    if(sahtoutPlayermapScale < sahtoutPlayermapFitScale)
+      sahtoutPlayermapScale = sahtoutPlayermapFitScale;
     sahtoutPlayermapClampPan();
     sahtoutPlayermapApplyTransform();
   }
@@ -1329,8 +1363,8 @@ function start()
   {
     document.onmousemove=function(e)
     {
-      pointx = e.pageX;
-      pointy = e.pageY;
+      pointx = e.clientX;
+      pointy = e.clientY;
       return true;
     }
   }
@@ -1341,13 +1375,18 @@ function start()
 </SCRIPT>
 <BODY class="sahtout-playermap" onload="start();">
 <div id="sahtout-playermap-chrome">
-  <a href="<?php echo htmlspecialchars((string) ($sahtout_playermap_home_url ?? '/'), ENT_QUOTES, 'UTF-8'); ?>">&larr; <?php echo htmlspecialchars((string) ($sahtout_playermap_back_label ?? 'Return'), ENT_QUOTES, 'UTF-8'); ?></a>
-  <span><?php echo htmlspecialchars((string) ($realm_name ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+  <div class="sahtout-playermap-chrome__side">
+    <a href="<?php echo htmlspecialchars((string) ($sahtout_playermap_home_url ?? '/'), ENT_QUOTES, 'UTF-8'); ?>">&larr; <?php echo htmlspecialchars((string) ($sahtout_playermap_back_label ?? 'Return'), ENT_QUOTES, 'UTF-8'); ?></a>
+  </div>
+  <div id="sahtout-playermap-server-info"></div>
+  <div class="sahtout-playermap-chrome__side sahtout-playermap-chrome__side--end">
+    <span><?php echo htmlspecialchars((string) ($realm_name ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+  </div>
 </div>
 
+<div id="tip"></div>
 <div id="sahtout-playermap-viewport">
 <div id="sahtout-playermap-stage">
-<div id="tip"></div>
 <div ID="pointsOldworld"></div>
 <div ID="pointsOutland"></div>
 <div ID="pointsNorthrend"></div>
@@ -1358,13 +1397,6 @@ function start()
     <center>
     <table valign="top" border="0" cellspacing="0" cellpadding="0" height="16">
         <tr><td id="timer"></td></tr>
-    </table>
-    </center>
-</div>
-<div ID="info_bottom">
-    <center>
-    <table border="0" cellspacing="0" cellpadding="0" height="20" width="100%">
-        <tr><td align="center" valign="top" id="server_info"></td></tr>
     </table>
     </center>
 </div>
