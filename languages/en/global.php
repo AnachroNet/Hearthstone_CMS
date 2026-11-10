@@ -13,6 +13,7 @@ return [
     'nav_armory' => 'Armory',
     'nav_playermap' => 'Player Map',
     'playermap_back_to_site' => 'Back to site',
+    'playermap_back_previous' => 'Back',
     'armory_talent_calculator_btn' => 'Talent Calculator',
     'talents_open_calculator' => 'Open in Talent Calculator',
     'talents_embed_title' => 'Talent build',

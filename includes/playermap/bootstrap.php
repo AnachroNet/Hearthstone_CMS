@@ -35,6 +35,7 @@ $sahtout_playermap_default_realm_id = (int) $legacy['default_realm_id'];
 
 global $sahtout_playermap_web_base, $sahtout_playermap_home_url, $sahtout_playermap_back_label;
 $sahtout_playermap_web_base = rtrim((string) $base_path, '/') . '/playermap/';
-$sahtout_playermap_home_url = rtrim((string) $base_path, '/') . '/';
 require_once $project_root . 'languages/language.php';
-$sahtout_playermap_back_label = translate('playermap_back_to_site', 'Back to site');
+$sahtout_playermap_back = sahtout_playermap_resolve_back_navigation((string) $base_path);
+$sahtout_playermap_home_url = $sahtout_playermap_back['url'];
+$sahtout_playermap_back_label = $sahtout_playermap_back['label'];

@@ -4,6 +4,8 @@ require_once("defines.php");
 require_once("pomm_conf.php");
 require_once("func.php");
 
+global $site_db;
+
 $_RESULT = [];
 
 $maps_count = isset($lang_defs['maps_names']) ? count($lang_defs['maps_names']) : 0;
@@ -111,6 +113,12 @@ if ($dbReachable) {
 
     $char_data = 0;
     $char_dead = ($char_data & 0x11) ? 1 : 0;
+    $mapId = (int) $result['map'];
+    $mapLabel = '';
+    if (!sahtout_playermap_is_world_map($mapId) && isset($site_db) && $site_db instanceof mysqli && !$site_db->connect_error) {
+        require_once dirname(__DIR__) . '/includes/map_dbc.php';
+        $mapLabel = sahtout_map_dbc_display_name($site_db, $mapId);
+    }
     $arr[$i] = [
         'x' => $result['position_x'],
         'y' => $result['position_y'],
@@ -118,6 +126,7 @@ if ($dbReachable) {
         'name' => $result['name'],
         'map' => $result['map'],
         'zone' => get_zone_name($result['zone']),
+        'map_label' => $mapLabel,
         'cl' => $result['class'],
         'race' => $result['race'],
         'level' => $result['level'],

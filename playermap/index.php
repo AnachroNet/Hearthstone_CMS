@@ -6,6 +6,7 @@ require_once("func.php");
 
 $pm_highlight_player = sahtout_playermap_sanitize_highlight_name((string) ($_GET['player'] ?? ''));
 $pm_highlight_snapshot = sahtout_playermap_snapshot_from_request();
+$pm_highlight_meta = sahtout_playermap_highlight_meta_from_request();
 
 ?>
 <HTML><HEAD><title>Online Playermap</title>
@@ -114,6 +115,40 @@ body.sahtout-playermap {
     display: block;
     border: 0;
     max-width: none;
+}
+.pm-highlight-name {
+    position: absolute;
+    z-index: 130;
+    margin: 0;
+    padding: 3px 8px 4px;
+    font: bold 11px Verdana, Arial, sans-serif;
+    color: #FFFF99;
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid #EABA28;
+    pointer-events: none;
+    line-height: 1.25;
+    max-width: 220px;
+    animation: pm-highlight-tag-fade 9s ease forwards;
+}
+.pm-highlight-name.pm-highlight-name--live {
+    animation: pm-highlight-tag-fade 9s ease forwards;
+}
+.pm-highlight-name__title,
+.pm-highlight-name__sub {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pm-highlight-name__sub {
+    margin-top: 1px;
+    font-weight: normal;
+    font-size: 10px;
+    color: #e0d080;
+}
+@keyframes pm-highlight-tag-fade {
+    0%, 45% { opacity: 1; }
+    100% { opacity: 0.12; }
 }
 #info {
     position: absolute;
@@ -226,6 +261,7 @@ var maps_name_array = new Array(<?php echo "'".implode("','", $lang_defs['maps_n
 
 var highlightPlayer = <?php echo json_encode($pm_highlight_player, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 var highlightSnapshot = <?php echo json_encode($pm_highlight_snapshot, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+var highlightMeta = <?php echo json_encode($pm_highlight_meta, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 var selectedIconSrc = "<?php echo $img_base ?>selected-icon.gif";
 var highlightMatched = false;
 
@@ -277,11 +313,14 @@ function _points() {
   this.y = 0;
   this.name = "";
   this.zone = "";
+  this.map_label = "";
   this.faction = 0;
   this.single_text = "";
   this.multi_text = "";
   this.player = 0;
   this.Extention = 0;
+  this.highlight = false;
+  this.tagId = "";
 }
 
 function _multi_text() {
@@ -556,6 +595,88 @@ function mapPinImg(src, left, top, attrs)
   return '<img src="'+src+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
 }
 
+function escapeHtml(s)
+{
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function displayNameFromMapPoint(name)
+{
+  return String(name).replace(/<[^>]*>/g, '').trim();
+}
+
+function highlightTipAttrs(n, multi)
+{
+  if(multi)
+    return 'onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"';
+  return 'onMouseMove="tip(mpoints['+n+'],0,false);" onMouseOut="h_tip();"';
+}
+
+function pinTipAttrs(n, inst, multi)
+{
+  if(inst)
+    return 'onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"';
+  return highlightTipAttrs(n, multi);
+}
+
+function mpointLocationSubtitle(p)
+{
+  var inst = !in_array(p.map_id, maps_array);
+  if(inst)
+  {
+    if(p.map_label) return displayNameFromMapPoint(p.map_label);
+    if(p.zone) return displayNameFromMapPoint(p.zone);
+    return '';
+  }
+  if(p.zone) return displayNameFromMapPoint(p.zone);
+  return '';
+}
+
+function fallbackLocationSubtitle()
+{
+  if(highlightMeta && highlightMeta.subtitle)
+    return highlightMeta.subtitle;
+  if(highlightSnapshot)
+  {
+    var inst = !in_array(highlightSnapshot.map, maps_array);
+    if(inst && highlightSnapshot.map_label) return highlightSnapshot.map_label;
+    if(!inst && highlightSnapshot.zone_label) return highlightSnapshot.zone_label;
+    if(highlightSnapshot.zone_label) return highlightSnapshot.zone_label;
+    if(highlightSnapshot.map_label) return highlightSnapshot.map_label;
+  }
+  if(highlightMeta)
+  {
+    if(highlightMeta.zone_label) return highlightMeta.zone_label;
+    if(highlightMeta.map_label) return highlightMeta.map_label;
+  }
+  return '';
+}
+
+function highlightTagMouseAttrs(tagId)
+{
+  if(!tagId) return '';
+  return ' onMouseEnter="reviveHighlightTag(\''+tagId+'\')" ';
+}
+
+function reviveHighlightTag(tagId)
+{
+  var el = document.getElementById(tagId);
+  if(!el) return;
+  el.classList.remove('pm-highlight-name--faded');
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
+function highlightNameTagHtml(x, y, rawName, subtitle, tagId)
+{
+  var name = displayNameFromMapPoint(rawName || highlightPlayer);
+  if(!name) return '';
+  var id = tagId || '';
+  var sub = subtitle ? '<span class="pm-highlight-name__sub">'+escapeHtml(subtitle)+'</span>' : '';
+  return '<div'+(id ? ' id="'+id+'"' : '')+' class="pm-highlight-name pm-highlight-name--live" style="left:'+(x+26)+'px;top:'+(y+2)+'px;"><span class="pm-highlight-name__title">'+escapeHtml(name)+'</span>'+sub+'</div>';
+}
+
 function switchworld(n)
 {
   for(var i = 0; i < maps_count; i++)
@@ -661,6 +782,7 @@ function show(data)
       mpoints[point_count].map_id = data[i].map;
       mpoints[point_count].name = data[i].name;
       mpoints[point_count].zone = data[i].zone;
+      mpoints[point_count].map_label = data[i].map_label ? data[i].map_label : '';
       mpoints[point_count].player = 1;
       mpoints[point_count].Extention = eval(data[i].Extention);
       if(in_array(data[i].map, maps_array))
@@ -690,6 +812,8 @@ function show(data)
     {
       mpoints[n].player += 1;
       mpoints[n].single_text = '';
+      if(!mpoints[n].map_label && data[i].map_label)
+        mpoints[n].map_label = data[i].map_label;
     }
     if(!in_array(mpoints[n].map_id, maps_array) && (mpoints[n].current_leaderGuid != data[i].leaderGuid || (data[i].leaderGuid == 0 && mpoints[n].player > 1)))
     {
@@ -705,22 +829,42 @@ function show(data)
     i++;
   }
 
+  for(n = 0; n < point_count; n++)
+  {
+    if(mpoints[n].highlight)
+      mpoints[n].tagId = 'pm-hl-tag-'+n;
+  }
+
   n=0;
   while(n!=point_count)
   {
-    if(!in_array(mpoints[n].map_id, maps_array))
-      instances[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>inst-icon.gif", instances_x[mpoints[n].Extention][mpoints[n].map_id], instances_y[mpoints[n].Extention][mpoints[n].map_id], 'onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"');
+    var inst = !in_array(mpoints[n].map_id, maps_array);
+    var multi = mpoints[n].player > 1;
+    var attrs = pinTipAttrs(n, inst, multi);
+    var hlTag = mpoints[n].highlight ? highlightTagMouseAttrs(mpoints[n].tagId) : '';
+    if(inst)
+    {
+      var ix = instances_x[mpoints[n].Extention][mpoints[n].map_id];
+      var iy = instances_y[mpoints[n].Extention][mpoints[n].map_id];
+      var isrc = mpoints[n].highlight ? selectedIconSrc : "<?php echo $img_base ?>inst-icon.gif";
+      instances[mpoints[n].Extention] += mapPinImg(isrc, ix, iy, attrs+hlTag);
+    }
     else if(mpoints[n].highlight)
-      single[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, 'onMouseMove="tip(mpoints['+n+'],0,false);" onMouseOut="h_tip();"');
-    else if(mpoints[n].player > 1)
-      groups[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>group-icon.gif", mpoints[n].x, mpoints[n].y, 'onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"');
+    {
+      if(multi)
+        groups[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, attrs+hlTag);
+      else
+        single[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, attrs+hlTag);
+    }
+    else if(multi)
+      groups[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>group-icon.gif", mpoints[n].x, mpoints[n].y, pinTipAttrs(n, false, true));
     else
     {
       if(mpoints[n].faction)
         point = "<?php echo $img_base ?>horde.gif";
       else
         point = "<?php echo $img_base ?>allia.gif";
-      single[mpoints[n].Extention] += mapPinImg(point, mpoints[n].x, mpoints[n].y, 'onMouseMove="tip(mpoints['+n+'],0,false);" onMouseOut="h_tip();"');
+      single[mpoints[n].Extention] += mapPinImg(point, mpoints[n].x, mpoints[n].y, pinTipAttrs(n, false, false));
     }
     n++;
   }
@@ -737,6 +881,25 @@ function show(data)
     total_players_count[1] += horde_count[i];
   }
 
+  for(n = 0; n < point_count; n++)
+  {
+    if(!mpoints[n].highlight) continue;
+    var ext = mpoints[n].Extention;
+  var tagX, tagY;
+    if(!in_array(mpoints[n].map_id, maps_array))
+    {
+      tagX = instances_x[ext][mpoints[n].map_id];
+      tagY = instances_y[ext][mpoints[n].map_id];
+    }
+    else
+    {
+      tagX = mpoints[n].x;
+      tagY = mpoints[n].y;
+    }
+    obj = getPointsLayerByID(ext);
+    obj.innerHTML += highlightNameTagHtml(tagX, tagY, mpoints[n].name, mpointLocationSubtitle(mpoints[n]), mpoints[n].tagId);
+  }
+
   document.getElementById("server_info").innerHTML='<?php echo $lang_defs['online_label']; ?>: <b style="color: rgb(100,100,100);" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+total_players_count[1]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+total_players_count[0]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();"><?php echo $lang_defs['total']; ?></b> '+eval(total_players_count[0]+total_players_count[1])+'';
   for(i = 0; i < maps_count; i++)
   {
@@ -746,17 +909,47 @@ function show(data)
   applyPlayerHighlightView();
 }
 
+function tipSnapshotHighlight()
+{
+  if(!highlightSnapshot) return;
+  var t = document.getElementById("tip");
+  var name = escapeHtml(highlightPlayer || '');
+  var lines = [];
+  if(highlightSnapshot.map_label)
+    lines.push(escapeHtml(highlightSnapshot.map_label));
+  else if(!in_array(highlightSnapshot.map, maps_array))
+    lines.push('Instance (map '+highlightSnapshot.map+')');
+  if(highlightSnapshot.zone_label)
+    lines.push(escapeHtml(highlightSnapshot.zone_label));
+  lines.push('Last known position (offline)');
+  var body = lines.map(function(l){ return '<tr class="tip_text"><td>'+l+'</td></tr>'; }).join('');
+  t.innerHTML='<table width="160" border="0" cellspacing="0" cellpadding="0"><tr class="tip_header"><td>'+name+'</td></tr>'+body+'</table>';
+  var tipxy = get_tipxy(t.offsetWidth, t.offsetHeight, pointx, pointy);
+  t.style.left=tipxy.x + "px";
+  t.style.top=tipxy.y + "px";
+}
+
 function renderSnapshotHighlight()
 {
   if(!highlightSnapshot) return;
-  if(!in_array(highlightSnapshot.map, maps_array)) return;
-  var pos = get_player_position(highlightSnapshot.x, highlightSnapshot.y, highlightSnapshot.map);
   var ext = highlightSnapshot.ext;
+  var pos;
+  if(!in_array(highlightSnapshot.map, maps_array))
+  {
+    if(!instances_x[ext] || instances_x[ext][highlightSnapshot.map] === undefined)
+      return;
+    pos = {x: instances_x[ext][highlightSnapshot.map], y: instances_y[ext][highlightSnapshot.map]};
+  }
+  else
+  {
+    pos = get_player_position(highlightSnapshot.x, highlightSnapshot.y, highlightSnapshot.map);
+  }
   if(ext < 0 || ext >= maps_count) return;
   switchworld(ext);
   var obj = getPointsLayerByID(ext);
-  var pin = mapPinImg(selectedIconSrc, pos.x, pos.y, '');
-  obj.innerHTML = obj.innerHTML + pin;
+  var snapTagId = 'pm-hl-tag-snapshot';
+  var pin = mapPinImg(selectedIconSrc, pos.x, pos.y, 'onMouseMove="tipSnapshotHighlight();" onMouseOut="h_tip();"'+highlightTagMouseAttrs(snapTagId));
+  obj.innerHTML = obj.innerHTML + pin + highlightNameTagHtml(pos.x, pos.y, highlightPlayer, fallbackLocationSubtitle(), snapTagId);
 }
 
 function applyPlayerHighlightView()

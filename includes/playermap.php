@@ -360,10 +360,155 @@ function sahtout_playermap_continent_index(int $mapId, float $positionY): int
     return 0;
 }
 
+/** Map IDs rendered with world coordinates on the playermap (continent maps). */
+function sahtout_playermap_world_map_ids(): array
+{
+    return [0, 1, 530, 571, 609];
+}
+
+function sahtout_playermap_is_world_map(int $mapId): bool
+{
+    return in_array($mapId, sahtout_playermap_world_map_ids(), true);
+}
+
+function sahtout_playermap_sanitize_label_query(string $raw): string
+{
+    $label = trim($raw);
+    if ($label === '' || strlen($label) > 128) {
+        return '';
+    }
+    $label = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $label) ?? '';
+
+    return trim($label);
+}
+
+/** Relative site path for ?return= (e.g. character?guid=12). */
+function sahtout_playermap_is_allowed_return_path(string $relativePath): bool
+{
+    $relativePath = trim($relativePath);
+    if ($relativePath === '' || strlen($relativePath) > 512) {
+        return false;
+    }
+    if (preg_match('#^(?:https?:)?//#i', $relativePath) === 1) {
+        return false;
+    }
+    if (preg_match('#\.\.|\\\\#', $relativePath) === 1) {
+        return false;
+    }
+    if (preg_match('#^playermap(?:/|\?|$)#i', $relativePath) === 1) {
+        return false;
+    }
+
+    return preg_match('/^[a-z0-9][a-z0-9\-]*(?:\?[a-zA-Z0-9_\-=&%.]+)?$/i', $relativePath) === 1;
+}
+
+/**
+ * @return array{url:string,label:string}
+ */
+function sahtout_playermap_resolve_back_navigation(string $basePath): array
+{
+    $homeUrl = rtrim($basePath, '/') . '/';
+    $default = [
+        'url' => $homeUrl,
+        'label' => translate('playermap_back_to_site', 'Back to site'),
+    ];
+
+    $returnPath = trim((string) ($_GET['return'] ?? ''));
+    if ($returnPath === '') {
+        $returnPath = sahtout_playermap_return_path_from_referer($basePath) ?? '';
+    }
+
+    if ($returnPath === '' || !sahtout_playermap_is_allowed_return_path($returnPath)) {
+        return $default;
+    }
+
+    return [
+        'url' => $homeUrl . ltrim($returnPath, '/'),
+        'label' => translate('playermap_back_previous', 'Back'),
+    ];
+}
+
+function sahtout_playermap_return_path_from_referer(string $basePath): ?string
+{
+    $referer = trim((string) ($_SERVER['HTTP_REFERER'] ?? ''));
+    if ($referer === '') {
+        return null;
+    }
+
+    $parts = parse_url($referer);
+    if (!is_array($parts)) {
+        return null;
+    }
+
+    $refHost = strtolower((string) ($parts['host'] ?? ''));
+    $curHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    if ($refHost === '' || $curHost === '' || $refHost !== $curHost) {
+        return null;
+    }
+
+    $path = (string) ($parts['path'] ?? '');
+    $query = (string) ($parts['query'] ?? '');
+    $base = rtrim($basePath, '/');
+    if ($base !== '' && $base !== '/') {
+        if (str_starts_with($path, $base . '/')) {
+            $path = substr($path, strlen($base) + 1);
+        } elseif ($path === $base) {
+            $path = '';
+        }
+    }
+    $path = ltrim($path, '/');
+    if ($path === '' || preg_match('#^playermap(?:/|$)#i', $path) === 1) {
+        return null;
+    }
+
+    $relative = $path . ($query !== '' ? '?' . $query : '');
+
+    return sahtout_playermap_is_allowed_return_path($relative) ? $relative : null;
+}
+
+/**
+ * @return array{zone_label?:string,map_label?:string,subtitle?:string}
+ */
+function sahtout_playermap_highlight_meta_from_request(): array
+{
+    $meta = [];
+    $zoneLabel = sahtout_playermap_sanitize_label_query((string) ($_GET['zone_label'] ?? ''));
+    if ($zoneLabel !== '') {
+        $meta['zone_label'] = $zoneLabel;
+    }
+    $mapLabel = sahtout_playermap_sanitize_label_query((string) ($_GET['map_label'] ?? ''));
+    if ($mapLabel !== '') {
+        $meta['map_label'] = $mapLabel;
+    }
+    $subtitle = sahtout_playermap_sanitize_label_query((string) ($_GET['subtitle'] ?? ''));
+    if ($subtitle !== '') {
+        $meta['subtitle'] = $subtitle;
+    }
+
+    return $meta;
+}
+
+function sahtout_playermap_character_location_subtitle(?mysqli $siteDb, int $mapId, int $zoneId): string
+{
+    if (!($siteDb instanceof mysqli) || $siteDb->connect_error) {
+        return '';
+    }
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'area_dbc.php';
+    require_once __DIR__ . DIRECTORY_SEPARATOR . 'map_dbc.php';
+    if (!sahtout_playermap_is_world_map($mapId)) {
+        return sahtout_map_dbc_display_name($siteDb, $mapId);
+    }
+    if ($zoneId > 0) {
+        return sahtout_area_dbc_display_name($siteDb, $zoneId);
+    }
+
+    return sahtout_map_dbc_display_name($siteDb, $mapId);
+}
+
 /**
  * URL to open /playermap/ with a highlighted character (live pin or last-known coords).
  *
- * @param array{name?:string,online?:mixed,map?:mixed,position_x?:mixed,position_y?:mixed} $character
+ * @param array{name?:string,online?:mixed,map?:mixed,position_x?:mixed,position_y?:mixed,guid?:mixed,zone?:mixed} $character
  */
 function sahtout_playermap_character_highlight_url(string $basePath, array $character, ?mysqli $siteDb = null): ?string
 {
@@ -380,8 +525,29 @@ function sahtout_playermap_character_highlight_url(string $basePath, array $char
     }
 
     $query = ['player' => $name];
+    $guid = (int) ($character['guid'] ?? 0);
+    if ($guid > 0) {
+        $query['return'] = 'character?guid=' . $guid;
+    }
+
+    $mapId = (int) ($character['map'] ?? 0);
+    $zoneId = (int) ($character['zone'] ?? 0);
+    if ($siteDb instanceof mysqli && !$siteDb->connect_error) {
+        require_once __DIR__ . DIRECTORY_SEPARATOR . 'area_dbc.php';
+        require_once __DIR__ . DIRECTORY_SEPARATOR . 'map_dbc.php';
+        if ($zoneId > 0) {
+            $query['zone_label'] = sahtout_area_dbc_display_name($siteDb, $zoneId);
+        }
+        if ($mapId >= 0) {
+            $query['map_label'] = sahtout_map_dbc_display_name($siteDb, $mapId);
+        }
+        $subtitle = sahtout_playermap_character_location_subtitle($siteDb, $mapId, $zoneId);
+        if ($subtitle !== '') {
+            $query['subtitle'] = $subtitle;
+        }
+    }
+
     if (empty($character['online'])) {
-        $mapId = (int) ($character['map'] ?? 0);
         $posX = (float) ($character['position_x'] ?? 0);
         $posY = (float) ($character['position_y'] ?? 0);
         $query['map'] = $mapId;
@@ -420,10 +586,20 @@ function sahtout_playermap_snapshot_from_request(): ?array
     $posX = (float) $_GET['x'];
     $posY = (float) $_GET['y'];
 
-    return [
+    $snapshot = [
         'map' => $mapId,
         'x' => $posX,
         'y' => $posY,
         'ext' => sahtout_playermap_continent_index($mapId, $posY),
     ];
+    $zoneLabel = sahtout_playermap_sanitize_label_query((string) ($_GET['zone_label'] ?? ''));
+    if ($zoneLabel !== '') {
+        $snapshot['zone_label'] = $zoneLabel;
+    }
+    $mapLabel = sahtout_playermap_sanitize_label_query((string) ($_GET['map_label'] ?? ''));
+    if ($mapLabel !== '') {
+        $snapshot['map_label'] = $mapLabel;
+    }
+
+    return $snapshot;
 }
