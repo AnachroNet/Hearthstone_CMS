@@ -29,7 +29,6 @@ if (!$realm_db->isValid() || !$characters_db->isValid()) {
     $dbReachable = false;
 }
 
-$gm_online = 0;
 $gm_accounts = [];
 $groups = [];
 
@@ -147,47 +146,14 @@ $res = [];
 $res['online'] = sahtout_playermap_merge_online_payload($Count, $arr);
 
 $realmSocketUp = test_realm();
-$status = null;
-if ($show_status) {
-    if (!$dbReachable) {
-        $status = [
-            'online' => 2,
-            'uptime' => 0,
-            'maxplayers' => 0,
-            'gmonline' => $gm_online,
-        ];
-    } elseif ($realm_db->isValid()) {
-        $query = $realm_db->query("SELECT UNIX_TIMESTAMP(), `starttime`, `maxplayers` FROM `uptime` WHERE `starttime` = (SELECT MAX(`starttime`) FROM `uptime`)");
-        if ($query && ($result = $realm_db->fetch_row($query))) {
-            $status = [
-                'online' => $realmSocketUp ? 1 : 0,
-                'uptime' => (int) $result[0] - (int) $result[1],
-                'maxplayers' => (int) $result[2],
-                'gmonline' => $gm_online,
-            ];
-        } else {
-            $status = [
-                'online' => $realmSocketUp ? 1 : 0,
-                'uptime' => 0,
-                'maxplayers' => 0,
-                'gmonline' => $gm_online,
-            ];
-        }
-    } else {
-        $status = [
-            'online' => $realmSocketUp ? 1 : 0,
-            'uptime' => 0,
-            'maxplayers' => 0,
-            'gmonline' => $gm_online,
-        ];
-    }
-}
 
 if ($realm_db->isValid()) {
     $realm_db->close();
 }
 unset($realm_db);
 
-$res['status'] = $status;
+$res['status'] = [
+    'online' => !$dbReachable ? 2 : ($realmSocketUp ? 1 : 0),
+];
 
 $_RESULT = $res;

@@ -125,8 +125,7 @@ function sahtout_playermap_apply_tuning_defaults(): void
     $opts = sahtout_playermap_local_options();
 
     global $gm_online, $gm_online_count, $map_gm_show_online_only_gmoff, $map_gm_show_online_only_gmvisible;
-    global $map_gm_add_suffix, $map_status_gm_include_all, $map_show_status, $map_show_time, $map_time;
-    global $map_time_to_show_uptime, $map_time_to_show_maxonline, $map_time_to_show_gmonline;
+    global $map_gm_add_suffix, $map_time;
     global $developer_test_mode, $multi_realm_mode, $language, $site_encoding, $db_type, $server_type;
 
     $language = 'english';
@@ -139,13 +138,7 @@ function sahtout_playermap_apply_tuning_defaults(): void
     $map_gm_show_online_only_gmoff = (int) ($opts['map_gm_show_online_only_gmoff'] ?? 1);
     $map_gm_show_online_only_gmvisible = (int) ($opts['map_gm_show_online_only_gmvisible'] ?? 1);
     $map_gm_add_suffix = (int) ($opts['map_gm_add_suffix'] ?? 1);
-    $map_status_gm_include_all = (int) ($opts['map_status_gm_include_all'] ?? 0);
-    $map_show_status = (int) ($opts['map_show_status'] ?? 1);
-    $map_show_time = (int) ($opts['map_show_time'] ?? 1);
     $map_time = (int) ($opts['map_time'] ?? 5);
-    $map_time_to_show_uptime = (int) ($opts['map_time_to_show_uptime'] ?? 3000);
-    $map_time_to_show_maxonline = (int) ($opts['map_time_to_show_maxonline'] ?? 3000);
-    $map_time_to_show_gmonline = (int) ($opts['map_time_to_show_gmonline'] ?? 3000);
     $developer_test_mode = (bool) ($opts['developer_test_mode'] ?? false);
     $multi_realm_mode = (bool) ($opts['multi_realm_mode'] ?? false);
 }

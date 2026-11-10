@@ -38,13 +38,7 @@ $gm_show_online_only_gmoff = $map_gm_show_online_only_gmoff;
 $gm_show_online_only_gmvisible = $map_gm_show_online_only_gmvisible;
 $gm_add_suffix = $map_gm_add_suffix;
 $gm_include_online = $gm_online_count;
-$show_status = $map_show_status;
-$time_to_show_uptime = $map_time_to_show_uptime;
-$time_to_show_maxonline = $map_time_to_show_maxonline;
-$time_to_show_gmonline = $map_time_to_show_gmonline;
-$status_gm_include_all = $map_status_gm_include_all;
 $time = $map_time;
-$show_time = $map_show_time;
 
 $maps_for_points = '0,1,530,571,609';
 

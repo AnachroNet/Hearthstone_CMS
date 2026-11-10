@@ -194,24 +194,6 @@ body.sahtout-playermap {
     0%, 45% { opacity: 1; }
     100% { opacity: 0.12; }
 }
-#info {
-    position: absolute;
-    height: 16px;
-    width: 40px;
-    left: 50%;
-    margin-left: -20px;
-    z-index: 102;
-    text-align: center;
-}
-#timer {
-    font-family: arial;
-    font-size: 12px;
-    font-style: normal;
-    text-align: center;
-    font-weight: bold;
-    color: #E7CF07;
-    filter: Glow(Color=#000099, Strength=3);
-}
 #tip {
     border: 0px solid #aaaaaa;
     left: -1000px;
@@ -220,16 +202,6 @@ body.sahtout-playermap {
     top: -1000px;
     z-index: 6000;
     pointer-events: none;
-}
-.statustext {
-    font-weight: normal;
-    color: #EABA28;
-    font-family: verdana, arial, sans-serif, helvetica;
-    font-size: 12px;
-    font-style: normal;
-    text-align: center;
-    padding: 0px;
-    background-image: url(<?php echo $img_base ?>status.gif);
 }
 .tip_header {
     background: #bb0000;
@@ -290,9 +262,7 @@ img.pm-map-pin--selected {
 <SCRIPT TYPE="text/javascript">
 
 var current_map = 0;
-var time = <?php echo $time ?>;
-var show_time=<?php echo $show_time ?>;
-var show_status=<?php echo $show_status ?>;
+var time = <?php echo (int) $time ?>;
 var maps_count = <?php echo count($lang_defs['maps_names']); ?>;
 var maps_array = new Array(<?php echo $maps_for_points ?>);
 var maps_name_array = new Array(<?php echo "'".implode("','", $lang_defs['maps_names'])."'" ?>);
@@ -324,25 +294,8 @@ instances_x[1] = { 540:593,542:586,543:593,544:588,545:393,546:399,547:388,548:3
 instances_y[1] = { 540:399,542:398,543:405,544:402,545:355,546:350,547:353,548:357,550:226,552:215,553:210,554:239,555:569,556:557,557:545,558:557,559:489,562:239,564:567,565:204 }
 instances_x[2] = { 533:568,574:749,575:751,576:161,578:159,599:553,600:605,601:395,602:575,603:559,604:740,608:470,615:491,616:155,617:457,619:400,624:363,631:400,632:415,649:475,650:465,658:393,668:410,724:491 }
 instances_y[2] = { 533:456,574:577,575:583,576:443,578:451,599:195,600:406,601:462,602:180,603:169,604:292,608:360,615:465,616:447,617:352,619:462,624:369,631:350,632:350,649:207,650:207,658:362,668:365,724:455 }
-var fade_colors = Array('C6B711','BDAF10','B7A910','B1A40F','AB9E0F','A4980E','9E920E','988C0D','92870D','8B800C','857B0B','7F750B','79700A','746B0A','6E6609','686009','625B08','5C5508','564F07','504A07','4A4406','443F05','3E3905','383404','312D04','2A2703','232002','1C1A02','141201','000000');
-var fade_cur_color = fade_colors.length-1;
-var status_text = Array('OffLine','DB connect error','uptime','max online','GM online');
-var status_data = Array(1,0,0,0);
-var status_process = Array();
-var status_cur_time = 0;
-var status_next_process = 0;
-var statusUpdateInterval = 50;
 var pointx;
 var pointy;
-
-function _status_action(text,status_data,text_type,action,time)
-{
-  this.text_id = text;
-  this.status_data = status_data;
-  this.text_type = text_type;
-  this.action = action;
-  this.time = time;
-}
 
 function _coord()
 {
@@ -1053,120 +1006,6 @@ function applyPlayerHighlightView()
   }
 }
 
-function statusController(status_process_id,diff)
-{
-  var action = status_process[status_process_id].action;
-  if(action)
-  {
-    var obj = document.getElementById("status");
-    var text_type = status_process[status_process_id].text_type;
-    if(text_type == 0)
-    {
-      var status_process_now = new Date();
-      var status_process_diff = status_process_now.getTime() - status_process_started.getTime();
-      var objDate = new Date(status_data[status_process[status_process_id].status_data]*1000 + status_process_diff);
-      var days = parseInt(status_data[status_process[status_process_id].status_data]/86400);
-      var hours = objDate.getUTCHours();
-      var min = objDate.getUTCMinutes();
-      var sec = objDate.getUTCSeconds();
-      if(hours < 10) hours = '0'+hours;
-      if(min < 10) min = '0'+min;
-      if(sec < 10) sec = '0'+sec;
-      if(days) days = days+' '; else days = '';
-      obj.innerHTML = status_text[status_process[status_process_id].text_id]+' - '+days+''+hours+':'+min+':'+sec;
-    }
-    else if(text_type == 1)
-    {
-      obj.innerHTML = status_text[status_process[status_process_id].text_id]+' - '+status_data[status_process[status_process_id].status_data];
-    }
-    else
-      obj.innerHTML = status_text[status_process[status_process_id].text_id];
-    switch(action)
-    {
-      case 1:
-        if(fade_cur_color > 0)
-        {
-          fade_cur_color--;
-          obj.style.color = '#'+fade_colors[fade_cur_color];
-        }
-        break;
-      case 2:
-        if(fade_cur_color < (fade_colors.length-1))
-        {
-          fade_cur_color++;
-          obj.style.color = '#'+fade_colors[fade_cur_color];
-        }
-        break;
-    }
-  }
-  status_cur_time += diff;
-  if(status_next_process || status_cur_time >= status_process[status_process_id].time)
-  {
-    if(status_next_process)
-      status_cur_time = statusUpdateInterval*fade_colors.length;
-    else
-      status_cur_time = 0;
-    do
-    {
-      status_process_id++;
-
-      if(status_process_id >= (status_process.length))
-        status_process_id = 0;
-    } while(status_next_process && status_process[status_process_id].action == 2);
-    status_next_process = 0;
-  }
-  setTimeout('statusController('+status_process_id+','+statusUpdateInterval+')', statusUpdateInterval);
-}
-
-function showNextStatusText()
-{
-  if(status_process.length > 2)
-    status_next_process = 1;
-}
-
-function statusInit()
-{
-  var blinkTime = statusUpdateInterval*fade_colors.length;
-  var time_to_show_uptime = <?php echo $time_to_show_uptime ?>;
-  var time_to_show_maxonline = <?php echo $time_to_show_maxonline ?>;
-  var time_to_show_gmonline = <?php echo $time_to_show_gmonline ?>;
-
-  // for first time
-  if(status_process.length == 0)
-    setTimeout('statusController(0,'+statusUpdateInterval+')', statusUpdateInterval);
-
-  status_process = new Array();
-  if(status_data[0] == 1) // online
-  {
-    if(time_to_show_uptime)
-    {
-      status_process.push(new _status_action(2,1,0,1,time_to_show_uptime));
-      status_process.push(new _status_action(2,1,0,2,blinkTime));
-    }
-    if(time_to_show_maxonline)
-    {
-      status_process.push(new _status_action(3,2,1,1,time_to_show_maxonline));
-      status_process.push(new _status_action(3,2,1,2,blinkTime));
-    }
-    /*
-    if(time_to_show_gmonline)
-    {
-      status_process.push(new _status_action(4,3,1,1,time_to_show_gmonline));
-      status_process.push(new _status_action(4,3,1,2,blinkTime));
-    } */
-  }
-  else if(status_data[0] == 0) // offline
-  {
-    status_process.push(new _status_action(0,0,2,1,blinkTime));
-    status_process.push(new _status_action(0,0,2,2,blinkTime));
-  }
-  else //DB connect error
-  {
-    status_process.push(new _status_action(1,0,2,1,blinkTime));
-    status_process.push(new _status_action(1,0,2,2,blinkTime));
-  }
-}
-
 function load_data()
 {
   var req = new Subsys_JsHttpRequest_Js();
@@ -1191,31 +1030,10 @@ function load_data()
   req.send({ });
 }
 
-function reset()
+function sahtoutPlayermapStartPolling()
 {
-  var ms = 0;
-  then = new Date();
-  then.setTime(then.getTime()-ms);
-  load_data();
-}
-
-function display()
-{
-  now = new Date();
-  ms = now.getTime() - then.getTime();
-  ms = time*1000-ms;
-  if ((show_time==1) && (time!=0))
-  {
-    document.getElementById("timer").innerHTML=(Math.round(ms/1000));
-  }
-  if (ms<=0)
-  {
-    reset();
-  }
-  if (time!=0)
-  {
-    setTimeout("display();", 500);
-  }
+  if(!time || time < 1) return;
+  window.setInterval(load_data, time * 1000);
 }
 
 var sahtoutPlayermapChromeH = 36;
@@ -1392,8 +1210,8 @@ function sahtoutPlayermapBindViewport()
 
 function start()
 {
-  reset();
-  //display();
+  load_data();
+  sahtoutPlayermapStartPolling();
 
   if(navigator.appName=="Netscape")
   {
@@ -1429,13 +1247,6 @@ function start()
 <div ID="world"></div>
 <div ID="outland"></div>
 <div ID="northrend"></div>
-<div ID="info">
-    <center>
-    <table valign="top" border="0" cellspacing="0" cellpadding="0" height="16">
-        <tr><td id="timer"></td></tr>
-    </table>
-    </center>
-</div>
 </div>
 </div>
 <?php

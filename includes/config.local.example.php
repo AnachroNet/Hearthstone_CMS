@@ -102,13 +102,8 @@ return [
         'map_gm_show_online_only_gmvisible' => 1,
         /** Prefix online GM names with "<GM>" on the map (legacy playermap key name). */
         'map_gm_add_suffix' => 1,
-        'map_status_gm_include_all' => 0,
-        'map_show_status' => 1,
-        'map_show_time' => 1,
+        /** Seconds between live map polls (player positions + realm online graphic). */
         'map_time' => 5,
-        'map_time_to_show_uptime' => 3000,
-        'map_time_to_show_maxonline' => 3000,
-        'map_time_to_show_gmonline' => 3000,
         'developer_test_mode' => false,
         'multi_realm_mode' => false,
     ],
