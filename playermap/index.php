@@ -21,8 +21,29 @@ html, body.sahtout-playermap {
     background-color: #000000;
 }
 body.sahtout-playermap {
-    padding-top: 36px;
     box-sizing: border-box;
+}
+#sahtout-playermap-viewport {
+    position: fixed;
+    top: 36px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    background-color: #000000;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+#sahtout-playermap-viewport.pm-panning {
+    cursor: grabbing;
+}
+#sahtout-playermap-stage {
+    position: relative;
+    width: 966px;
+    height: 772px;
+    transform-origin: 0 0;
 }
 #sahtout-playermap-chrome {
     position: fixed;
@@ -1140,6 +1161,165 @@ function display()
   }
 }
 
+var sahtoutPlayermapChromeH = 36;
+var sahtoutPlayermapMapW = 966;
+var sahtoutPlayermapMapH = 772;
+var sahtoutPlayermapPanX = 0;
+var sahtoutPlayermapPanY = 0;
+var sahtoutPlayermapScale = 1;
+var sahtoutPlayermapMinScale = 0.25;
+var sahtoutPlayermapMaxScale = 2.5;
+var sahtoutPlayermapUserAdjusted = false;
+var sahtoutPlayermapPanActive = false;
+var sahtoutPlayermapPanStartX = 0;
+var sahtoutPlayermapPanStartY = 0;
+var sahtoutPlayermapPanOriginX = 0;
+var sahtoutPlayermapPanOriginY = 0;
+
+function sahtoutPlayermapGetViewport()
+{
+  return document.getElementById('sahtout-playermap-viewport');
+}
+
+function sahtoutPlayermapGetStage()
+{
+  return document.getElementById('sahtout-playermap-stage');
+}
+
+function sahtoutPlayermapApplyTransform()
+{
+  var stage = sahtoutPlayermapGetStage();
+  if(!stage) return;
+  stage.style.transform = 'translate(' + sahtoutPlayermapPanX + 'px,' + sahtoutPlayermapPanY + 'px) scale(' + sahtoutPlayermapScale + ')';
+}
+
+function sahtoutPlayermapViewportSize()
+{
+  var vp = sahtoutPlayermapGetViewport();
+  if(!vp) return {w: 0, h: 0};
+  var rect = vp.getBoundingClientRect();
+  return {w: rect.width, h: rect.height};
+}
+
+function sahtoutPlayermapClampPan()
+{
+  var size = sahtoutPlayermapViewportSize();
+  var availW = size.w;
+  var availH = size.h;
+  if(availW <= 0 || availH <= 0) return;
+  var mapW = sahtoutPlayermapMapW * sahtoutPlayermapScale;
+  var mapH = sahtoutPlayermapMapH * sahtoutPlayermapScale;
+  if(mapW <= availW)
+    sahtoutPlayermapPanX = (availW - mapW) / 2;
+  else
+  {
+    var minX = availW - mapW;
+    if(sahtoutPlayermapPanX < minX) sahtoutPlayermapPanX = minX;
+    if(sahtoutPlayermapPanX > 0) sahtoutPlayermapPanX = 0;
+  }
+  if(mapH <= availH)
+    sahtoutPlayermapPanY = (availH - mapH) / 2;
+  else
+  {
+    var minY = availH - mapH;
+    if(sahtoutPlayermapPanY < minY) sahtoutPlayermapPanY = minY;
+    if(sahtoutPlayermapPanY > 0) sahtoutPlayermapPanY = 0;
+  }
+}
+
+function sahtoutPlayermapFitToViewport()
+{
+  var size = sahtoutPlayermapViewportSize();
+  var availW = size.w;
+  var availH = size.h;
+  if(availW <= 0 || availH <= 0) return;
+  var fitScale = Math.min(availW / sahtoutPlayermapMapW, availH / sahtoutPlayermapMapH);
+  if(fitScale > sahtoutPlayermapMaxScale) fitScale = sahtoutPlayermapMaxScale;
+  if(fitScale < sahtoutPlayermapMinScale) fitScale = sahtoutPlayermapMinScale;
+  sahtoutPlayermapScale = fitScale;
+  sahtoutPlayermapPanX = (availW - sahtoutPlayermapMapW * fitScale) / 2;
+  sahtoutPlayermapPanY = (availH - sahtoutPlayermapMapH * fitScale) / 2;
+  sahtoutPlayermapClampPan();
+  sahtoutPlayermapApplyTransform();
+}
+
+function sahtoutPlayermapOnWheel(e)
+{
+  var vp = sahtoutPlayermapGetViewport();
+  if(!vp) return;
+  if(e.preventDefault) e.preventDefault();
+  sahtoutPlayermapUserAdjusted = true;
+  var rect = vp.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  var factor = (e.deltaY > 0) ? 0.9 : 1.1;
+  var newScale = sahtoutPlayermapScale * factor;
+  if(newScale < sahtoutPlayermapMinScale) newScale = sahtoutPlayermapMinScale;
+  if(newScale > sahtoutPlayermapMaxScale) newScale = sahtoutPlayermapMaxScale;
+  var mapX = (mx - sahtoutPlayermapPanX) / sahtoutPlayermapScale;
+  var mapY = (my - sahtoutPlayermapPanY) / sahtoutPlayermapScale;
+  sahtoutPlayermapScale = newScale;
+  sahtoutPlayermapPanX = mx - mapX * newScale;
+  sahtoutPlayermapPanY = my - mapY * newScale;
+  sahtoutPlayermapClampPan();
+  sahtoutPlayermapApplyTransform();
+}
+
+function sahtoutPlayermapOnMouseDown(e)
+{
+  if(e.button !== 0) return;
+  var vp = sahtoutPlayermapGetViewport();
+  if(!vp) return;
+  sahtoutPlayermapPanActive = true;
+  sahtoutPlayermapUserAdjusted = true;
+  vp.classList.add('pm-panning');
+  sahtoutPlayermapPanStartX = e.clientX;
+  sahtoutPlayermapPanStartY = e.clientY;
+  sahtoutPlayermapPanOriginX = sahtoutPlayermapPanX;
+  sahtoutPlayermapPanOriginY = sahtoutPlayermapPanY;
+  if(e.preventDefault) e.preventDefault();
+}
+
+function sahtoutPlayermapOnMouseMove(e)
+{
+  if(!sahtoutPlayermapPanActive) return;
+  sahtoutPlayermapPanX = sahtoutPlayermapPanOriginX + (e.clientX - sahtoutPlayermapPanStartX);
+  sahtoutPlayermapPanY = sahtoutPlayermapPanOriginY + (e.clientY - sahtoutPlayermapPanStartY);
+  sahtoutPlayermapClampPan();
+  sahtoutPlayermapApplyTransform();
+}
+
+function sahtoutPlayermapEndPan()
+{
+  if(!sahtoutPlayermapPanActive) return;
+  sahtoutPlayermapPanActive = false;
+  var vp = sahtoutPlayermapGetViewport();
+  if(vp) vp.classList.remove('pm-panning');
+}
+
+function sahtoutPlayermapOnResize()
+{
+  if(!sahtoutPlayermapUserAdjusted)
+    sahtoutPlayermapFitToViewport();
+  else
+  {
+    sahtoutPlayermapClampPan();
+    sahtoutPlayermapApplyTransform();
+  }
+}
+
+function sahtoutPlayermapBindViewport()
+{
+  var vp = sahtoutPlayermapGetViewport();
+  if(!vp || window.sahtoutPlayermapViewportBound) return;
+  window.sahtoutPlayermapViewportBound = true;
+  vp.addEventListener('wheel', sahtoutPlayermapOnWheel, {passive: false});
+  vp.addEventListener('mousedown', sahtoutPlayermapOnMouseDown);
+  window.addEventListener('mousemove', sahtoutPlayermapOnMouseMove);
+  window.addEventListener('mouseup', sahtoutPlayermapEndPan);
+  window.addEventListener('resize', sahtoutPlayermapOnResize);
+}
+
 function start()
 {
   reset();
@@ -1154,6 +1334,9 @@ function start()
       return true;
     }
   }
+
+  sahtoutPlayermapBindViewport();
+  sahtoutPlayermapFitToViewport();
 }
 </SCRIPT>
 <BODY class="sahtout-playermap" onload="start();">
@@ -1162,6 +1345,8 @@ function start()
   <span><?php echo htmlspecialchars((string) ($realm_name ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
 </div>
 
+<div id="sahtout-playermap-viewport">
+<div id="sahtout-playermap-stage">
 <div id="tip"></div>
 <div ID="pointsOldworld"></div>
 <div ID="pointsOutland"></div>
@@ -1169,12 +1354,6 @@ function start()
 <div ID="world"></div>
 <div ID="outland"></div>
 <div ID="northrend"></div>
-<?php
-$sahtout_realm_status_img = test_realm() ? 'realm-online-framed.gif' : 'realm-offline-framed.gif';
-?>
-<div id="realm-status-indicator">
-  <img src="<?php echo $img_base . $sahtout_realm_status_img; ?>" id="statusIMG" alt="" onClick="window.location='<?php echo htmlspecialchars($_SERVER['PHP_SELF'] ?? '', ENT_QUOTES, 'UTF-8'); ?>'" style="cursor:pointer;">
-</div>
 <div ID="info">
     <center>
     <table valign="top" border="0" cellspacing="0" cellpadding="0" height="16">
@@ -1188,5 +1367,13 @@ $sahtout_realm_status_img = test_realm() ? 'realm-online-framed.gif' : 'realm-of
         <tr><td align="center" valign="top" id="server_info"></td></tr>
     </table>
     </center>
+</div>
+</div>
+</div>
+<?php
+$sahtout_realm_status_img = test_realm() ? 'realm-online-framed.gif' : 'realm-offline-framed.gif';
+?>
+<div id="realm-status-indicator">
+  <img src="<?php echo $img_base . $sahtout_realm_status_img; ?>" id="statusIMG" alt="" onClick="window.location='<?php echo htmlspecialchars($_SERVER['PHP_SELF'] ?? '', ENT_QUOTES, 'UTF-8'); ?>'" style="cursor:pointer;">
 </div>
 </BODY></HTML>
