@@ -11,14 +11,9 @@ if (!isset($characters_db[$realm_id], $server[$realm_id])) {
 }
 
 $server_arr = $server;
-$lang = $language;
 
-// English-only for CMS integration (future: languages/en/playermap_map.php).
-if (!is_file(__DIR__ . '/map_english.php') || !is_file(__DIR__ . '/zone_names_english.php')) {
-    http_response_code(500);
-    exit('Player map language data is missing.');
-}
-$lang = 'english';
+global $site_db;
+sahtout_playermap_load_locale(null, isset($site_db) && $site_db instanceof mysqli ? $site_db : null);
 
 $database_encoding = $site_encoding;
 
@@ -36,9 +31,7 @@ $passwordr = $realm_db['pass'];
 $dbr = $realm_db['name'];
 
 $sql = new DBLayer($hostr, $userr, $passwordr, $dbr);
-$query = $sql->query('SELECT name FROM realmlist WHERE id = ' . $realm_id);
-$realm_name = $sql->fetch_assoc($query);
-$realm_name = htmlentities((string) ($realm_name['name'] ?? 'Realm'));
+$realm_name = sahtout_playermap_realm_display_name($realm_id, $sql);
 
 $gm_show_online = $gm_online;
 $gm_show_online_only_gmoff = $map_gm_show_online_only_gmoff;

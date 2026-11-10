@@ -61,6 +61,18 @@ bundle the data in `SQL/Hearthstone_DATABASE/UPDATES/*-map-dbc.sql`. Refresh wit
 `import_map_dbc.php` after replacing Map.dbc, then fold into your next release SQL or apply
 the generated file manually.
 
+Playermap area/zone names (site DB `area_dbc`)
+----------------------------------------------
+  - AreaTable.dbc (optional for regeneration — English `area_name` v1)
+
+From the CMS project root:
+
+  php tools/import_area_dbc.php
+
+Output: `SQL/Hearthstone_DATABASE/generated/area_dbc_import.sql`. Shipped releases bundle data in
+`SQL/Hearthstone_DATABASE/UPDATES/*-area-dbc.sql`. Without `AreaTable.dbc`, maintain the table
+via `tools/generate_area_dbc_update_sql.py` (seeds from `languages/en/playermap_zones.php`).
+
 Override path
 -------------
 You can set `TALENT_DBC_DIR` in `includes/config.local.php` to point at another folder if DBCs

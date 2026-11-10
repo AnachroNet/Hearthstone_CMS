@@ -212,3 +212,125 @@ function sahtout_playermap_build_legacy_db_config(): array
         'default_realm_id' => $realmIdDefault,
     ];
 }
+
+/** CMS language code for playermap (only `en` shipped until site locale selection exists). */
+function sahtout_playermap_locale_code(): string
+{
+    return 'en';
+}
+
+/**
+ * Area/zone names for playermap tooltips (characters.zone → AreaTable ID).
+ */
+function sahtout_playermap_load_zone_names(?mysqli $siteDb = null): void
+{
+    global $zones;
+    $zones = [];
+
+    if ($siteDb instanceof mysqli && !$siteDb->connect_error) {
+        require_once __DIR__ . DIRECTORY_SEPARATOR . 'area_dbc.php';
+        $zones = sahtout_area_dbc_name_map($siteDb);
+    }
+
+    if ($zones !== []) {
+        return;
+    }
+
+    $zonesFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'languages' . DIRECTORY_SEPARATOR . 'en'
+        . DIRECTORY_SEPARATOR . 'playermap_zones.php';
+    if (is_readable($zonesFile)) {
+        $zoneData = include $zonesFile;
+        if (is_array($zoneData)) {
+            $zones = $zoneData;
+        }
+    }
+}
+
+/**
+ * Load playermap UI strings and zone names into globals expected by upstream map code.
+ */
+function sahtout_playermap_load_locale(?string $langCode = null, ?mysqli $siteDb = null): void
+{
+    global $character_race, $character_class, $lang_defs;
+
+    $langCode = $langCode ?? sahtout_playermap_locale_code();
+    $langCode = preg_replace('/[^a-z0-9_-]/i', '', $langCode) ?? 'en';
+    if ($langCode === '') {
+        $langCode = 'en';
+    }
+
+    $langRoot = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'languages' . DIRECTORY_SEPARATOR . $langCode;
+    $uiFile = $langRoot . DIRECTORY_SEPARATOR . 'playermap.php';
+
+    if (!is_readable($uiFile)) {
+        if ($langCode !== 'en') {
+            sahtout_playermap_load_locale('en', $siteDb);
+
+            return;
+        }
+        http_response_code(500);
+        exit('Player map language data is missing.');
+    }
+
+    $ui = include $uiFile;
+    if (!is_array($ui)) {
+        http_response_code(500);
+        exit('Player map language data is invalid.');
+    }
+
+    $character_race = $ui['character_race'] ?? [];
+    $character_class = $ui['character_class'] ?? [];
+    $lang_defs = $ui['lang_defs'] ?? [];
+
+    sahtout_playermap_load_zone_names($siteDb);
+}
+
+/** @return list<array{0:int,1:int}> */
+function sahtout_playermap_empty_faction_counts(int $mapsCount): array
+{
+    return array_fill(0, $mapsCount, [0, 0]);
+}
+
+/**
+ * @param list<array{0:int,1:int}> $counts
+ * @param list<array<string,mixed>> $players
+ * @return list<mixed>
+ */
+function sahtout_playermap_merge_online_payload(array $counts, array $players): array
+{
+    usort($players, 'sort_players');
+
+    return array_merge($counts, $players);
+}
+
+function sahtout_playermap_realm_display_name(int $realmId, $authSqlLayer = null): string
+{
+    global $sahtout_local;
+
+    $fallback = 'Realm';
+    foreach ($sahtout_local['realms'] ?? [] as $realm) {
+        if (!is_array($realm)) {
+            continue;
+        }
+        if ((int) ($realm['id'] ?? 0) === $realmId) {
+            $name = trim((string) ($realm['name'] ?? ''));
+            if ($name !== '') {
+                $fallback = $name;
+            }
+            break;
+        }
+    }
+
+    if (is_object($authSqlLayer) && method_exists($authSqlLayer, 'isValid') && $authSqlLayer->isValid()) {
+        $query = $authSqlLayer->query('SELECT name FROM realmlist WHERE id = ' . (int) $realmId);
+        $row = $authSqlLayer->fetch_assoc($query);
+        if (is_array($row)) {
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name !== '') {
+                $fallback = $name;
+            }
+        }
+    }
+
+    return htmlentities($fallback, ENT_QUOTES, 'UTF-8');
+}

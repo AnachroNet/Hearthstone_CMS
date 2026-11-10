@@ -1,5 +1,5 @@
-<?php
-$zones = array(
+﻿<?php
+return array(
 1 => 'Dun Morogh',
 2 => 'Longshore',
 3 => 'Badlands',

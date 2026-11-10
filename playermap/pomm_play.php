@@ -3,7 +3,6 @@
 require_once("defines.php");
 require_once("pomm_conf.php");
 require_once("func.php");
-require_once("map_".$lang.".php");
 
 $_RESULT = [];
 
@@ -17,55 +16,54 @@ $northrend_inst = [533,574,575,576,578,599,600,601,602,603,604,608,615,616,617,6
 require_once "libs/js/JsHttpRequest/Php.php";
 $JsHttpRequest = new Subsys_JsHttpRequest_Php("utf-8");
 
+$Count = sahtout_playermap_empty_faction_counts($maps_count);
+$arr = [];
+$dbReachable = true;
+
 $realm_db = new DBLayer($hostr, $userr, $passwordr, $dbr);
-if (!$realm_db->isValid()) {
-    $_RESULT['status']['online'] = 2;
-    exit();
+$characters_db = new DBLayer($host, $user, $password, $db);
+
+if (!$realm_db->isValid() || !$characters_db->isValid()) {
+    $dbReachable = false;
 }
-$realm_db->query("SET NAMES $database_encoding");
 
 $gm_online = 0;
 $gm_accounts = [];
-
-$query = $realm_db->query("SELECT GROUP_CONCAT(`id` SEPARATOR ' ') FROM `account_access` WHERE `gmlevel` > 0");
-
-if ($query && ($result = $realm_db->fetch_row($query))) {
-    $gm_accounts = explode(' ', $result[0]);
-}
-
 $groups = [];
-$characters_db = new DBLayer($host, $user, $password, $db);
-if (!$characters_db->isValid()) {
-    $_RESULT['status']['online'] = 2;
-    exit();
-}
-$characters_db->query("SET NAMES $database_encoding");
-$query = $characters_db->query("
-    SELECT gm.`memberGuid`, g.`leaderGuid`
-    FROM `group_member` gm
-    JOIN `groups` g ON g.`guid` = gm.`guid`
-    WHERE gm.`memberGuid` IN (
-        SELECT `guid` 
-        FROM `characters` 
-        WHERE `online` = 1
-    )
-");
 
-if ($query) {
-    while ($result = $characters_db->fetch_assoc($query)) {
-        $groups[$result['memberGuid']] = $result['leaderGuid'];
+if ($dbReachable) {
+    $realm_db->query("SET NAMES $database_encoding");
+    $characters_db->query("SET NAMES $database_encoding");
+
+    $query = $realm_db->query("SELECT GROUP_CONCAT(`id` SEPARATOR ' ') FROM `account_access` WHERE `gmlevel` > 0");
+    if ($query && ($result = $realm_db->fetch_row($query)) && isset($result[0]) && $result[0] !== '') {
+        $gm_accounts = explode(' ', (string) $result[0]);
+    }
+
+    $query = $characters_db->query("
+        SELECT gm.`memberGuid`, g.`leaderGuid`
+        FROM `group_member` gm
+        JOIN `groups` g ON g.`guid` = gm.`guid`
+        WHERE gm.`memberGuid` IN (
+            SELECT `guid`
+            FROM `characters`
+            WHERE `online` = 1
+        )
+    ");
+    if ($query) {
+        while ($result = $characters_db->fetch_assoc($query)) {
+            $groups[$result['memberGuid']] = $result['leaderGuid'];
+        }
     }
 }
 
-$Count = array_fill(0, $maps_count, [0, 0]); // Default array for Count initialization
-$arr = [];
 $i = $maps_count;
-
 $factionMode = sahtout_playermap_faction_mode();
 
-$query = $characters_db->query("SELECT `account`, `name`, `class`, `race`, `level`, `gender`, `position_x`, `position_y`, `map`, `zone`, `extra_flags` FROM `characters` WHERE `online` = 1 ORDER BY `name`");
+if ($dbReachable) {
+    $query = $characters_db->query("SELECT `account`, `name`, `class`, `race`, `level`, `gender`, `position_x`, `position_y`, `map`, `zone`, `extra_flags` FROM `characters` WHERE `online` = 1 ORDER BY `name`");
 
-while ($result = $characters_db->fetch_assoc($query)) {
+    while ($query && ($result = $characters_db->fetch_assoc($query))) {
     $Extention = 0;
     if (($result['map'] == 530 && $result['position_y'] > -1000) || in_array($result['map'], $outland_inst)) {
         $Extention = 1;
@@ -128,36 +126,57 @@ while ($result = $characters_db->fetch_assoc($query)) {
         'leaderGuid' => $groups[$char_data] ?? 0
     ];
     $i++;
+    }
 }
 
-$characters_db->close();
+if ($characters_db->isValid()) {
+    $characters_db->close();
+}
 unset($characters_db);
 
-if (empty($arr) && !test_realm()) {
-    $res['online'] = null;
-} else {
-    usort($arr, "sort_players");
-    $arr = array_merge($Count, $arr);
-    $res['online'] = $arr;
-}
+$res = [];
+$res['online'] = sahtout_playermap_merge_online_payload($Count, $arr);
 
+$realmSocketUp = test_realm();
+$status = null;
 if ($show_status) {
-    $query = $realm_db->query("SELECT UNIX_TIMESTAMP(), `starttime`, `maxplayers` FROM `uptime` WHERE `starttime` = (SELECT MAX(`starttime`) FROM `uptime`)");
-    if ($result = $realm_db->fetch_row($query)) {
+    if (!$dbReachable) {
         $status = [
-            'online' => test_realm() ? 1 : 0,
-            'uptime' => $result[0] - $result[1],
-            'maxplayers' => $result[2],
-            'gmonline' => $gm_online
+            'online' => 2,
+            'uptime' => 0,
+            'maxplayers' => 0,
+            'gmonline' => $gm_online,
         ];
+    } elseif ($realm_db->isValid()) {
+        $query = $realm_db->query("SELECT UNIX_TIMESTAMP(), `starttime`, `maxplayers` FROM `uptime` WHERE `starttime` = (SELECT MAX(`starttime`) FROM `uptime`)");
+        if ($query && ($result = $realm_db->fetch_row($query))) {
+            $status = [
+                'online' => $realmSocketUp ? 1 : 0,
+                'uptime' => (int) $result[0] - (int) $result[1],
+                'maxplayers' => (int) $result[2],
+                'gmonline' => $gm_online,
+            ];
+        } else {
+            $status = [
+                'online' => $realmSocketUp ? 1 : 0,
+                'uptime' => 0,
+                'maxplayers' => 0,
+                'gmonline' => $gm_online,
+            ];
+        }
     } else {
-        $status = null;
+        $status = [
+            'online' => $realmSocketUp ? 1 : 0,
+            'uptime' => 0,
+            'maxplayers' => 0,
+            'gmonline' => $gm_online,
+        ];
     }
-} else {
-    $status = null;
 }
 
-$realm_db->close();
+if ($realm_db->isValid()) {
+    $realm_db->close();
+}
 unset($realm_db);
 
 $res['status'] = $status;

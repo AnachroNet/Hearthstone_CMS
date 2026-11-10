@@ -9,7 +9,7 @@ SQL patches: SQL/Hearthstone_DATABASE/UPDATES/ in release order.
 Version 1.1 (in development — branch 1.1)
 -----------------------------------------
 Codebase VERSION: 1.1
-Current RELEASE:  2026111002
+Current RELEASE:  2026111003
 
 New in 1.1 (since branch 1.0 / VERSION 1.0)
   • map_dbc site table — full WotLK 3.3.5a Map.dbc names (135 maps) for admin UI
@@ -20,6 +20,9 @@ New in 1.1 (since branch 1.0 / VERSION 1.0)
   • Live player map (AzerothCore Playermap — https://github.com/azerothcore/playermap/tree/master) at /playermap/; Credits page attribution
   • Admin → General: enable map; faction filter (Alliance / Horde / both)
   • Release SQL: SQL/Hearthstone_DATABASE/UPDATES/2026111002-playermap.sql
+  • area_dbc site table — English area names for playermap zone tooltips (~2264 rows)
+  • Playermap loads when game realm socket is offline (empty pins, realm_off status)
+  • Release SQL: SQL/Hearthstone_DATABASE/UPDATES/2026111003-area-dbc.sql
 
 Database upgrade from 1.0
   • python tools/apply_site_db_updates.py --apply

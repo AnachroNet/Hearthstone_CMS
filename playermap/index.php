@@ -3,7 +3,6 @@
 require_once("defines.php");
 require_once("pomm_conf.php");
 require_once("func.php");
-require_once("map_".$lang.".php");
 
 ?>
 <HTML><HEAD><title>Online Playermap</title>
@@ -567,14 +566,11 @@ function show(data)
 {
   if(!data)
   {
-    var object;
+    data = new Array();
     for(var i = 0; i < maps_count; i++)
     {
-      object = getPointsLayerByID(i);
-      object.innerHTML = '';
+      data[i] = new Array(0, 0);
     }
-    document.getElementById("server_info").innerHTML = '';
-    return;
   }
 
   mpoints = new Array();
