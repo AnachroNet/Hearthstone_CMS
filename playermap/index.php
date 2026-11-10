@@ -103,7 +103,7 @@ body.sahtout-playermap {
     position: absolute;
     z-index: 120;
     top: 44px;
-    left: max(10px, calc(50% - 483px + 10px));
+    left: max(8px, calc(50% - 483px));
     padding: 8px;
     line-height: 0;
 }
