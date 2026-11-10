@@ -9,6 +9,7 @@ require_once $project_root . 'includes/playerbot_accounts.php';
 require_once $project_root . 'includes/account_admin_actions.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
 require_once $project_root . 'includes/admin_pagination.php';
+require_once $project_root . 'includes/website_activity.php';
 
 $page_class = 'users';
 define('DB_AUTH', $db_auth_name);
@@ -491,6 +492,59 @@ function admin_users_render_lifecycle_modal(int $accountId, string $username, in
     <?php
 }
 
+function admin_users_render_activity_modal(int $accountId, string $username, array $activityLog, int $limitShown): void
+{
+    ?>
+    <div id="activityModal-<?php echo $accountId; ?>" class="modal-backdrop">
+        <div class="panel w-full max-w-4xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+            <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl close-modal-btn" data-modal="activityModal-<?php echo $accountId; ?>">&times;</button>
+            <h3 class="wow-title text-2xl mb-2 flex items-center gap-3">
+                <i class="fas fa-history text-[#f2cf5b]"></i>
+                <?php echo translate('admin_users_activity_modal_title', 'Account activity'); ?>
+            </h3>
+            <p class="text-gray-400 text-sm mb-4"><?php echo htmlspecialchars($username); ?></p>
+            <?php if ($activityLog !== []): ?>
+                <p class="text-xs text-gray-500 mb-3"><?php echo htmlspecialchars(sprintf(
+                    translate('admin_users_activity_shown_limit', 'Showing the latest %d entries.'),
+                    $limitShown
+                )); ?></p>
+                <div class="overflow-x-auto border border-[rgba(201,162,39,0.15)] rounded-sm">
+                    <table class="w-full text-sm table-dark">
+                        <thead>
+                            <tr>
+                                <th class="text-left py-2 px-3"><?php echo translate('admin_users_activity_col_action', 'Action'); ?></th>
+                                <th class="text-left py-2 px-3"><?php echo translate('admin_users_activity_col_character', 'Character'); ?></th>
+                                <th class="text-left py-2 px-3 whitespace-nowrap"><?php echo translate('admin_users_activity_col_timestamp', 'Timestamp'); ?></th>
+                                <th class="text-left py-2 px-3"><?php echo translate('admin_users_activity_col_details', 'Details'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($activityLog as $log): ?>
+                                <tr>
+                                    <td class="py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['action']); ?></td>
+                                    <td class="py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['character_name'] !== null && $log['character_name'] !== '' ? $log['character_name'] : translate('admin_users_na', 'N/A')); ?></td>
+                                    <td class="py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo $log['timestamp'] > 0 ? htmlspecialchars(date('Y-m-d H:i:s', $log['timestamp'])) : translate('admin_users_na', 'N/A'); ?></td>
+                                    <td class="py-2 px-3 text-gray-300"><?php echo htmlspecialchars($log['details'] !== null && $log['details'] !== '' ? $log['details'] : translate('admin_users_activity_no_details', '—')); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="text-center text-gray-400 py-8 border border-[rgba(201,162,39,0.1)] rounded-sm bg-[rgba(0,0,0,0.2)]">
+                    <i class="fas fa-scroll text-2xl text-gray-600 block mb-2"></i>
+                    <p class="font-semibold text-gray-300"><?php echo translate('admin_users_activity_empty', 'No recent activity.'); ?></p>
+                    <p class="text-sm mt-1"><?php echo translate('admin_users_activity_empty_hint', 'Shop purchases, teleports, and security events are logged here when they occur.'); ?></p>
+                </div>
+            <?php endif; ?>
+            <div class="flex justify-end pt-6">
+                <button type="button" class="btn-iron close-modal-btn" data-modal="activityModal-<?php echo $accountId; ?>"><?php echo translate('admin_users_close_button', 'Close'); ?></button>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
 $adminUsersListQuery = array_filter([
     'search_username' => $search_username !== '' ? $search_username : null,
     'search_email' => $search_email !== '' ? $search_email : null,
@@ -902,8 +956,11 @@ ob_start();
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="editModal-<?php echo $user['account_id']; ?>">
                                                             <i class="fas fa-edit"></i> <?php echo translate('admin_users_edit_button', 'Edit'); ?>
                                                         </button>
+                                                        <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="activityModal-<?php echo $user['account_id']; ?>">
+                                                            <i class="fas fa-history"></i> <?php echo translate('admin_users_activity_button', 'Activity'); ?>
+                                                        </button>
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="lifecycleModal-<?php echo $user['account_id']; ?>">
-                                                            <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_account_button', 'Account'); ?>
+                                                            <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_suspend_button', 'Suspend'); ?>
                                                         </button>
                                                         </div>
                                                     </td>
@@ -985,8 +1042,11 @@ ob_start();
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="manageModal-<?php echo $account['id']; ?>">
                                                             <i class="fas fa-cog"></i> <?php echo translate('admin_users_manage_button', 'Manage'); ?>
                                                         </button>
+                                                        <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="activityModal-<?php echo $account['id']; ?>">
+                                                            <i class="fas fa-history"></i> <?php echo translate('admin_users_activity_button', 'Activity'); ?>
+                                                        </button>
                                                         <button type="button" class="btn-iron btn-iron-sm open-modal-btn" data-modal="lifecycleModal-<?php echo $account['id']; ?>">
-                                                            <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_account_button', 'Account'); ?>
+                                                            <i class="fas fa-user-slash"></i> <?php echo translate('admin_users_suspend_button', 'Suspend'); ?>
                                                         </button>
                                                         </div>
                                                     </td>
@@ -1067,7 +1127,16 @@ ob_start();
         </form>
     </div>
 </div>
-            <?php admin_users_render_lifecycle_modal((int) $user['account_id'], (string) $user['username'], (int) ($user['locked'] ?? 0)); ?>
+            <?php
+            $activityLimit = 50;
+            admin_users_render_activity_modal(
+                (int) $user['account_id'],
+                (string) $user['username'],
+                sahtout_fetch_website_activity_log($site_db, (int) $user['account_id'], $activityLimit),
+                $activityLimit
+            );
+            admin_users_render_lifecycle_modal((int) $user['account_id'], (string) $user['username'], (int) ($user['locked'] ?? 0));
+            ?>
         <?php endwhile; 
         $modal_users_result->free();
         $stmt->close();
@@ -1160,7 +1229,16 @@ ob_start();
                     </form>
                 </div>
             </div>
-            <?php admin_users_render_lifecycle_modal((int) $account['id'], (string) $account['username'], (int) ($account['locked'] ?? 0)); ?>
+            <?php
+            $activityLimit = 50;
+            admin_users_render_activity_modal(
+                (int) $account['id'],
+                (string) $account['username'],
+                sahtout_fetch_website_activity_log($site_db, (int) $account['id'], $activityLimit),
+                $activityLimit
+            );
+            admin_users_render_lifecycle_modal((int) $account['id'], (string) $account['username'], (int) ($account['locked'] ?? 0));
+            ?>
         <?php endforeach; ?>
     </div>
 
