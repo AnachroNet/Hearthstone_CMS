@@ -8,9 +8,15 @@ $pm_highlight_player = sahtout_playermap_sanitize_highlight_name((string) ($_GET
 $pm_highlight_snapshot = sahtout_playermap_snapshot_from_request();
 $pm_highlight_meta = sahtout_playermap_highlight_meta_from_request();
 
+global $base_path, $site_logo;
+$pm_favicon_path = ltrim((string) ($site_logo ?? 'img/logo.png'), '/');
+$pm_favicon_href = htmlspecialchars(rtrim((string) $base_path, '/') . '/' . $pm_favicon_path, ENT_QUOTES, 'UTF-8');
+$pm_favicon_type = preg_match('/\.png$/i', $pm_favicon_path) ? 'image/png' : 'image/x-icon';
+
 ?>
 <HTML><HEAD><title>Online Playermap</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="icon" href="<?php echo $pm_favicon_href; ?>" type="<?php echo $pm_favicon_type; ?>">
 <style type="text/css">
 <!--
 html, body.sahtout-playermap {
