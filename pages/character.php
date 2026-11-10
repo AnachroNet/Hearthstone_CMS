@@ -8,6 +8,7 @@ require_once $project_root . 'includes/character_talents.php';
 require_once $project_root . 'includes/character_lifetime_stats.php';
 $page_class = 'character';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/playermap.php';
 
 global $site_db, $char_db, $auth_db, $base_path;
 
@@ -229,9 +230,18 @@ ob_start();
     .tabs::-webkit-scrollbar { display: none; }
     .tab-content:focus-visible { outline: 1px dashed var(--gold-line); outline-offset: 4px; }
 
+    .hero-profile-actions {
+        margin-top: .85rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: .5rem;
+    }
     .copy-link {
-        margin-top: .85rem; display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .9rem; font-size: .8rem; font-weight: 600;
+        display: inline-flex; align-items: center; gap: .5rem; padding: .35rem .9rem; font-size: .8rem; font-weight: 600;
         color: var(--muted); background: transparent; border: 1px solid var(--gold-line); border-radius: 999px; cursor: pointer; transition: color .2s, border-color .2s;
+        text-decoration: none;
     }
     .copy-link:hover { color: var(--gold); border-color: rgba(242,207,82,.45); }
     .copy-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -507,7 +517,7 @@ require_once $project_root . 'includes/header.php';
             } else {
                 // Character: the only fatal query
                 try {
-                    $rows = $query($char_db, "SELECT guid, name, race, class, level, totalKills, gender, totaltime FROM characters WHERE guid = ?", 'i', [$guid]);
+                    $rows = $query($char_db, "SELECT guid, name, race, class, level, totalKills, gender, totaltime, online, map, position_x, position_y, zone FROM characters WHERE guid = ?", 'i', [$guid]);
                     if ($rows) {
                         $character = $rows[0];
                         $total_kills = (int)($character['totalKills'] ?? 0);
@@ -775,11 +785,25 @@ if ($ilvl > 0) {
                         <p class="text-xs text-gray-500 mt-3 text-center"><?= htmlspecialchars(translate('adopt_progress_locked_hint', 'Tokens have been charged. Adoption cannot be cancelled while transfer runs—keep this tab open for updates.')) ?></p>
                     </div>
                 <?php else: ?>
-                    <button type="button" class="copy-link" id="copy-link"
-                            data-copied="<?= htmlspecialchars(translate('link_copied', 'Link copied')) ?>"
-                            data-failed="<?= htmlspecialchars(translate('link_copy_failed', 'Copy failed - use the address bar')) ?>">
-                        <i class="fas fa-link"></i><span><?= translate('copy_profile_link', 'Copy profile link') ?></span>
-                    </button>
+                    <?php
+                    $playermapHighlightUrl = (!$error && is_array($character))
+                        ? sahtout_playermap_character_highlight_url($base_path, $character, $site_db)
+                        : null;
+                    ?>
+                    <div class="hero-profile-actions">
+                        <button type="button" class="copy-link" id="copy-link"
+                                data-copied="<?= htmlspecialchars(translate('link_copied', 'Link copied')) ?>"
+                                data-failed="<?= htmlspecialchars(translate('link_copy_failed', 'Copy failed - use the address bar')) ?>">
+                            <i class="fas fa-link"></i><span><?= translate('copy_profile_link', 'Copy profile link') ?></span>
+                        </button>
+                        <?php if ($playermapHighlightUrl !== null): ?>
+                            <a class="copy-link" href="<?= htmlspecialchars($playermapHighlightUrl, ENT_QUOTES, 'UTF-8') ?>"
+                               target="_blank" rel="noopener"
+                               title="<?= htmlspecialchars(translate('show_on_playermap_title', 'Open the live player map with this character highlighted'), ENT_QUOTES, 'UTF-8') ?>">
+                                <i class="fas fa-map-marked-alt"></i><span><?= translate('show_on_playermap', 'Show on map') ?></span>
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
 

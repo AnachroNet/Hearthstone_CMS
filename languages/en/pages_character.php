@@ -126,6 +126,8 @@ return [
     'avg_ilvl_hint' => 'Average item level of equipped items (shirt and tabard excluded). Not the in-game number.',
     'ilvl_label' => 'iLvl',
     'copy_profile_link' => 'Copy profile link',
+    'show_on_playermap' => 'Show on map',
+    'show_on_playermap_title' => 'Open the live player map with this character highlighted',
     'adopting_character_name' => 'Adopting %s',
     'adopt_confirm_adoption' => 'Confirm Adoption',
     'adopt_progress_heading' => 'Adoption in progress',

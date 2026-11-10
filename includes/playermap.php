@@ -334,3 +334,96 @@ function sahtout_playermap_realm_display_name(int $realmId, $authSqlLayer = null
 
     return htmlentities($fallback, ENT_QUOTES, 'UTF-8');
 }
+
+/** @return list<int> */
+function sahtout_playermap_outland_instance_map_ids(): array
+{
+    return [540, 542, 543, 544, 545, 546, 547, 548, 550, 552, 553, 554, 555, 556, 557, 558, 559, 562, 564, 565];
+}
+
+/** @return list<int> */
+function sahtout_playermap_northrend_instance_map_ids(): array
+{
+    return [533, 574, 575, 576, 578, 599, 600, 601, 602, 603, 604, 608, 615, 616, 617, 619, 624, 631, 632, 649, 650, 658, 668, 724];
+}
+
+/** Playermap continent tab index: 0 Azeroth, 1 Outland, 2 Northrend. */
+function sahtout_playermap_continent_index(int $mapId, float $positionY): int
+{
+    if (($mapId === 530 && $positionY > -1000) || in_array($mapId, sahtout_playermap_outland_instance_map_ids(), true)) {
+        return 1;
+    }
+    if ($mapId === 571 || in_array($mapId, sahtout_playermap_northrend_instance_map_ids(), true)) {
+        return 2;
+    }
+
+    return 0;
+}
+
+/**
+ * URL to open /playermap/ with a highlighted character (live pin or last-known coords).
+ *
+ * @param array{name?:string,online?:mixed,map?:mixed,position_x?:mixed,position_y?:mixed} $character
+ */
+function sahtout_playermap_character_highlight_url(string $basePath, array $character, ?mysqli $siteDb = null): ?string
+{
+    if ($siteDb instanceof mysqli && $siteDb->connect_error) {
+        $siteDb = null;
+    }
+    if (!sahtout_playermap_enabled($siteDb)) {
+        return null;
+    }
+
+    $name = trim((string) ($character['name'] ?? ''));
+    if ($name === '' || strlen($name) > 64) {
+        return null;
+    }
+
+    $query = ['player' => $name];
+    if (empty($character['online'])) {
+        $mapId = (int) ($character['map'] ?? 0);
+        $posX = (float) ($character['position_x'] ?? 0);
+        $posY = (float) ($character['position_y'] ?? 0);
+        $query['map'] = $mapId;
+        $query['x'] = $posX;
+        $query['y'] = $posY;
+    }
+
+    return rtrim($basePath, '/') . '/playermap/?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+}
+
+/** Sanitize ?player= from playermap query string. */
+function sahtout_playermap_sanitize_highlight_name(string $raw): string
+{
+    $name = trim($raw);
+    if ($name === '' || strlen($name) > 64) {
+        return '';
+    }
+    if (preg_match('/^[\p{L}\p{N}\x20\'\-\.]+$/u', $name) !== 1) {
+        return '';
+    }
+
+    return $name;
+}
+
+/**
+ * @return ?array{map:int,x:float,y:float,ext:int}
+ */
+function sahtout_playermap_snapshot_from_request(): ?array
+{
+    $player = sahtout_playermap_sanitize_highlight_name((string) ($_GET['player'] ?? ''));
+    if ($player === '' || !isset($_GET['map'], $_GET['x'], $_GET['y'])) {
+        return null;
+    }
+
+    $mapId = (int) $_GET['map'];
+    $posX = (float) $_GET['x'];
+    $posY = (float) $_GET['y'];
+
+    return [
+        'map' => $mapId,
+        'x' => $posX,
+        'y' => $posY,
+        'ext' => sahtout_playermap_continent_index($mapId, $posY),
+    ];
+}

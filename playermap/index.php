@@ -4,6 +4,9 @@ require_once("defines.php");
 require_once("pomm_conf.php");
 require_once("func.php");
 
+$pm_highlight_player = sahtout_playermap_sanitize_highlight_name((string) ($_GET['player'] ?? ''));
+$pm_highlight_snapshot = sahtout_playermap_snapshot_from_request();
+
 ?>
 <HTML><HEAD><title>Online Playermap</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -220,6 +223,11 @@ var show_status=<?php echo $show_status ?>;
 var maps_count = <?php echo count($lang_defs['maps_names']); ?>;
 var maps_array = new Array(<?php echo $maps_for_points ?>);
 var maps_name_array = new Array(<?php echo "'".implode("','", $lang_defs['maps_names'])."'" ?>);
+
+var highlightPlayer = <?php echo json_encode($pm_highlight_player, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+var highlightSnapshot = <?php echo json_encode($pm_highlight_snapshot, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+var selectedIconSrc = "<?php echo $img_base ?>selected-icon.gif";
+var highlightMatched = false;
 
 var race_name = {<?php echo "0:''"; foreach ($character_race as $id => $race) {
     echo(", ".$id.":'".$race."'");
@@ -532,6 +540,22 @@ function getPointsLayerByID(id)
   }
 }
 
+function normalizePlayerName(name)
+{
+  return String(name).replace(/<[^>]*>/g, '').trim().toLowerCase();
+}
+
+function playerNameMatchesHighlight(name)
+{
+  if(!highlightPlayer) return false;
+  return normalizePlayerName(name) === normalizePlayerName(highlightPlayer);
+}
+
+function mapPinImg(src, left, top, attrs)
+{
+  return '<img src="'+src+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
+}
+
 function switchworld(n)
 {
   for(var i = 0; i < maps_count; i++)
@@ -582,6 +606,7 @@ function show(data)
   }
 
   point_count=0;
+  highlightMatched = false;
   var ht;
   if(document.layers)
   {
@@ -653,6 +678,11 @@ function show(data)
       }
       mpoints[point_count].current_leaderGuid = data[i].leaderGuid;
       mpoints[point_count].multi_text = new _multi_text();
+      if(playerNameMatchesHighlight(data[i].name))
+      {
+        mpoints[point_count].highlight = true;
+        highlightMatched = true;
+      }
       n = point_count;
       point_count++;
     }
@@ -667,6 +697,11 @@ function show(data)
       mpoints[n].current_leaderGuid = data[i].leaderGuid;
     }
     mpoints[n].multi_text.text[mpoints[n].player-1] = '<td align=\'left\' valign=\'middle\'\>&nbsp;'+data[i].name+'</td\><td\>'+data[i].level+'</td\><td align=\'left\'\>'+char+'</td\><td align=\'left\'\ style=\'color: '+text_col+';\'>&nbsp;'+race_name[data[i].race]+'</td\><td align=\'left\'\>&nbsp;<img src=\'<?php echo $img_base2 ?>'+data[i].cl+'.gif\' style=\'float:center\' border=0 width=18 height=18\></td\><td align=\'left\'\>&nbsp;'+class_name[data[i].cl]+'&nbsp;</td\>';
+    if(playerNameMatchesHighlight(data[i].name))
+    {
+      mpoints[n].highlight = true;
+      highlightMatched = true;
+    }
     i++;
   }
 
@@ -674,16 +709,18 @@ function show(data)
   while(n!=point_count)
   {
     if(!in_array(mpoints[n].map_id, maps_array))
-      instances[mpoints[n].Extention] += '<img src="<?php echo $img_base ?>inst-icon.gif" style="position: absolute; border: 0px; left: '+instances_x[mpoints[n].Extention][mpoints[n].map_id]+'px; top: '+instances_y[mpoints[n].Extention][mpoints[n].map_id]+'px;" onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"\>';
+      instances[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>inst-icon.gif", instances_x[mpoints[n].Extention][mpoints[n].map_id], instances_y[mpoints[n].Extention][mpoints[n].map_id], 'onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"');
+    else if(mpoints[n].highlight)
+      single[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, 'onMouseMove="tip(mpoints['+n+'],0,false);" onMouseOut="h_tip();"');
     else if(mpoints[n].player > 1)
-      groups[mpoints[n].Extention] += '<img src="<?php echo $img_base ?>group-icon.gif" style="position: absolute; border: 0px; left: '+mpoints[n].x+'px; top: '+mpoints[n].y+'px;" onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"\>';
+      groups[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>group-icon.gif", mpoints[n].x, mpoints[n].y, 'onMouseMove="tip(mpoints['+n+'],1,false);" onMouseDown="tip(mpoints['+n+'],1,true);" onMouseOut="h_tip();mpoints['+n+'].multi_text.current=0;"');
     else
     {
       if(mpoints[n].faction)
         point = "<?php echo $img_base ?>horde.gif";
       else
         point = "<?php echo $img_base ?>allia.gif";
-      single[mpoints[n].Extention] += '<img src="'+point+'" style="position: absolute; border: 0px; left: '+mpoints[n].x+'px; top: '+mpoints[n].y+'px;" onMouseMove="tip(mpoints['+n+'],0,false);" onMouseOut="h_tip();"\>';
+      single[mpoints[n].Extention] += mapPinImg(point, mpoints[n].x, mpoints[n].y, 'onMouseMove="tip(mpoints['+n+'],0,false);" onMouseOut="h_tip();"');
     }
     n++;
   }
@@ -700,10 +737,45 @@ function show(data)
     total_players_count[1] += horde_count[i];
   }
 
-  document.getElementById("server_info").innerHTML='online: <b style="color: rgb(100,100,100);" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+total_players_count[1]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+total_players_count[0]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();"><?php echo $lang_defs['total']; ?></b> '+eval(total_players_count[0]+total_players_count[1])+'';
+  document.getElementById("server_info").innerHTML='<?php echo $lang_defs['online_label']; ?>: <b style="color: rgb(100,100,100);" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+total_players_count[1]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+total_players_count[0]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();"><?php echo $lang_defs['total']; ?></b> '+eval(total_players_count[0]+total_players_count[1])+'';
   for(i = 0; i < maps_count; i++)
   {
     document.getElementById("server_info").innerHTML += '&nbsp;<b style="color: rgb(160,160,20); cursor:pointer;" onClick="switchworld('+i+');" onMouseMove="tip(\'<tr\><td\><img src=\\\'<?php echo $img_base ?>hordeicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(210,50,30);\\\'\><?php echo $lang_defs['faction'][1]; ?>:</b\> <b\>'+horde_count[i]+'</b\></td\></tr\><tr\><td\><img src=\\\'<?php echo $img_base ?>allianceicon.gif\\\'\></td\><td\><b style=\\\'color: rgb(0,150,190);\\\'\><?php echo $lang_defs['faction'][0]; ?>:</b\> <b\>'+alliance_count[i]+'</b\></td\></tr\>\',2,false);" onMouseOut="h_tip();">'+maps_name_array[i]+'</b\> '+players_count[i]+'';
+  }
+
+  applyPlayerHighlightView();
+}
+
+function renderSnapshotHighlight()
+{
+  if(!highlightSnapshot) return;
+  if(!in_array(highlightSnapshot.map, maps_array)) return;
+  var pos = get_player_position(highlightSnapshot.x, highlightSnapshot.y, highlightSnapshot.map);
+  var ext = highlightSnapshot.ext;
+  if(ext < 0 || ext >= maps_count) return;
+  switchworld(ext);
+  var obj = getPointsLayerByID(ext);
+  var pin = mapPinImg(selectedIconSrc, pos.x, pos.y, '');
+  obj.innerHTML = obj.innerHTML + pin;
+}
+
+function applyPlayerHighlightView()
+{
+  if(!highlightPlayer) return;
+  if(highlightMatched)
+  {
+    for(var n = 0; n < point_count; n++)
+    {
+      if(mpoints[n].highlight)
+      {
+        switchworld(mpoints[n].Extention);
+        return;
+      }
+    }
+  }
+  else if(highlightSnapshot)
+  {
+    renderSnapshotHighlight();
   }
 }
 

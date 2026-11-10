@@ -32,6 +32,7 @@ return [
     'lang_defs' => [
         'maps_names' => ['Azeroth', 'Outland', 'Northrend'],
         'total' => 'Total',
+        'online_label' => 'Online',
         'faction' => ['Alliance', 'Horde'],
         'name' => 'Name',
         'race' => 'Race',
