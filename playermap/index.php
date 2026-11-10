@@ -279,6 +279,8 @@ img.pm-map-pin {
     z-index: 1;
 }
 img.pm-map-pin--selected {
+    width: 16px;
+    height: 16px;
     z-index: 50;
 }
 -->
@@ -299,6 +301,7 @@ var highlightPlayer = <?php echo json_encode($pm_highlight_player, JSON_HEX_TAG 
 var highlightSnapshot = <?php echo json_encode($pm_highlight_snapshot, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 var highlightMeta = <?php echo json_encode($pm_highlight_meta, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 var sahtoutPinDisplayPx = 12;
+var sahtoutSelectedPinDisplayPx = 16;
 var selectedIconSrc = "<?php echo $img_base ?>selected-icon.svg";
 var hordePinSrc = "<?php echo $img_base ?>horde-icon.svg";
 var alliancePinSrc = "<?php echo $img_base ?>alliance-icon.svg";
@@ -650,9 +653,17 @@ function playerNameMatchesHighlight(name)
   return normalizePlayerName(name) === normalizePlayerName(highlightPlayer);
 }
 
-function mapPinImg(src, left, top, attrs, selectedPin)
+function mapPinDisplaySize(selectedPin)
 {
-  var s = sahtoutPinDisplayPx;
+  return selectedPin ? sahtoutSelectedPinDisplayPx : sahtoutPinDisplayPx;
+}
+
+function mapPinImg(src, mapX, mapY, attrs, selectedPin)
+{
+  var s = mapPinDisplaySize(selectedPin);
+  var half = s / 2;
+  var left = Math.round(mapX - half);
+  var top = Math.round(mapY - half);
   var pinClass = 'pm-map-pin' + (selectedPin ? ' pm-map-pin--selected' : '');
   return '<img src="'+src+'" class="'+pinClass+'" width="'+s+'" height="'+s+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
 }
@@ -736,7 +747,10 @@ function highlightNameTagHtml(x, y, rawName, subtitle, tagId)
   if(!name) return '';
   var id = tagId || '';
   var sub = subtitle ? '<span class="pm-highlight-name__sub">'+escapeHtml(subtitle)+'</span>' : '';
-  return '<div'+(id ? ' id="'+id+'"' : '')+' class="pm-highlight-name pm-highlight-name--live" style="left:'+(x+26)+'px;top:'+(y+2)+'px;"><span class="pm-highlight-name__title">'+escapeHtml(name)+'</span>'+sub+'</div>';
+  var pinSize = sahtoutSelectedPinDisplayPx;
+  var tagLeft = Math.round(x + pinSize / 2 + 8);
+  var tagTop = Math.round(y - 6);
+  return '<div'+(id ? ' id="'+id+'"' : '')+' class="pm-highlight-name pm-highlight-name--live" style="left:'+tagLeft+'px;top:'+tagTop+'px;"><span class="pm-highlight-name__title">'+escapeHtml(name)+'</span>'+sub+'</div>';
 }
 
 function switchworld(n)
