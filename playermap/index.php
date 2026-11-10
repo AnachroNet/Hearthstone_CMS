@@ -99,16 +99,18 @@ body.sahtout-playermap {
     margin-left: -483px;
     z-index: 98;
 }
-#wow {
+#realm-status-indicator {
     position: absolute;
-    height: 98px;
-    width: 200px;
-    left: 50%;
-    margin-left: -468px;
-    z-index: 101;
-    text-align: center;
-    clear: none;
-    float: none;
+    z-index: 120;
+    top: 44px;
+    left: max(10px, calc(50% - 483px + 10px));
+    padding: 8px;
+    line-height: 0;
+}
+#realm-status-indicator img {
+    display: block;
+    border: 0;
+    max-width: none;
 }
 #info {
     position: absolute;
@@ -147,17 +149,6 @@ body.sahtout-playermap {
     color: #FFFF99;
     filter: Glow(Color=0, Strength=3);
     padding-top: 30px;
-}
-#serverstatus {
-    visibility: <?php echo $show_status ? 'visible' : 'hidden'?>;
-    position: absolute;
-    height: 36px;
-    width: 156px;
-    margin-left: -78px;
-    left: 50%;
-    top: 97px;
-    text-align: center;
-    z-index: 101;
 }
 #tip {
     border: 0px solid #aaaaaa;
@@ -837,29 +828,14 @@ function load_data()
   {
     if (req.readyState == 4)
     {
-      if(show_status)
+      if(req.responseJS.status)
       {
-        if(req.responseJS.status)
+        var statusImg = document.getElementById("statusIMG");
+        if(statusImg)
         {
-          if(status_data[0] != req.responseJS.status.online)
-          {
-            status_data[0] = req.responseJS.status.online;
-            var obj = document.getElementById("statusIMG");
-            if(status_data[0] != 1)
-            {
-              obj.src = "<?php echo $img_base ?>realm_off.gif"
-            }
-            else
-              obj.src = "<?php echo $img_base ?>realm_on.gif"
-          }
-          if(req.responseJS.status.uptime < status_data[1] || status_data[1] == 0)
-          {
-            status_process_started = new Date();
-            status_data[1] = req.responseJS.status.uptime;
-          }
-          status_data[2] = req.responseJS.status.maxplayers;
-          status_data[3] = req.responseJS.status.gmonline;
-          statusInit();
+          statusImg.src = (req.responseJS.status.online == 1)
+            ? "<?php echo $img_base ?>realm-online-framed.gif"
+            : "<?php echo $img_base ?>realm-offline-framed.gif";
         }
       }
       show(req.responseJS.online);
@@ -918,11 +894,6 @@ function start()
   <span><?php echo htmlspecialchars((string) ($realm_name ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
 </div>
 
-<div onMouseDown="showNextStatusText();" id="serverstatus">
-    <table align="center" border="0" cellspacing="0" cellpadding="0" width="156px" height="36px">
-        <tr><td id="status" class="statustext"></td></tr>
-    </table>
-</div>
 <div id="tip"></div>
 <div ID="pointsOldworld"></div>
 <div ID="pointsOutland"></div>
@@ -930,7 +901,11 @@ function start()
 <div ID="world"></div>
 <div ID="outland"></div>
 <div ID="northrend"></div>
-<div ID="wow"><img src="<?php echo $img_base ?>realm_on.gif" id="statusIMG" style="position: absolute; border: 0px; left: 365; top: 0;" onClick="window.location='<?php echo $_SERVER['PHP_SELF'] ?>'"></a>
+<?php
+$sahtout_realm_status_img = test_realm() ? 'realm-online-framed.gif' : 'realm-offline-framed.gif';
+?>
+<div id="realm-status-indicator">
+  <img src="<?php echo $img_base . $sahtout_realm_status_img; ?>" id="statusIMG" alt="" onClick="window.location='<?php echo htmlspecialchars($_SERVER['PHP_SELF'] ?? '', ENT_QUOTES, 'UTF-8'); ?>'" style="cursor:pointer;">
 </div>
 <div ID="info">
     <center>
