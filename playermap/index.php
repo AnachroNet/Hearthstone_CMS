@@ -270,6 +270,12 @@ body.sahtout-playermap {
     text-align: left;
     padding: 0px;
 }
+img.pm-map-pin {
+    width: 12px;
+    height: 12px;
+    display: block;
+    pointer-events: auto;
+}
 -->
 </style>
 </HEAD>
@@ -287,7 +293,11 @@ var maps_name_array = new Array(<?php echo "'".implode("','", $lang_defs['maps_n
 var highlightPlayer = <?php echo json_encode($pm_highlight_player, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 var highlightSnapshot = <?php echo json_encode($pm_highlight_snapshot, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
 var highlightMeta = <?php echo json_encode($pm_highlight_meta, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-var selectedIconSrc = "<?php echo $img_base ?>selected-icon.gif";
+var sahtoutPinDisplayPx = 12;
+var selectedIconSrc = "<?php echo $img_base ?>selected-icon.svg";
+var hordePinSrc = "<?php echo $img_base ?>horde-icon.svg";
+var alliancePinSrc = "<?php echo $img_base ?>alliance-icon.svg";
+var groupPinSrc = "<?php echo $img_base ?>group-icon.svg";
 var highlightMatched = false;
 
 var race_name = {<?php echo "0:''"; foreach ($character_race as $id => $race) {
@@ -637,7 +647,8 @@ function playerNameMatchesHighlight(name)
 
 function mapPinImg(src, left, top, attrs)
 {
-  return '<img src="'+src+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
+  var s = sahtoutPinDisplayPx;
+  return '<img src="'+src+'" class="pm-map-pin" width="'+s+'" height="'+s+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
 }
 
 function escapeHtml(s)
@@ -902,13 +913,13 @@ function show(data)
         single[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, attrs+hlTag);
     }
     else if(multi)
-      groups[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>group-icon.gif", mpoints[n].x, mpoints[n].y, pinTipAttrs(n, false, true));
+      groups[mpoints[n].Extention] += mapPinImg(groupPinSrc, mpoints[n].x, mpoints[n].y, pinTipAttrs(n, false, true));
     else
     {
       if(mpoints[n].faction)
-        point = "<?php echo $img_base ?>horde.gif";
+        point = hordePinSrc;
       else
-        point = "<?php echo $img_base ?>allia.gif";
+        point = alliancePinSrc;
       single[mpoints[n].Extention] += mapPinImg(point, mpoints[n].x, mpoints[n].y, pinTipAttrs(n, false, false));
     }
     n++;
