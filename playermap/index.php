@@ -102,8 +102,8 @@ body.sahtout-playermap {
 #realm-status-indicator {
     position: fixed;
     z-index: 120;
-    top: 44px;
-    left: 8px;
+    right: 8px;
+    bottom: 8px;
     padding: 0;
     line-height: 0;
 }
