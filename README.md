@@ -77,7 +77,7 @@ SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.s
 
 That file targets the **`hearthstone_site`** database name (`CREATE DATABASE` / `USE` at the top). If you want a different database name, create your DB first, then import with the `CREATE DATABASE` / `USE` lines adjusted or removed as appropriate.
 
-The repo root **`VERSION`** and **`RELEASE`** files describe the CMS code you deployed (e.g. **Version 1.0 — Release 2026110701**). The database keeps the applied copy in **`site_settings.site.version`** and **`site_settings.site.release`** (release id = `YYYYMMDD` + daily counter).
+The repo root **`VERSION`** and **`RELEASE`** files describe the CMS code you deployed (e.g. **Version 1.1 — Release 2026111001** on the **1.1** branch; stable **1.0** remains on the **`1.0`** branch). The database keeps the applied copy in **`site_settings.site.version`** and **`site_settings.site.release`** (release id = `YYYYMMDD` + daily counter).
 
 #### New site database
 
