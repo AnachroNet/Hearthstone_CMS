@@ -496,7 +496,7 @@ function admin_users_render_activity_modal(int $accountId, string $username, arr
 {
     ?>
     <div id="activityModal-<?php echo $accountId; ?>" class="modal-backdrop">
-        <div class="panel w-full max-w-2xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
+        <div class="panel w-full max-w-3xl p-6 md:p-8 relative max-h-[90vh] overflow-y-auto">
             <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl close-modal-btn" data-modal="activityModal-<?php echo $accountId; ?>">&times;</button>
             <h3 class="wow-title text-2xl mb-2 flex items-center gap-3">
                 <i class="fas fa-history text-[#f2cf5b]"></i>
