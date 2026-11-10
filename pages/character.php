@@ -798,7 +798,6 @@ if ($ilvl > 0) {
                         </button>
                         <?php if ($playermapHighlightUrl !== null): ?>
                             <a class="copy-link" href="<?= htmlspecialchars($playermapHighlightUrl, ENT_QUOTES, 'UTF-8') ?>"
-                               target="_blank" rel="noopener"
                                title="<?= htmlspecialchars(translate('show_on_playermap_title', 'Open the live player map with this character highlighted'), ENT_QUOTES, 'UTF-8') ?>">
                                 <i class="fas fa-map-marked-alt"></i><span><?= translate('show_on_playermap', 'Show on map') ?></span>
                             </a>

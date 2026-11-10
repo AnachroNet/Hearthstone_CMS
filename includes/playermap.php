@@ -408,9 +408,10 @@ function sahtout_playermap_is_allowed_return_path(string $relativePath): bool
 function sahtout_playermap_resolve_back_navigation(string $basePath): array
 {
     $homeUrl = rtrim($basePath, '/') . '/';
+    $returnLabel = translate('playermap_return', 'Return');
     $default = [
         'url' => $homeUrl,
-        'label' => translate('playermap_back_to_site', 'Back to site'),
+        'label' => $returnLabel,
     ];
 
     $returnPath = trim((string) ($_GET['return'] ?? ''));
@@ -424,7 +425,7 @@ function sahtout_playermap_resolve_back_navigation(string $basePath): array
 
     return [
         'url' => $homeUrl . ltrim($returnPath, '/'),
-        'label' => translate('playermap_back_previous', 'Back'),
+        'label' => $returnLabel,
     ];
 }
 

@@ -1155,7 +1155,7 @@ function start()
 </SCRIPT>
 <BODY class="sahtout-playermap" onload="start();">
 <div id="sahtout-playermap-chrome">
-  <a href="<?php echo htmlspecialchars((string) ($sahtout_playermap_home_url ?? '/'), ENT_QUOTES, 'UTF-8'); ?>">&larr; <?php echo htmlspecialchars((string) ($sahtout_playermap_back_label ?? 'Back to site'), ENT_QUOTES, 'UTF-8'); ?></a>
+  <a href="<?php echo htmlspecialchars((string) ($sahtout_playermap_home_url ?? '/'), ENT_QUOTES, 'UTF-8'); ?>">&larr; <?php echo htmlspecialchars((string) ($sahtout_playermap_back_label ?? 'Return'), ENT_QUOTES, 'UTF-8'); ?></a>
   <span><?php echo htmlspecialchars((string) ($realm_name ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
 </div>
 

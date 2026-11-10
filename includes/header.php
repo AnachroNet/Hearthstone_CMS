@@ -586,7 +586,7 @@ $esc_document_base = htmlspecialchars($page_document_base, ENT_QUOTES, 'UTF-8');
                 </a>
 
                 <?php if (function_exists('sahtout_playermap_enabled') && sahtout_playermap_enabled(isset($site_db) ? $site_db : null)): ?>
-                <a href="<?php echo $esc_base; ?>playermap/" class="nav-link" target="_blank" rel="noopener">
+                <a href="<?php echo $esc_base; ?>playermap/" class="nav-link">
                     <?php echo translate('nav_playermap', 'Player Map'); ?>
                 </a>
                 <?php endif; ?>
