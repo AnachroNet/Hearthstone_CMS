@@ -93,6 +93,22 @@ function sahtout_playermap_both_factions(): bool
 }
 
 /**
+ * HTML display name for an online GM on the map (legacy map_gm_add_suffix option).
+ */
+function sahtout_playermap_format_online_gm_name(string $characterName): string
+{
+    $characterName = trim($characterName);
+    if ($characterName === '') {
+        return $characterName;
+    }
+
+    $badge = translate('playermap_gm_name_badge', '<GM>');
+    $badge = htmlspecialchars($badge, ENT_QUOTES, 'UTF-8');
+
+    return '<small style="color: #EABA28;">' . $badge . '</small> ' . $characterName;
+}
+
+/**
  * @return array<string, mixed>
  */
 function sahtout_playermap_local_options(): array

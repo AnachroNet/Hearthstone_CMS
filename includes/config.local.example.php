@@ -100,6 +100,7 @@ return [
         'gm_online_count' => 100,
         'map_gm_show_online_only_gmoff' => 1,
         'map_gm_show_online_only_gmvisible' => 1,
+        /** Prefix online GM names with "<GM>" on the map (legacy playermap key name). */
         'map_gm_add_suffix' => 1,
         'map_status_gm_include_all' => 0,
         'map_show_status' => 1,

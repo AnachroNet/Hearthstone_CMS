@@ -87,7 +87,7 @@ if ($dbReachable) {
                 $show_player = false;
             }
             if ($gm_add_suffix && $show_player) {
-                $result['name'] .= ' <small style="color: #EABA28;">{GM}</small>';
+                $result['name'] = sahtout_playermap_format_online_gm_name((string) $result['name']);
             }
         }
     }

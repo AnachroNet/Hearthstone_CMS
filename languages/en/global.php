@@ -12,6 +12,7 @@ return [
     'home_event_calendar_open_full' => 'Event Calendar',
     'nav_armory' => 'Armory',
     'nav_playermap' => 'Player Map',
+    'playermap_gm_name_badge' => '<GM>',
     'playermap_return' => 'Return',
     'playermap_back_to_site' => 'Return',
     'playermap_back_previous' => 'Return',
