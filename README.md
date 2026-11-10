@@ -204,6 +204,7 @@ These are optional tools for development and diagnostics (not part of normal ins
 | **`tools/import_achievement_catalog.php`** | Build achievement catalog SQL from WotLK DBC files under `data/dbc/`. See the header in that script for usage. |
 | **`tools/build_hearthstone_site_install_demo.py`** | Rebuild `SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql` from a full `hearthstone_site` mysqldump (scrubs volatile tables and injects demo `site_settings` / news / calendar / downloads). Run: `python tools/build_hearthstone_site_install_demo.py [path/to/dump.sql] [path/to/output.sql]` |
 | **`tools/apply_site_db_updates.py`** | List and apply pending `SQL/Hearthstone_DATABASE/UPDATES/*.sql` release scripts (reads `includes/config.local.php`, requires `mysql` on PATH). Run: `python tools/apply_site_db_updates.py --list` then `--apply` |
+| **`tools/import_map_dbc.php`** | Build `map_dbc` import SQL from `data/dbc/Map.dbc` (WotLK map names for admin UI). Run: `php tools/import_map_dbc.php` |
 
 ---
 

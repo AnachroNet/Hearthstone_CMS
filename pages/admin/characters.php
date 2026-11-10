@@ -9,6 +9,7 @@ require_once $project_root . 'includes/admin_comp_item_ui.php';
 require_once $project_root . 'includes/admin_teleport_locations.php';
 require_once $project_root . 'includes/admin_table_alignment.php';
 require_once $project_root . 'includes/admin_pagination.php';
+require_once $project_root . 'includes/map_dbc.php';
 
 $page_class = 'characters';
 
@@ -319,28 +320,8 @@ $chars_list_return_query = http_build_query(array_filter([
 }));
 $chars_list_return_url = $base_path . 'admin/characters' . ($chars_list_return_query !== '' ? '?' . $chars_list_return_query : '');
 
-$map_names = [
-    0 => 'Eastern Kingdoms', 1 => 'Kalimdor', 530 => 'Outland', 571 => 'Northrend',
-    33 => 'Shadowfang Keep', 34 => 'The Stockade', 36 => 'Deadmines', 43 => 'Wailing Caverns',
-    47 => 'Razorfen Kraul', 48 => 'Blackfathom Deeps', 70 => 'Uldaman', 90 => 'Gnomeregan',
-    109 => 'Sunken Temple', 129 => 'Razorfen Downs', 189 => 'Scarlet Monastery', 209 => 'Zulfarrak',
-    229 => 'Blackrock Spire', 230 => 'Blackrock Depths', 249 => 'Onyxias Lair', 269 => 'The Black Morass',
-    289 => 'Scholomance', 309 => 'Zulgurub', 329 => 'Stratholme', 349 => 'Maraudon',
-    389 => 'Ragefire Chasm', 409 => 'Molten Core', 429 => 'Dire Maul', 469 => 'Blackwing Lair',
-    509 => 'Ruins of Ahnqiraj', 531 => 'Temple of Ahnqiraj', 532 => 'Karazhan', 533 => 'Naxxramas',
-    534 => 'Hyjal', 540 => 'Shattered Halls', 542 => 'Blood Furnace', 543 => 'Hellfire Ramparts',
-    544 => 'Magtheridons Lair', 545 => 'Steam Vault', 546 => 'The Underbog', 547 => 'The Slave Pens',
-    548 => 'Serpent Shrine', 550 => 'The Eye', 552 => 'Arcatraz', 553 => 'The Botanica',
-    554 => 'Mechanar', 555 => 'Shadow Labyrinth', 556 => 'Sethekk Halls', 557 => 'Mana Tombs',
-    558 => 'Auchenai Crypts', 560 => 'Old Hillsbrad', 564 => 'Black Temple', 565 => 'Gruuls Lair',
-    568 => 'Zulaman', 574 => 'Utgarde Keep', 575 => 'Utgarde Pinnacle', 576 => 'Nexus',
-    578 => 'Oculus', 580 => 'Sunwell Plateau', 585 => 'Magisters Terrace', 595 => 'Culling of Stratholme',
-    599 => 'Halls of Stone', 600 => 'Drak Tharon Keep', 601 => 'Azjol Nerub', 602 => 'Halls of Lightning',
-    603 => 'Ulduar', 604 => 'Gundrak', 608 => 'Violet Hold', 615 => 'Obsidian Sanctum',
-    616 => 'Eye of Eternity', 619 => 'Ahnkahet', 624 => 'Vault of Archavon', 631 => 'Icecrown Citadel',
-    632 => 'Forge of Souls', 649 => 'Trial of the Crusader', 650 => 'Trial of the Champion',
-    658 => 'Pit of Saron', 668 => 'Halls of Reflection', 724 => 'Ruby Sanctum'
-];
+$mapDbcReady = isset($site_db) && $site_db instanceof mysqli && sahtout_map_dbc_table_exists($site_db);
+$map_names = $mapDbcReady ? sahtout_map_dbc_names_sorted_by_label($site_db) : [];
 
 function getRaceIcon($race, $gender) {
     global $base_path;
@@ -614,6 +595,12 @@ $page_head = ob_get_clean();
                     <h1 class="wow-title text-2xl md:text-3xl lg:text-4xl"><?php echo translate('admin_chars_title', 'Character Management'); ?></h1>
                     
                     <?php echo $update_message; ?>
+                    <?php if (!$mapDbcReady): ?>
+                        <div class="bg-amber-900/30 border border-amber-500/40 text-amber-200 px-4 py-3 rounded-sm flex items-start gap-3">
+                            <i class="fas fa-map mt-0.5"></i>
+                            <span class="text-sm"><?php echo translate('admin_chars_map_dbc_unavailable', 'Map names are not loaded. Apply the latest site database update (map_dbc) or run python tools/apply_site_db_updates.py — see README.md.'); ?></span>
+                        </div>
+                    <?php endif; ?>
 
                     <!-- Search Form -->
                     <div class="panel p-4 md:p-6 lg:p-8">
@@ -709,7 +696,7 @@ $page_head = ob_get_clean();
                                                 <td class="hidden md:table-cell text-gray-400 text-sm"><?php echo htmlspecialchars($char['username']); ?></td>
                                                 <td class="align-center"><?php echo getRaceIcon($char['race'], $char['gender']); ?></td>
                                                 <td class="align-center"><?php echo getClassIcon($char['class']); ?></td>
-                                                <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo htmlspecialchars(isset($map_names[$char['map']]) ? $map_names[$char['map']] : $char['map']); ?></td>
+                                                <td class="hidden lg:table-cell text-sm text-gray-400"><?php echo htmlspecialchars(sahtout_map_dbc_display_name($site_db, (int) $char['map'])); ?></td>
                                                 <td class="col-num text-sm md:text-base"><?php echo htmlspecialchars($char['level']); ?></td>
                                                 <td class="align-center"><?php echo getOnlineStatus($char['online']); ?></td>
                                                 <td class="actions-cell">

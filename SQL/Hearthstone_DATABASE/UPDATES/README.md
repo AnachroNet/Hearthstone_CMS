@@ -5,6 +5,7 @@ One SQL file per **release** after the current version’s base install. Apply i
 | File | Release |
 |------|---------|
 | `2026110701-adopt-a-bot.sql` | Adopt a Bot schema; upserts `site.version` (**1.0**) and `site.release` (**2026110701**) in `site_settings` |
+| `2026111001-map-dbc.sql` | `map_dbc` reference table (135 maps from Map.dbc); upserts `site.release` **2026111001** |
 
 There is no separate “version tracking only” patch: release SQL should always update `site.version` and `site.release` when you ship. Fresh v1.0 installs get **2026110601** from `BASE_INSTALL` instead.
 

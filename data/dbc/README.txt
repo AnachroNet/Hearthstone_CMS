@@ -48,6 +48,19 @@ For a full refresh from DBC, run `tools/import_achievement_catalog.php` again â€
 The import also seeds `achievement_token_rewards` with presets (every 10 levels, every 50 quests,
 per-dungeon completions); tokens start at 0 until you configure rewards.
 
+Map names (admin character list, map filters)
+---------------------------------------------
+  - Map.dbc
+
+From the CMS project root:
+
+  php tools/import_map_dbc.php
+
+Output: `SQL/Hearthstone_DATABASE/generated/map_dbc_import.sql` (gitignored). Shipped releases
+bundle the data in `SQL/Hearthstone_DATABASE/UPDATES/*-map-dbc.sql`. Refresh with
+`import_map_dbc.php` after replacing Map.dbc, then fold into your next release SQL or apply
+the generated file manually.
+
 Override path
 -------------
 You can set `TALENT_DBC_DIR` in `includes/config.local.php` to point at another folder if DBCs

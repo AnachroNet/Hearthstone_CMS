@@ -18,6 +18,7 @@ return [
     'admin_chars_teleport_invalid' => 'Invalid coordinates. Map must be ≥ 0 and X/Y cannot be 0.',
     'admin_chars_location_invalid' => 'Invalid location selected.',
     'admin_chars_teleport_locations_unavailable' => 'Teleport locations are not configured. Run the site database migration or add locations under Admin → Teleport Locations.',
+    'admin_chars_map_dbc_unavailable' => 'Map names are not loaded. Apply the latest site database update (map_dbc) or run python tools/apply_site_db_updates.py — see README.md.',
     'admin_chars_teleport_locations_empty' => 'No active teleport locations. Add some under Admin → Teleport Locations.',
     'admin_chars_teleport_direct_success' => 'Teleported %s to %s.',
     'admin_chars_db_error' => 'Failed to prepare query: %s',
