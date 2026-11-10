@@ -1,0 +1,47 @@
+Hearthstone CMS — Changelog
+===========================
+
+Versioning: see root VERSION (major.minor) and RELEASE (YYYYMMDDnn release id).
+Database copies live in site_settings.site.version and site_settings.site.release.
+SQL patches: SQL/Hearthstone_DATABASE/UPDATES/ in release order.
+
+
+Version 1.1 (in development — branch 1.1)
+-----------------------------------------
+Codebase VERSION: 1.1
+Current RELEASE:  2026111001
+
+New in 1.1 (since branch 1.0 / VERSION 1.0)
+  • map_dbc site table — full WotLK 3.3.5a Map.dbc names (135 maps) for admin UI
+  • Admin → Characters: map column and teleport map list use map_dbc (e.g. 609 → Ebon Hold)
+  • tools/import_map_dbc.php — regenerate SQL from data/dbc/Map.dbc
+  • Release SQL: SQL/Hearthstone_DATABASE/UPDATES/2026111001-map-dbc.sql
+  • Applying that update sets site.version to 1.1 and site.release to 2026111001
+
+Database upgrade from 1.0
+  • python tools/apply_site_db_updates.py --apply
+    (applies any pending UPDATES after your recorded site.release)
+  • Or run 2026111001-map-dbc.sql manually on hearthstone_site
+
+Planned / in progress on 1.1
+  • (add further 1.1 items here before ship)
+
+
+Version 1.0 (stable — branch 1.0)
+---------------------------------
+Codebase VERSION: 1.0
+Release lineage:  2026110601 (v1.0 base install) → 2026110701 (Adopt a Bot)
+
+Highlights
+  • Adopt a Bot shop flow (draft picker, confirm, async adoption, customize at_login)
+  • SQL layout: Hearthstone_DATABASE/BASE_INSTALL and UPDATES; version/release tracking
+  • tools/apply_site_db_updates.py — list/apply pending site DB release SQL
+  • Admin General Settings: CMS version and release; warning when DB release lags codebase
+  • Shop: Adopt a Bot charge notice above button; button label “Choose a Bot”
+  • Removed .github/FUNDING.yml
+
+Key database UPDATES (1.0)
+  • 2026110701-adopt-a-bot.sql — adopt_a_bot_claims schema
+
+Base install
+  • SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql
