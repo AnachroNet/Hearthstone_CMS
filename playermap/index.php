@@ -275,6 +275,11 @@ img.pm-map-pin {
     height: 12px;
     display: block;
     pointer-events: auto;
+    position: absolute;
+    z-index: 1;
+}
+img.pm-map-pin--selected {
+    z-index: 50;
 }
 -->
 </style>
@@ -645,10 +650,11 @@ function playerNameMatchesHighlight(name)
   return normalizePlayerName(name) === normalizePlayerName(highlightPlayer);
 }
 
-function mapPinImg(src, left, top, attrs)
+function mapPinImg(src, left, top, attrs, selectedPin)
 {
   var s = sahtoutPinDisplayPx;
-  return '<img src="'+src+'" class="pm-map-pin" width="'+s+'" height="'+s+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
+  var pinClass = 'pm-map-pin' + (selectedPin ? ' pm-map-pin--selected' : '');
+  return '<img src="'+src+'" class="'+pinClass+'" width="'+s+'" height="'+s+'" style="position: absolute; border: 0px; left: '+left+'px; top: '+top+'px;" '+attrs+'>';
 }
 
 function escapeHtml(s)
@@ -769,6 +775,7 @@ function show(data)
   instances = new Array();
   groups = new Array();
   single = new Array();
+  highlights = new Array();
   points_layer = new Array();
   alliance_count = new Array();
   horde_count = new Array();
@@ -778,6 +785,7 @@ function show(data)
     instances[i] = '';
     groups[i] = '';
     single[i] = '';
+    highlights[i] = '';
     alliance_count[i] = eval(data[i][0]);
     horde_count[i] = eval(data[i][1]);
   }
@@ -898,19 +906,22 @@ function show(data)
     var multi = mpoints[n].player > 1;
     var attrs = pinTipAttrs(n, inst, multi);
     var hlTag = mpoints[n].highlight ? highlightTagMouseAttrs(mpoints[n].tagId) : '';
-    if(inst)
+    if(mpoints[n].highlight)
+    {
+      if(inst)
+      {
+        var ix = instances_x[mpoints[n].Extention][mpoints[n].map_id];
+        var iy = instances_y[mpoints[n].Extention][mpoints[n].map_id];
+        highlights[mpoints[n].Extention] += mapPinImg(selectedIconSrc, ix, iy, attrs+hlTag, true);
+      }
+      else
+        highlights[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, attrs+hlTag, true);
+    }
+    else if(inst)
     {
       var ix = instances_x[mpoints[n].Extention][mpoints[n].map_id];
       var iy = instances_y[mpoints[n].Extention][mpoints[n].map_id];
-      var isrc = mpoints[n].highlight ? selectedIconSrc : "<?php echo $img_base ?>inst-icon.gif";
-      instances[mpoints[n].Extention] += mapPinImg(isrc, ix, iy, attrs+hlTag);
-    }
-    else if(mpoints[n].highlight)
-    {
-      if(multi)
-        groups[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, attrs+hlTag);
-      else
-        single[mpoints[n].Extention] += mapPinImg(selectedIconSrc, mpoints[n].x, mpoints[n].y, attrs+hlTag);
+      instances[mpoints[n].Extention] += mapPinImg("<?php echo $img_base ?>inst-icon.gif", ix, iy, attrs);
     }
     else if(multi)
       groups[mpoints[n].Extention] += mapPinImg(groupPinSrc, mpoints[n].x, mpoints[n].y, pinTipAttrs(n, false, true));
@@ -931,7 +942,7 @@ function show(data)
   for(i = 0; i < maps_count; i++)
   {
     obj = getPointsLayerByID(i);
-    obj.innerHTML = instances[i] + single[i] + groups[i];
+    obj.innerHTML = instances[i] + single[i] + groups[i] + highlights[i];
     players_count[i] = alliance_count[i] + horde_count[i];
     total_players_count[0] += alliance_count[i];
     total_players_count[1] += horde_count[i];
@@ -1004,7 +1015,7 @@ function renderSnapshotHighlight()
   switchworld(ext);
   var obj = getPointsLayerByID(ext);
   var snapTagId = 'pm-hl-tag-snapshot';
-  var pin = mapPinImg(selectedIconSrc, pos.x, pos.y, 'onMouseMove="tipSnapshotHighlight();" onMouseOut="h_tip();"'+highlightTagMouseAttrs(snapTagId));
+  var pin = mapPinImg(selectedIconSrc, pos.x, pos.y, 'onMouseMove="tipSnapshotHighlight();" onMouseOut="h_tip();"'+highlightTagMouseAttrs(snapTagId), true);
   obj.innerHTML = obj.innerHTML + pin + highlightNameTagHtml(pos.x, pos.y, highlightPlayer, fallbackLocationSubtitle(), snapTagId);
 }
 
