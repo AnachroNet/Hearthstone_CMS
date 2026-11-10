@@ -521,7 +521,7 @@ function admin_users_render_activity_modal(int $accountId, string $username, arr
                         <tbody>
                             <?php foreach ($activityLog as $log): ?>
                                 <tr>
-                                    <td class="col-action py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['action']); ?></td>
+                                    <td class="col-action py-2 px-3 text-gray-300"><?php echo htmlspecialchars($log['action']); ?></td>
                                     <td class="col-character py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo htmlspecialchars($log['character_name'] !== null && $log['character_name'] !== '' ? $log['character_name'] : translate('admin_users_na', 'N/A')); ?></td>
                                     <td class="col-timestamp py-2 px-3 text-gray-300 whitespace-nowrap"><?php echo $log['timestamp'] > 0 ? htmlspecialchars(date('Y-m-d H:i:s', $log['timestamp'])) : translate('admin_users_na', 'N/A'); ?></td>
                                     <td class="col-details py-2 px-3 text-gray-300"><?php echo htmlspecialchars($log['details'] !== null && $log['details'] !== '' ? $log['details'] : translate('admin_users_activity_no_details', '—')); ?></td>
@@ -750,21 +750,31 @@ ob_start();
 
         .admin-users-activity-panel {
             width: 100%;
-            max-width: min(56rem, 92vw);
+            /* Midpoint between prior 56rem cap and full 92vw */
+            max-width: min(calc(28rem + 46vw), 92vw);
         }
 
         .admin-users-activity-table {
             table-layout: fixed;
             width: 100%;
         }
+        .admin-users-activity-table th,
+        .admin-users-activity-table td {
+            min-width: 0;
+        }
         .admin-users-activity-table .col-action {
-            width: 22%;
+            width: 28%;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: normal;
+            vertical-align: top;
         }
         .admin-users-activity-table .col-character {
-            width: 18%;
+            width: 16%;
         }
         .admin-users-activity-table .col-timestamp {
-            width: 26%;
+            width: 22%;
         }
         .admin-users-activity-table .col-details {
             width: 34%;
