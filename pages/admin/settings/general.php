@@ -7,6 +7,7 @@ require_once $project_root . 'includes/config.settings.php';
 require_once $project_root . 'includes/token_gift_settings.php';
 require_once $project_root . 'includes/token_gift_world.php';
 require_once $project_root . 'includes/adopt_a_bot.php';
+require_once $project_root . 'includes/playermap.php';
 require_once $project_root . 'includes/site_release.php';
 
 global $world_db, $site_db;
@@ -592,6 +593,51 @@ include $project_root . 'includes/header.php';
                                     <?php echo translate('help_discord_guild_id', 'Enable the Server Widget in Discord → Server Settings → Widget, then paste your server ID here.'); ?>
                                 </div>
                             </div>
+
+                            <!-- Live player map -->
+                            <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+                            <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">
+                                <label class="form-label text-[#f2cf5b] font-bold text-sm tracking-wider block mb-2">
+                                    <?php echo translate('label_playermap', 'Live player map'); ?>
+                                </label>
+                                <label class="inline-flex items-center gap-2 text-sm text-gray-300 cursor-pointer mb-3">
+                                    <input type="checkbox" name="playermap_enabled" value="1" class="rounded border-[#c9a227]/40"
+                                        <?php echo sahtout_playermap_enabled($site_db) ? 'checked' : ''; ?>>
+                                    <?php echo translate('label_playermap_enabled', 'Enable live player map (/playermap/)'); ?>
+                                </label>
+                                <div class="text-[#6a7a8a] text-xs mb-3 max-w-3xl">
+                                    <?php echo translate(
+                                        'help_playermap_enabled',
+                                        'When enabled, visitors can open the standalone player map (no site header/footer). Uses your auth and characters databases from config.local.php. Override with features.playermap_enabled in config.local.php if needed.'
+                                    ); ?>
+                                </div>
+                                <?php
+                                $playermapFaction = sahtout_playermap_faction_mode();
+                                ?>
+                                <label for="playermap_faction_visibility" class="text-sm text-gray-300 block mb-1">
+                                    <?php echo translate('label_playermap_faction', 'Characters shown on map'); ?>
+                                </label>
+                                <select name="playermap_faction_visibility"
+                                        id="playermap_faction_visibility"
+                                        class="w-full max-w-md px-4 py-3 text-sm text-[#e5e7eb] bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm focus:border-[#f2cf5b] outline-none mb-1">
+                                    <option value="both"<?php echo $playermapFaction === 'both' ? ' selected' : ''; ?>>
+                                        <?php echo translate('playermap_faction_both', 'Alliance and Horde'); ?>
+                                    </option>
+                                    <option value="alliance"<?php echo $playermapFaction === 'alliance' ? ' selected' : ''; ?>>
+                                        <?php echo translate('playermap_faction_alliance', 'Alliance only'); ?>
+                                    </option>
+                                    <option value="horde"<?php echo $playermapFaction === 'horde' ? ' selected' : ''; ?>>
+                                        <?php echo translate('playermap_faction_horde', 'Horde only'); ?>
+                                    </option>
+                                </select>
+                                <div class="text-[#6a7a8a] text-xs mt-1 max-w-3xl">
+                                    <?php echo translate(
+                                        'help_playermap_faction',
+                                        'Affects regular players only. Game Masters can still appear according to the map GM options in config.local.php playermap section.'
+                                    ); ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
 
                             <!-- In-game breaking news (site feature) -->
                             <div class="pt-2 border-t border-[rgba(201,162,39,.08)]">

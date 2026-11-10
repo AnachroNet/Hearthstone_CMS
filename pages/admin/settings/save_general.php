@@ -20,6 +20,7 @@ if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST
 require_once $project_root . 'includes/site_settings.php';
 require_once $project_root . 'includes/token_gift_settings.php';
 require_once $project_root . 'includes/adopt_a_bot.php';
+require_once $project_root . 'includes/playermap.php';
 
 // ==================== NEW: Handle Website Title ====================
 $site_title_name_new = trim($_POST['site_title_name'] ?? '');
@@ -116,6 +117,13 @@ $shop_adopt_a_bot_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_
 $shop_adopt_a_bot_pool_username_prefix_new = ($_SESSION['role'] ?? '') === 'admin'
     ? trim((string) ($_POST['shop_adopt_a_bot_pool_username_prefix'] ?? SAHTOUT_ADOPT_A_BOT_DEFAULT_POOL_USERNAME_PREFIX))
     : null;
+$playermap_enabled_new = ($_SESSION['role'] ?? '') === 'admin' ? isset($_POST['playermap_enabled']) : null;
+$playermap_faction_new = ($_SESSION['role'] ?? '') === 'admin'
+    ? strtolower(trim((string) ($_POST['playermap_faction_visibility'] ?? SAHTOUT_PLAYERMAP_FACTION_BOTH)))
+    : null;
+if ($playermap_faction_new !== null && !in_array($playermap_faction_new, sahtout_playermap_faction_modes(), true)) {
+    $playermap_faction_new = SAHTOUT_PLAYERMAP_FACTION_BOTH;
+}
 
 $shop_token_gift_loot_ids_raw = trim((string) ($_POST['shop_token_gift_loot_ids'] ?? ''));
 $shop_token_gift_loot_ids_new = preg_replace('/[^0-9,\s;]+/', '', $shop_token_gift_loot_ids_raw) ?? '';
@@ -151,6 +159,12 @@ if (empty($errors)) {
         }
         if ($shop_adopt_a_bot_enabled_new !== null) {
             $ok = $ok && sahtout_site_setting_set($site_db, 'shop.adopt_a_bot_enabled', $shop_adopt_a_bot_enabled_new, 'bool', $editorId);
+        }
+        if ($playermap_enabled_new !== null) {
+            $ok = $ok && sahtout_site_setting_set($site_db, 'playermap.enabled', $playermap_enabled_new, 'bool', $editorId);
+        }
+        if ($playermap_faction_new !== null) {
+            $ok = $ok && sahtout_site_setting_set($site_db, 'playermap.faction_visibility', $playermap_faction_new, 'string', $editorId);
         }
         if ($shop_adopt_a_bot_pool_username_prefix_new !== null && $shop_adopt_a_bot_pool_username_prefix_new !== '') {
             $ok = $ok && sahtout_site_setting_set(

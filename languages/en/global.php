@@ -11,6 +11,8 @@ return [
     'home_event_calendar_empty_upcoming' => 'No events are active or scheduled in the next 30 days.',
     'home_event_calendar_open_full' => 'Event Calendar',
     'nav_armory' => 'Armory',
+    'nav_playermap' => 'Player Map',
+    'playermap_back_to_site' => 'Back to site',
     'armory_talent_calculator_btn' => 'Talent Calculator',
     'talents_open_calculator' => 'Open in Talent Calculator',
     'talents_embed_title' => 'Talent build',

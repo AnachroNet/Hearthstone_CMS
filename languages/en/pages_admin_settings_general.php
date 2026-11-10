@@ -66,6 +66,15 @@ return [
     'help_registration_signup_tokens' => 'When enabled, each new game account receives this many website shop tokens after signup (email activation or instant registration). Uncheck to leave new accounts at zero tokens.',
     'error_shared_email_index' => 'Could not update the pending signups table for shared emails—required schema may be missing. Re-import SQL/Hearthstone_DATABASE/BASE_INSTALL/2026110601-hearthstone_site_install_v1.0.sql into your site database.',
 
+    'label_playermap' => 'Live player map',
+    'label_playermap_enabled' => 'Enable live player map (/playermap/)',
+    'help_playermap_enabled' => 'When enabled, visitors can open the standalone player map (no site header/footer). Uses your auth and characters databases from config.local.php. Override with features.playermap_enabled in config.local.php if needed.',
+    'label_playermap_faction' => 'Characters shown on map',
+    'playermap_faction_both' => 'Alliance and Horde',
+    'playermap_faction_alliance' => 'Alliance only',
+    'playermap_faction_horde' => 'Horde only',
+    'help_playermap_faction' => 'Affects regular players only. Game Masters can still appear according to the map GM options in config.local.php playermap section.',
+
     'label_site_breaking_news' => 'In-game breaking news',
     'label_site_breaking_news_enabled' => 'Show breaking news on the home page and enable the in-game editor (Admin → News)',
     'help_site_breaking_news' => 'When enabled, the site reads and writes the mod_breaking_news table on acore_world. That table comes from the AzerothCore Breaking News module—install it on your core if you use this feature. Turn this off if you do not use breaking news so the site skips world DB lookups for it.',

@@ -88,5 +88,27 @@ return [
         'shop_token_gifts_enabled' => null,
         /** Force Adopt a Bot on/off regardless of Admin → General (null = use database). */
         'adopt_a_bot_enabled' => null,
+        /** Force live player map on/off regardless of Admin → General (null = use database). */
+        'playermap_enabled' => null,
+    ],
+    /**
+     * Optional AzerothCore playermap tuning (Admin → General: enable + faction visibility).
+     * Uses auth/characters/realms from this file; no separate playermap_config.php.
+     */
+    'playermap' => [
+        'gm_online' => true,
+        'gm_online_count' => 100,
+        'map_gm_show_online_only_gmoff' => 1,
+        'map_gm_show_online_only_gmvisible' => 1,
+        'map_gm_add_suffix' => 1,
+        'map_status_gm_include_all' => 0,
+        'map_show_status' => 1,
+        'map_show_time' => 1,
+        'map_time' => 5,
+        'map_time_to_show_uptime' => 3000,
+        'map_time_to_show_maxonline' => 3000,
+        'map_time_to_show_gmonline' => 3000,
+        'developer_test_mode' => false,
+        'multi_realm_mode' => false,
     ],
 ];

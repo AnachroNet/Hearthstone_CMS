@@ -173,4 +173,6 @@ if (!function_exists('getMailer')) {
     }
 }
 
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'playermap.php';
+
 define('SAHTOUT_CONFIG_LOADED', true);

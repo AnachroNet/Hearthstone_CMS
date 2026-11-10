@@ -16,6 +16,10 @@ return [
     'credits_talent_license' => 'GPL-3.0 License',
     'credits_talent_body' => 'Very nice talent calculator that we wired into the character display, and offer as a stand-alone calculator for planning our builds.',
 
+    'credits_playermap_name' => 'AzerothCore Playermap',
+    'credits_playermap_url' => 'https://github.com/azerothcore/playermap/tree/master',
+    'credits_playermap_body' => 'Live online player map for AzerothCore. Original work by Dmitry Koterov; maintained for AzerothCore by Helias and contributors. Integrated here at /playermap/ as an optional site feature.',
+
     'credits_link_label' => 'View repository',
     'footer_credits_link' => 'Credits',
 ];

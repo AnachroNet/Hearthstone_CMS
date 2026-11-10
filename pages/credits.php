@@ -175,6 +175,19 @@ include $project_root . 'includes/header.php';
                 </div>
                 <p class="credits-entry-body"><?php echo htmlspecialchars(translate('credits_talent_body', ''), ENT_QUOTES, 'UTF-8'); ?></p>
             </article>
+
+            <article class="credits-entry">
+                <h2 class="credits-entry-title"><?php echo htmlspecialchars(translate('credits_playermap_name', 'AzerothCore Playermap'), ENT_QUOTES, 'UTF-8'); ?></h2>
+                <div class="credits-entry-meta">
+                    <a href="<?php echo htmlspecialchars(translate('credits_playermap_url', 'https://github.com/azerothcore/playermap/tree/master'), ENT_QUOTES, 'UTF-8'); ?>"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        <?php echo htmlspecialchars(translate('credits_playermap_url', 'https://github.com/azerothcore/playermap/tree/master'), ENT_QUOTES, 'UTF-8'); ?>
+                        <span class="sr-only"> (<?php echo htmlspecialchars(translate('credits_link_label', 'View repository'), ENT_QUOTES, 'UTF-8'); ?>)</span>
+                    </a>
+                </div>
+                <p class="credits-entry-body"><?php echo htmlspecialchars(translate('credits_playermap_body', ''), ENT_QUOTES, 'UTF-8'); ?></p>
+            </article>
         </div>
     </div>
 </div>

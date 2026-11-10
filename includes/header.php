@@ -585,6 +585,12 @@ $esc_document_base = htmlspecialchars($page_document_base, ENT_QUOTES, 'UTF-8');
                     <?php echo translate('nav_armory', 'Armory'); ?>
                 </a>
 
+                <?php if (function_exists('sahtout_playermap_enabled') && sahtout_playermap_enabled(isset($site_db) ? $site_db : null)): ?>
+                <a href="<?php echo $esc_base; ?>playermap/" class="nav-link" target="_blank" rel="noopener">
+                    <?php echo translate('nav_playermap', 'Player Map'); ?>
+                </a>
+                <?php endif; ?>
+
                 <a href="<?php echo $esc_base; ?>shop" class="nav-link <?php echo $page_class === 'shop' ? 'active' : ''; ?>">
                     <?php echo translate('nav_shop', 'Shop'); ?>
                 </a>

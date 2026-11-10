@@ -63,6 +63,8 @@ function sahtout_site_setting_defaults(): array
         'shop.token_gift_quest_template_ref' => '123',
         'shop.token_gift_id_base' => '300000',
         'shop.token_gift_admin_access' => 'admin_only',
+        'playermap.enabled' => '0',
+        'playermap.faction_visibility' => 'both',
     ];
 }
 
